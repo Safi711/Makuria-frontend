@@ -1,0 +1,17 @@
+# Makuria Frontend — environment variables
+# Copy this file to .env.local for local development, and set the same
+# keys in the Vercel project settings for the preview/staging deployment.
+#
+# SECURITY: only ever put the ANON/publishable key here. Never put the
+# service_role key in any NEXT_PUBLIC_* variable or anywhere this app's
+# client bundle can read it.
+
+NEXT_PUBLIC_SUPABASE_URL=https://damzdxcutawghksuzoan.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRhbXpkeGN1dGF3Z2hrc3V6b2FuIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMzNjE2OTYsImV4cCI6MjA5ODkzNzY5Nn0.nmGvp7vq3S1DK8lpsZOQyiVd6Js3rLzosvEvAznRxX4
+
+# Optional: GA4 measurement ID for THIS staging deployment only.
+# Leave unset to run with no analytics while testing. Do not reuse the
+# production property's ID here unless you want staging traffic mixed
+# into production reports — see Phase 0.6 report section G for the
+# recommended approach (separate GA4 data stream, same property).
+NEXT_PUBLIC_GA_MEASUREMENT_ID=
