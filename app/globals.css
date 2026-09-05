@@ -1,0 +1,53 @@
+@import "tailwindcss";
+
+/* Makuria design tokens — ported from the current gold/black visual
+   identity on makuria.pplx.app. Swap these values, not the components,
+   if the brand palette changes. */
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+  --mk-black: #0b0b0c;
+  --mk-black-soft: #17181a;
+  --mk-gold: #c9a227;
+  --mk-gold-soft: #e4c766;
+  --mk-border: #e5e2d8;
+  --mk-verified-bg: #eef7ee;
+  --mk-verified-fg: #1f7a3d;
+  --mk-unverified-bg: #fdf2e0;
+  --mk-unverified-fg: #92600b;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: "Segoe UI", system-ui, Tahoma, Arial, Helvetica, sans-serif;
+}
+
+/* System Arabic-capable stack; swap in a self-hosted webfont
+   (e.g. Noto Kufi Arabic) once this is validated end-to-end and the
+   deployment target's network access to a font CDN is confirmed. */
+[dir="rtl"] body {
+  font-family: Tahoma, "Segoe UI", "Geeza Pro", Arial, sans-serif;
+}
+
+.mk-badge-verified {
+  background: var(--mk-verified-bg);
+  color: var(--mk-verified-fg);
+}
+
+.mk-badge-unverified {
+  background: var(--mk-unverified-bg);
+  color: var(--mk-unverified-fg);
+}
