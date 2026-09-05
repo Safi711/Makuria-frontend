@@ -4,7 +4,7 @@ import { Locale } from "@/lib/i18n";
 const ITEMS: { href: string; label_ar: string; label_en: string; status: "shell" | "planned" }[] = [
   { href: "/workspace", label_ar: "نظرة عامة", label_en: "Overview", status: "shell" },
   { href: "/matters", label_ar: "الملفات القضائية", label_en: "Matters", status: "planned" },
-  { href: "/case-mapper", label_ar: "خريطة القضية", label_en: "Case Mapper", status: "planned" },
+  { href: "/case-mapper", label_ar: "خريطة القضية", label_en: "Case Mapper", status: "shell" },
   { href: "/quick-check", label_ar: "الفحص السريع", label_en: "Quick Check", status: "planned" },
   { href: "/practical-law", label_ar: "القانون العملي بالسودان", label_en: "Practical Law Sudan", status: "planned" },
   { href: "/alerts", label_ar: "التنبيهات", label_en: "Alerts", status: "planned" },
