@@ -122,6 +122,9 @@ export function extractTerms(text: string, max = MAX_EXTRACTED): string[] {
   for (const w of words) {
     if (w.length < 3) continue;
     if (STOPWORDS.has(w)) continue;
+    // Pure numbers (e.g. "500", "000" split out of "500,000") are not
+    // legal issues — searching them also just noises up universal_search.
+    if (/^[0-9]+$/.test(w)) continue;
     freq.set(w, (freq.get(w) ?? 0) + 1);
   }
   return [...freq.entries()]
@@ -368,3 +371,4 @@ export async function analyzeCase(
     hasAnyResults: lawList.length > 0 || caseList.length > 0 || principleList.length > 0,
   };
 }
+
