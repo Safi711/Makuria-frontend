@@ -108,6 +108,24 @@ const STOPWORDS = new Set([
   "نحن", "انت", "انتم", "كانوا", "يكون", "تم", "كذلك", "وقد", "فقد",
 ]);
 
+// Very common Sudanese/Arabic given names. A party's first name is a weak,
+// near-random signal for legal relevance — it mainly just happens to match
+// unrelated precedents whose parties share the same common name (e.g. a
+// debt dispute pulling in an unrelated case only because both involve
+// someone named "محمد"). Excluding these from *extracted* terms keeps the
+// extraction focused on actual legal-issue vocabulary; it does not touch
+// case type or keywords the lawyer typed in explicitly.
+const COMMON_GIVEN_NAMES = new Set([
+  "محمد", "أحمد", "احمد", "علي", "عبدالله", "عبدالله", "عبد", "إبراهيم",
+  "ابراهيم", "الحسن", "حسن", "حسين", "عمر", "عثمان", "يوسف", "إسماعيل",
+  "اسماعيل", "خالد", "عبدالرحمن", "عبدالرحيم", "الطيب", "الفاتح", "مصطفى",
+  "مصطفي", "صالح", "آدم", "ادم", "بابكر", "التاج", "عوض", "النور", "نور",
+  "عبدالعزيز", "الأمين", "الامين", "بشير", "عادل", "ياسر", "طارق", "كمال",
+  "مأمون", "مامون", "فاطمة", "عائشة", "عايشة", "خديجة", "مريم", "زينب",
+  "آمنة", "امنة", "حواء", "سارة", "هدى", "إيمان", "ايمان", "سلمى", "نعمات",
+  "أسماء", "اسماء", "منى", "سعاد", "نجوى", "سمية", "سميه",
+]);
+
 function stripTashkeel(text: string): string {
   return text.replace(/[ً-ٰٟ]/g, "");
 }
@@ -125,6 +143,9 @@ export function extractTerms(text: string, max = MAX_EXTRACTED): string[] {
     // Pure numbers (e.g. "500", "000" split out of "500,000") are not
     // legal issues — searching them also just noises up universal_search.
     if (/^[0-9]+$/.test(w)) continue;
+    // A party's common given name is not a legal issue either — see
+    // COMMON_GIVEN_NAMES above.
+    if (COMMON_GIVEN_NAMES.has(w)) continue;
     freq.set(w, (freq.get(w) ?? 0) + 1);
   }
   return [...freq.entries()]
