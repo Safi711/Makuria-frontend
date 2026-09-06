@@ -68,7 +68,7 @@ export const dictionaries: Record<Locale, Record<string, string>> = {
     cmEmptyFacts: "الرجاء إدخال وقائع القضية قبل التحليل.",
     cmErrorState: "حدث خطأ أثناء تحليل القضية. يرجى المحاولة مرة أخرى.",
     cmNoResultsAtAll:
-      "لم يتم العثور على أي مرجع مطابق في قاعدة مكوريا لهذه الوقائع. جرّب إضافة كلمات مفتاحية أكثر تحديدًا.",
+      "لم يتم العثور على مرجع موثّق في قاعدة مكوريا. جرّب إضافة كلمات مفتاحية أكثر تحديدًا.",
     cmSectionSummary: "ملخص الوقائع",
     cmSummaryNote: "عرض أولي للوقائع كما أدخلتها — بدون تفسير أو استنتاج.",
     cmSummaryTruncated: "(تم عرض الجزء الأول من النص المدخل)",
@@ -168,7 +168,7 @@ export const dictionaries: Record<Locale, Record<string, string>> = {
     cmEmptyFacts: "Please enter the case facts before analyzing.",
     cmErrorState: "Something went wrong analyzing the case. Please try again.",
     cmNoResultsAtAll:
-      "No matching authority was found in the Makuria database for these facts. Try adding more specific keywords.",
+      "No verified authority was found in the Makuria database. Try adding more specific keywords.",
     cmSectionSummary: "Facts Summary",
     cmSummaryNote: "A plain preview of the facts as entered — no interpretation or inference.",
     cmSummaryTruncated: "(showing the leading portion of the text you entered)",
@@ -213,3 +213,4 @@ export function t(locale: Locale, key: string): string {
 export function dirFor(locale: Locale): "rtl" | "ltr" {
   return locale === "ar" ? "rtl" : "ltr";
 }
+
