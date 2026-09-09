@@ -45,3 +45,7 @@ backups/
 
 # Supabase CLI local state
 supabase/.temp/
+
+# Local audit artifacts
+makuria-audit.zip
+onlykey
