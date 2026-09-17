@@ -23,6 +23,18 @@ export const dictionaries: Record<Locale, Record<string, string>> = {
     searchPlaceholder: "ابحث في القوانين والسوابق والمواد بالكلمة المفتاحية",
     searchButton: "بحث",
     noResults: "لا توجد نتائج مطابقة",
+
+    // حالة السريان في نتائج البحث
+    statusRepealed: "ملغاة",
+    statusDisputed: "محل نزاع",
+    statusAmended: "معدَّلة",
+    statusNotYetInForce: "لم تنفذ بعد",
+    statusUnknown: "غير معروفة",
+    articleLabel: "مادة",
+    resultsInForce: "نتيجة نافذة",
+    notInForceHeading: "نصوص غير نافذة",
+    notInForceNote:
+      "تُعرض للرجوع التاريخي. لا يُستشهد بها كسند قائم في دعوى.",
     loadMore: "المزيد",
     previous: "السابق",
     next: "التالي",
@@ -123,6 +135,18 @@ export const dictionaries: Record<Locale, Record<string, string>> = {
     searchPlaceholder: "Search laws, cases, and articles by keyword",
     searchButton: "Search",
     noResults: "No matching results",
+
+    // Legal status on search results
+    statusRepealed: "Repealed",
+    statusDisputed: "Disputed",
+    statusAmended: "Amended",
+    statusNotYetInForce: "Not yet in force",
+    statusUnknown: "Status unknown",
+    articleLabel: "Art.",
+    resultsInForce: "in force",
+    notInForceHeading: "Texts no longer in force",
+    notInForceNote:
+      "Shown for historical reference. Not citable as standing authority.",
     loadMore: "Load more",
     previous: "Previous",
     next: "Next",
