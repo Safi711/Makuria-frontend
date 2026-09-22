@@ -20,7 +20,7 @@ export const dictionaries: Record<Locale, Record<string, string>> = {
       "قوانين، سوابق قضائية، ومبادئ قانونية موثّقة — بحث ذكي وتحقق من المصادر.",
     exploreLaws: "استعرض القوانين",
     exploreCases: "استعرض السوابق القضائية",
-    searchPlaceholder: "ابحث في القوانين والسوابق والمواد بالكلمة المفتاحية",
+    searchPlaceholder: "اكتب كلمة أو سؤالاً — مثل: عقوبة السرقة، أو المادة 96 من القانون الجنائي",
     searchButton: "بحث",
     noResults: "لا توجد نتائج مطابقة",
 
@@ -29,9 +29,14 @@ export const dictionaries: Record<Locale, Record<string, string>> = {
     statusDisputed: "محل نزاع",
     statusAmended: "معدَّلة",
     statusNotYetInForce: "لم تنفذ بعد",
-    statusUnknown: "غير معروفة",
+    statusUnknown: "تحت المراجعة",
     articleLabel: "مادة",
     resultsInForce: "نتيجة نافذة",
+    underReviewHeading: "نصوص تحت المراجعة",
+    underReviewNote:
+      "لم يُتحقق بعد من نفاذها الحالي، أو لا مصدر رسمياً مسجلاً لها. راجع المصدر الرسمي قبل الاعتماد عليها.",
+    articleNumberOnlyNote:
+      "لم نجد القانون المذكور في قاعدة مكوريا، فهذه كل المواد التي تحمل الرقم نفسه.",
     notInForceHeading: "نصوص غير نافذة",
     notInForceNote:
       "تُعرض للرجوع التاريخي. لا يُستشهد بها كسند قائم في دعوى.",
@@ -41,7 +46,7 @@ export const dictionaries: Record<Locale, Record<string, string>> = {
     page: "صفحة",
     of: "من",
     verified: "موثّق",
-    unverified: "غير موثّق — يتطلب مراجعة قانونية",
+    unverified: "تحت المراجعة",
     comingSoonTitle: "قيد التطوير",
     comingSoonBody:
       "هذه الوحدة جزء من مساحة عمل المحامي في مكوريا وسيتم بناؤها في مرحلة لاحقة. لا توجد بيانات أو وظائف مُصطنعة هنا.",
@@ -132,7 +137,7 @@ export const dictionaries: Record<Locale, Record<string, string>> = {
       "Verified laws, judicial precedents, and legal principles — smart search with source verification.",
     exploreLaws: "Browse Laws",
     exploreCases: "Browse Precedents",
-    searchPlaceholder: "Search laws, cases, and articles by keyword",
+    searchPlaceholder: "Type a word or a question — e.g. theft penalty, or article 96 of the Criminal Act",
     searchButton: "Search",
     noResults: "No matching results",
 
@@ -141,9 +146,14 @@ export const dictionaries: Record<Locale, Record<string, string>> = {
     statusDisputed: "Disputed",
     statusAmended: "Amended",
     statusNotYetInForce: "Not yet in force",
-    statusUnknown: "Status unknown",
+    statusUnknown: "Under review",
     articleLabel: "Art.",
     resultsInForce: "in force",
+    underReviewHeading: "Texts under review",
+    underReviewNote:
+      "Current force not yet verified, or no official source recorded. Check the official source before relying on them.",
+    articleNumberOnlyNote:
+      "The law you named is not in the Makuria database, so these are all articles carrying that number.",
     notInForceHeading: "Texts no longer in force",
     notInForceNote:
       "Shown for historical reference. Not citable as standing authority.",
@@ -153,7 +163,7 @@ export const dictionaries: Record<Locale, Record<string, string>> = {
     page: "Page",
     of: "of",
     verified: "Verified",
-    unverified: "Unverified — requires legal review",
+    unverified: "Under review",
     comingSoonTitle: "Coming Soon",
     comingSoonBody:
       "This module is part of the Makuria Lawyer Workspace and will be built in a later phase. No fabricated data or functionality lives here.",
