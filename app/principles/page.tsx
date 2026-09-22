@@ -2,6 +2,14 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getLocale } from "@/lib/i18n-server";
 import { t } from "@/lib/i18n";
+import type { Metadata } from "next";
+
+export const metadata: Metadata = {
+  title: "المبادئ القانونية",
+  description:
+    "المبادئ القانونية المستقرة في القضاء السوداني، مستخلصة من الأحكام ومرتبطة بمصادرها على منصة مكوريا.",
+  alternates: { canonical: "/principles" },
+};
 
 export default async function PrinciplesPage() {
   const locale = await getLocale();

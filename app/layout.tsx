@@ -5,6 +5,7 @@ import { dirFor, t } from "@/lib/i18n";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { GaScript } from "@/components/GaScript";
+import { SITE_NAME_AR, SITE_URL } from "@/lib/site";
 
 // NOTE: this build intentionally does not pull typefaces from
 // next/font/google. The sandboxed dev container this was authored in has
@@ -14,10 +15,45 @@ import { GaScript } from "@/components/GaScript";
 // phase is a system font stack (see globals.css) with a real webfont
 // swap-in left as a follow-up once this is validated end-to-end.
 
+// Every page inherits this and overrides `title` / `description` / canonical
+// with its own. Before this, all ~340 law and case pages shipped one identical
+// title and description, which is the single biggest reason a corpus this size
+// fails to get indexed: search engines treat the set as near-duplicates.
 export const metadata: Metadata = {
-  title: "مكوريا — Makuria Legal Institute",
+  metadataBase: new URL(SITE_URL),
+  title: {
+    default: "مكوريا — القوانين والسوابق القضائية السودانية",
+    template: "%s — مكوريا",
+  },
   description:
-    "Sudanese legal intelligence platform — laws, judicial precedents, and legal principles with source verification.",
+    "معهد مكوريا القانوني: نصوص القوانين السودانية كاملة بموادها، والسوابق القضائية، والمبادئ القانونية — مع بيان حالة نفاذ كل نص ومصدره.",
+  applicationName: SITE_NAME_AR,
+  alternates: { canonical: "/" },
+  openGraph: {
+    type: "website",
+    siteName: SITE_NAME_AR,
+    locale: "ar_SD",
+    url: SITE_URL,
+    title: "مكوريا — القوانين والسوابق القضائية السودانية",
+    description:
+      "نصوص القوانين السودانية كاملة بموادها، والسوابق القضائية، والمبادئ القانونية — مع بيان حالة نفاذ كل نص ومصدره.",
+  },
+  twitter: {
+    card: "summary",
+    title: "مكوريا — القوانين والسوابق القضائية السودانية",
+    description:
+      "نصوص القوانين السودانية كاملة بموادها، والسوابق القضائية، والمبادئ القانونية.",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-snippet": -1,
+      "max-image-preview": "large",
+    },
+  },
 };
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {

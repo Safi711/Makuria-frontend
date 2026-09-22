@@ -4,8 +4,24 @@ import { getLocale } from "@/lib/i18n-server";
 import { t } from "@/lib/i18n";
 import { VerificationBadge } from "@/components/VerificationBadge";
 import { Pagination } from "@/components/Pagination";
+import type { Metadata } from "next";
 
 const PAGE_SIZE = 20;
+
+// Pages 2+ and category filters are the same corpus in a different order, so
+// they carry the index of page 1 rather than competing with it.
+export async function generateMetadata(props: PageProps<"/laws">): Promise<Metadata> {
+  const searchParams = await props.searchParams;
+  const page = Math.max(1, Number(searchParams.page ?? "1") || 1);
+  const filtered = page > 1 || typeof searchParams.category === "string";
+  return {
+    title: "القوانين السودانية",
+    description:
+      "فهرس القوانين السودانية على منصة مكوريا — النص الكامل لكل قانون بمواده، مصنّفاً بحسب المجال، مع بيان حالة النفاذ: ساري، أو ملغى، أو تحت المراجعة.",
+    alternates: { canonical: "/laws" },
+    robots: filtered ? { index: false, follow: true } : undefined,
+  };
+}
 
 export default async function LawsPage(props: PageProps<"/laws">) {
   const searchParams = await props.searchParams;

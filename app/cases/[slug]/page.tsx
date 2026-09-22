@@ -1,8 +1,53 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getLocale } from "@/lib/i18n-server";
 import { t } from "@/lib/i18n";
 import { VerificationBadge } from "@/components/VerificationBadge";
+import { SITE_URL, clampDescription } from "@/lib/site";
+
+/**
+ * A precedent is the kind of page people search for by its principle, not by
+ * the site's name — so the principle (falling back to the subject) is what
+ * goes in the description.
+ */
+export async function generateMetadata(
+  props: PageProps<"/cases/[slug]">
+): Promise<Metadata> {
+  const { slug } = await props.params;
+  const supabase = await createClient();
+  const { data: c } = await supabase
+    .from("cases")
+    .select("case_title_ar, case_number, judgment_date, principle_ar, summary_ar, subject_ar")
+    .eq("slug", slug)
+    .maybeSingle();
+
+  if (!c) return { title: "سابقة غير موجودة", robots: { index: false, follow: true } };
+
+  const title = c.case_title_ar || `قضية ${c.case_number ?? ""}`.trim();
+  const body = c.principle_ar || c.summary_ar || c.subject_ar || "";
+  const facts = [
+    c.case_number ? `رقم القضية ${c.case_number}` : null,
+    c.judgment_date ? `تاريخ الحكم ${c.judgment_date}` : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+  const description = clampDescription(
+    body ? `${body}${facts ? ` — ${facts}` : ""}` : `سابقة قضائية سودانية. ${facts}`
+  );
+
+  return {
+    title,
+    description,
+    alternates: { canonical: `/cases/${slug}` },
+    openGraph: {
+      type: "article",
+      url: `${SITE_URL}/cases/${slug}`,
+      title,
+      description,
+    },
+  };
+}
 
 export default async function CaseDetailPage(props: PageProps<"/cases/[slug]">) {
   const { slug } = await props.params;

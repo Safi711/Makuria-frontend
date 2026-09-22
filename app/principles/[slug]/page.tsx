@@ -1,6 +1,37 @@
+import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getLocale } from "@/lib/i18n-server";
+import { SITE_URL, clampDescription } from "@/lib/site";
+
+export async function generateMetadata(
+  props: PageProps<"/principles/[slug]">
+): Promise<Metadata> {
+  const { slug } = await props.params;
+  const supabase = await createClient();
+  const { data: p } = await supabase
+    .from("legal_principles")
+    .select("title_ar, title_en, summary_ar, category, first_known_year")
+    .eq("slug", slug)
+    .maybeSingle();
+
+  if (!p) return { title: "مبدأ غير موجود", robots: { index: false, follow: true } };
+
+  const title = p.title_ar || p.title_en || slug;
+  const facts = [p.category, p.first_known_year ? `منذ ${p.first_known_year}` : null]
+    .filter(Boolean)
+    .join(" · ");
+  const description = clampDescription(
+    p.summary_ar ? `${p.summary_ar}${facts ? ` — ${facts}` : ""}` : `مبدأ قانوني سوداني. ${facts}`
+  );
+
+  return {
+    title,
+    description,
+    alternates: { canonical: `/principles/${slug}` },
+    openGraph: { type: "article", url: `${SITE_URL}/principles/${slug}`, title, description },
+  };
+}
 
 export default async function PrincipleDetailPage(props: PageProps<"/principles/[slug]">) {
   const { slug } = await props.params;

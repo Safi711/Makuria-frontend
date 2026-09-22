@@ -4,8 +4,21 @@ import { getLocale } from "@/lib/i18n-server";
 import { t } from "@/lib/i18n";
 import { VerificationBadge } from "@/components/VerificationBadge";
 import { Pagination } from "@/components/Pagination";
+import type { Metadata } from "next";
 
 const PAGE_SIZE = 20;
+
+export async function generateMetadata(props: PageProps<"/cases">): Promise<Metadata> {
+  const searchParams = await props.searchParams;
+  const page = Math.max(1, Number(searchParams.page ?? "1") || 1);
+  return {
+    title: "السوابق القضائية السودانية",
+    description:
+      "أحكام ومبادئ المحكمة العليا والمحاكم السودانية على منصة مكوريا — وقائع كل قضية، والمسألة القانونية، والحكم، والتسبيب، والمبدأ المستخلص منها.",
+    alternates: { canonical: "/cases" },
+    robots: page > 1 ? { index: false, follow: true } : undefined,
+  };
+}
 
 export default async function CasesPage(props: PageProps<"/cases">) {
   const searchParams = await props.searchParams;
