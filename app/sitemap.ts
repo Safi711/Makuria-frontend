@@ -39,9 +39,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     entry("/laws", null, "daily", 0.9),
     entry("/cases", null, "daily", 0.9),
     entry("/principles", null, "weekly", 0.7),
-    entry("/practical-law", null, "weekly", 0.6),
+    // /case-mapper is a working module. /practical-law and /quick-check are
+    // «قيد التطوير» placeholders and are deliberately absent — see app/robots.ts.
     entry("/case-mapper", null, "monthly", 0.5),
-    entry("/quick-check", null, "monthly", 0.5),
   ];
 
   const supabase = publicClient();

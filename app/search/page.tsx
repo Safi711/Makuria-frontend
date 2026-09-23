@@ -51,6 +51,17 @@ function statusLabelKey(row: SearchRow): string | null {
   }
 }
 
+// 2,113 of the 5,656 articles have no title_ar, so the search function builds
+// one from the number («مادة 330»). Rendering the identifier chip next to that
+// produced «مادة 330  مادة 330» on more than a third of all article results.
+// The chip is only worth showing when the title says something the number does
+// not already say.
+function showsIdentifier(row: SearchRow): boolean {
+  if (!row.identifier) return false;
+  if (row.result_type !== "article") return true;
+  return row.title.trim() !== `مادة ${row.identifier}`.trim();
+}
+
 function hrefFor(row: SearchRow): string | null {
   if (row.result_type === "case" && row.slug) return `/cases/${row.slug}`;
   if (row.result_type === "law" && row.slug) return `/laws/${row.slug}`;
@@ -135,7 +146,7 @@ export default async function SearchPage(props: PageProps<"/search">) {
           ) : (
             <span style={isRepealed ? { color: "#4A5A75" } : undefined}>{row.title}</span>
           )}
-          {row.identifier && (
+          {showsIdentifier(row) && (
             <span className="text-xs text-neutral-500">
               {t(locale, "articleLabel")} {row.identifier}
             </span>
