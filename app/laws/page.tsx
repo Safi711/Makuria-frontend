@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getLocale } from "@/lib/i18n-server";
 import { t } from "@/lib/i18n";
 import { VerificationBadge } from "@/components/VerificationBadge";
+import { LawStatusBadge } from "@/components/LawStatusBadge";
 import { Pagination } from "@/components/Pagination";
 import type { Metadata } from "next";
 
@@ -45,13 +46,26 @@ export default async function LawsPage(props: PageProps<"/laws">) {
 
   // Explicit field list + range() pagination + server-side filter —
   // never select('*') across the whole laws table.
+  //
+  // Unlike the homepage this is the whole corpus, so repealed and reference
+  // texts belong here — a researcher needs to reach a repealed law. What they
+  // must not do is arrive unlabelled, hence `status` in the select and a
+  // LawStatusBadge on every row.
+  //
+  // `year_issued` rather than `date_issued`: 91 of 109 laws have no
+  // `date_issued`, and DESC puts NULLs first, which made the index open on
+  // undated records in an order that changed between requests.
   let query = supabase
     .from("laws")
     .select(
-      "id, title_ar, title_en, slug, law_number, year_issued, category_id, verified, total_articles",
+      "id, title_ar, title_en, slug, law_number, year_issued, category_id, status, verified, total_articles",
       { count: "exact" }
     )
-    .order("date_issued", { ascending: false })
+    .neq("status", "draft")
+    .not("slug", "is", null)
+    // Operational record, not a law.
+    .neq("slug", "site-migration-notice")
+    .order("year_issued", { ascending: false, nullsFirst: false })
     .range(from, to);
 
   if (categoryId) query = query.eq("category_id", categoryId);
@@ -97,10 +111,16 @@ export default async function LawsPage(props: PageProps<"/laws">) {
                   </p>
                   <p className="mt-1 text-xs text-neutral-500">
                     {t(locale, "lawNumber")} {law.law_number} · {law.year_issued} ·{" "}
-                    {law.total_articles ?? 0} {t(locale, "articlesCount")}
+                    {/* A title-only record says so here rather than after the click. */}
+                    {(law.total_articles ?? 0) > 0
+                      ? `${law.total_articles} ${t(locale, "articlesCount")}`
+                      : t(locale, "textNotEnteredYet")}
                   </p>
                 </div>
-                <VerificationBadge verified={Boolean(law.verified)} locale={locale} />
+                <span className="flex shrink-0 flex-wrap items-center justify-end gap-1.5">
+                  <LawStatusBadge status={law.status} locale={locale} />
+                  <VerificationBadge verified={Boolean(law.verified)} locale={locale} />
+                </span>
               </Link>
             </li>
           ))}

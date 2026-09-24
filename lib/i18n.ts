@@ -46,7 +46,13 @@ export const dictionaries: Record<Locale, Record<string, string>> = {
     page: "صفحة",
     of: "من",
     verified: "موثّق",
-    unverified: "تحت المراجعة",
+    // NOT «تحت المراجعة». That phrase already means something else on this
+    // site — `statusUnknown`, a text whose legal force is unverified. While
+    // both read the same, a repealed law and an unchecked record were
+    // indistinguishable on the homepage and the laws index. This badge only
+    // ever means «we have not checked this record against an official source».
+    unverified: "غير موثّق",
+    textNotEnteredYet: "النص لم يُدخل بعد",
     comingSoonTitle: "قيد التطوير",
     comingSoonBody:
       "هذه الوحدة جزء من مساحة عمل المحامي في مكوريا وسيتم بناؤها في مرحلة لاحقة. لا توجد بيانات أو وظائف مُصطنعة هنا.",
@@ -163,7 +169,9 @@ export const dictionaries: Record<Locale, Record<string, string>> = {
     page: "Page",
     of: "of",
     verified: "Verified",
-    unverified: "Under review",
+    // See the Arabic note: kept distinct from `statusUnknown`.
+    unverified: "Unverified",
+    textNotEnteredYet: "Text not yet entered",
     comingSoonTitle: "Coming Soon",
     comingSoonBody:
       "This module is part of the Makuria Lawyer Workspace and will be built in a later phase. No fabricated data or functionality lives here.",
