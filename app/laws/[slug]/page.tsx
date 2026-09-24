@@ -4,6 +4,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getLocale } from "@/lib/i18n-server";
 import { t } from "@/lib/i18n";
 import { VerificationBadge } from "@/components/VerificationBadge";
+import { LawStatusBadge } from "@/components/LawStatusBadge";
 import { Pagination } from "@/components/Pagination";
 import { SITE_URL, clampDescription, lawStatusWordAr } from "@/lib/site";
 
@@ -84,12 +85,24 @@ export default async function LawDetailPage(props: PageProps<"/laws/[slug]">) {
   const { data: law } = await supabase
     .from("laws")
     .select(
-      "id, title_ar, title_en, slug, law_number, year_issued, date_issued, issuing_authority, summary_ar, verified, total_articles, source_url"
+      "id, title_ar, title_en, slug, law_number, year_issued, date_issued, issuing_authority, summary_ar, status, verified, total_articles, source_url"
     )
     .eq("slug", slug)
     .maybeSingle();
 
   if (!law) notFound();
+
+  const inForce = law.status === "active" || law.status === "published";
+
+  // 90 of 108 laws have no `law_number` and many have no issuing authority, so a
+  // fixed "رقم القانون {x} · {y} · {z}" line printed a label with nothing after
+  // it, and dangling separators, on most pages of a legal reference. Build the
+  // line from the facts that actually exist.
+  const facts = [
+    law.law_number ? `${t(locale, "lawNumber")} ${law.law_number}` : null,
+    law.year_issued ? `${t(locale, "yearIssued")} ${law.year_issued}` : null,
+    law.issuing_authority || null,
+  ].filter(Boolean);
 
   const page = Math.max(1, Number(searchParams.page ?? "1") || 1);
   const from = (page - 1) * ARTICLES_PAGE_SIZE;
@@ -99,7 +112,12 @@ export default async function LawDetailPage(props: PageProps<"/laws/[slug]">) {
   // hundreds of articles never ships its full article set in one response.
   const { data: articles, count } = await supabase
     .from("articles")
-    .select("id, article_number, title_ar, content_ar, verified", { count: "exact" })
+    // `status_note_ar` carries the editorial record for an article whose force
+    // or text is qualified — e.g. «هذا النص من قانون 2001». Without it in the
+    // select, such notes existed in the corpus and reached no reader.
+    .select("id, article_number, title_ar, content_ar, status_note_ar, verified", {
+      count: "exact",
+    })
     .eq("law_id", law.id)
     .order("article_number_int", { ascending: true })
     .range(from, to);
@@ -130,14 +148,36 @@ export default async function LawDetailPage(props: PageProps<"/laws/[slug]">) {
       />
       <div className="mb-2 flex items-start justify-between gap-4">
         <h1 className="text-2xl font-bold">{law.title_ar || law.title_en}</h1>
-        <VerificationBadge verified={Boolean(law.verified)} locale={locale} />
+        <span className="flex shrink-0 flex-wrap items-center justify-end gap-1.5">
+          {/* Force first. Until now this page showed only the verification
+              badge, so a reader had no way to tell a repealed text from a
+              current one without reading the articles. */}
+          <LawStatusBadge status={law.status} locale={locale} />
+          <VerificationBadge verified={Boolean(law.verified)} locale={locale} />
+        </span>
       </div>
-      <p className="mb-6 text-sm text-neutral-500">
-        {t(locale, "lawNumber")} {law.law_number} · {t(locale, "yearIssued")} {law.year_issued} ·{" "}
-        {law.issuing_authority}
-      </p>
+      {facts.length > 0 && (
+        <p className="mb-6 text-sm text-neutral-500">{facts.join(" · ")}</p>
+      )}
 
-      {law.summary_ar && <p className="mb-8 text-sm leading-relaxed">{law.summary_ar}</p>}
+      {/* When force is not established, the summary carries the warning about
+          why — it must not read as ordinary descriptive prose. */}
+      {law.summary_ar &&
+        (inForce ? (
+          <p className="mb-8 text-sm leading-relaxed">{law.summary_ar}</p>
+        ) : (
+          <p
+            className="mb-8 rounded-md border border-s-[3px] px-4 py-3 text-sm leading-relaxed"
+            style={{
+              background: "#E8EEF5",
+              borderColor: "#C9D5E3",
+              borderInlineStartColor: "#4E6A8A",
+              color: "#2E4460",
+            }}
+          >
+            {law.summary_ar}
+          </p>
+        ))}
 
       <h2 className="mb-4 text-lg font-semibold">
         {t(locale, "articlesCount")} ({law.total_articles ?? count ?? 0})
@@ -154,6 +194,18 @@ export default async function LawDetailPage(props: PageProps<"/laws/[slug]">) {
                 <VerificationBadge verified={Boolean(a.verified)} locale={locale} />
               </div>
               <p className="text-sm leading-relaxed">{a.content_ar}</p>
+              {a.status_note_ar && (
+                <p
+                  className="mt-2 border-s-[3px] px-3 py-1.5 text-xs leading-relaxed"
+                  style={{
+                    background: "#E8EEF5",
+                    borderInlineStartColor: "#4E6A8A",
+                    color: "#2E4460",
+                  }}
+                >
+                  {a.status_note_ar}
+                </p>
+              )}
             </li>
           ))}
         </ol>
