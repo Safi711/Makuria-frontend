@@ -1,15 +1,50 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 /**
- * Case Mapper Phase 1 — deterministic retrieval over the existing Makuria
- * corpus. No embeddings, no external AI call, nothing invented: every term
- * searched here is either something the lawyer typed (case type, keywords)
- * or a word pulled directly out of their own facts text. Every result
- * returned is a real row from `universal_search` (already deployed,
- * server-side, bounded) or a small field-selected follow-up query.
+ * Case Mapper — deterministic retrieval over the Makuria corpus. No
+ * embeddings, no external AI call, nothing invented: every term searched is
+ * either something the lawyer typed or a phrase pulled out of their own facts
+ * text, and every result is a real row returned by a deployed search function.
  *
- * If a term matches nothing in the corpus, that is reported honestly
- * rather than papered over — see EMPTY_AUTHORITY_MESSAGE_AR below.
+ * Rewritten 2026-09-28 after an outside test found that four of six sample
+ * cases failed, and that the site's ordinary /search returned better results
+ * than this tool did. Three causes were found and fixed here:
+ *
+ * 1. WRONG ENGINE. This module called `universal_search` — the first of four
+ *    deployed versions — while /search calls `quick_search_v4`. Measured on
+ *    the live corpus with the row cap raised on both sides so the gap could
+ *    not be an artefact of limits: «عمد» 8 → 82, «غسل» 5 → 49, «قتل» 23 → 57,
+ *    «حضانة» 6 → 19. v4 also folds hamza/ta-marbuta/diacritics and
+ *    Arabic-Indic digits, which is why it finds what v1 misses.
+ *
+ *    v4 returns `article` and `case` rows but not `law` or `principle`, so
+ *    those two still come from `universal_search_v3`. Ranks are never compared
+ *    across engines — each engine's results are ordered within themselves.
+ *
+ * 2. CASE TYPE SEARCHED AS A WORD. «جنائي» typed as the case type was sent to
+ *    the search engine like any other term, so articles 21 and 22 of the
+ *    Criminal Act surfaced in every criminal case regardless of its facts.
+ *    In v4 that term matches 601 rows — nearly the whole corpus. The case type
+ *    is now a *lens*: it maps to a category and promotes that category's
+ *    results to the top. It never removes anything, because the category
+ *    assignments are not complete enough to hide evidence behind.
+ *
+ * 3. A RESULT COULD ONLY BELONG TO ONE TERM. The merge kept a single
+ *    `matchedTerm` per row and overwrote it whenever a higher-ranked hit
+ *    arrived from a different term. The per-issue view then looked up
+ *    `matchedTerm === term`, so an article found by two terms was credited to
+ *    one and the other issue rendered *empty although it had matched*. Every
+ *    row now carries `matchedTerms: string[]`.
+ *
+ * Two further weaknesses the outside test named are addressed:
+ *   - Compound terms were split: «غسل أموال» became «غسل» + «أموال». Adjacent
+ *     content words are now scored as phrases and searched whole, and the
+ *     keywords field is split on commas only so a typed phrase survives.
+ *   - Procedural vocabulary («المتهم», «قام», «دخل») was treated as legal
+ *     subject matter. It is now excluded from *extracted* terms — never from
+ *     what the lawyer typed deliberately.
+ *
+ * If a term matches nothing, that is reported rather than papered over.
  */
 
 export const EMPTY_AUTHORITY_MESSAGE_AR =
@@ -32,6 +67,11 @@ export type AuthorityLevel =
   | "overruled" // overruled — must never read as good authority
   | "unverified"; // no status recorded
 
+/** Legal force of the law an article belongs to. A provision of a repealed
+ * law must never be shown as if it were live authority — this rides along
+ * with every article so the UI can say so. */
+export type ForceStatus = "in_force" | "under_review" | "not_in_force" | "unknown";
+
 export type RetrievedAuthority = {
   id: string;
   type: "law" | "article";
@@ -41,9 +81,13 @@ export type RetrievedAuthority = {
   excerptHtml: string;
   verified: boolean;
   slug: string | null;
+  lawSlug: string | null;
   sourceUrl: string | null;
-  matchedTerm: string;
+  force: ForceStatus;
+  statusNote: string | null;
+  matchedTerms: string[];
   rank: number;
+  inCaseTypeCategory: boolean;
 };
 
 export type RetrievedCase = {
@@ -59,7 +103,7 @@ export type RetrievedCase = {
   authority: AuthorityLevel;
   slug: string | null;
   sourceUrl: string | null;
-  matchedTerm: string;
+  matchedTerms: string[];
   rank: number;
 };
 
@@ -69,21 +113,27 @@ export type RetrievedPrinciple = {
   category: string | null;
   summary: string | null;
   slug: string | null;
-  matchedTerm: string;
+  matchedTerms: string[];
   rank: number;
 };
 
 export type IssueLens = {
   term: string;
-  origin: "case_type" | "keyword" | "extracted";
+  origin: "keyword" | "expanded" | "extracted";
   topLaw: RetrievedAuthority | null;
   topCase: RetrievedCase | null;
   topPrinciple: RetrievedPrinciple | null;
+  /** True when the term was searched and simply matched nothing. The UI must
+   * distinguish "no authority found" from "we never looked". */
+  searchedAndEmpty: boolean;
 };
 
 export type CaseMapResult = {
   factsExcerpt: string;
   factsIsTruncated: boolean;
+  /** The case type as a lens, resolved to a corpus category — or null when it
+   * matched no category, which is itself worth showing. */
+  caseTypeLens: { input: string; categoryNameAr: string | null } | null;
   issues: IssueLens[];
   laws: RetrievedAuthority[];
   cases: RetrievedCase[];
@@ -92,14 +142,14 @@ export type CaseMapResult = {
 };
 
 const MAX_TERMS = 6;
-const MAX_EXTRACTED = 5;
-const PER_TERM_LIMIT = 6;
-const OVERALL_TERM_LIMIT = 18;
+const CANDIDATE_LIMIT = 12;
+const PER_TERM_LIMIT = 24;
+const V3_PER_TYPE = 6;
+const V3_OVERALL = 18;
 const DISPLAY_CAP = 8;
 
-// A short, deliberately conservative Arabic stopword list — only common
-// function words. Under-removing is safer than over-removing here, since
-// dropping a real legal noun would silently weaken retrieval.
+// Common Arabic function words. Deliberately conservative: dropping a real
+// legal noun would silently weaken retrieval, which is the worse failure.
 const STOPWORDS = new Set([
   "في", "من", "إلى", "على", "عن", "أن", "إن", "أنه", "أنها", "التي", "الذي",
   "الذين", "و", "أو", "ثم", "قد", "كان", "كانت", "هذا", "هذه", "ذلك", "تلك",
@@ -108,15 +158,26 @@ const STOPWORDS = new Set([
   "نحن", "انت", "انتم", "كانوا", "يكون", "تم", "كذلك", "وقد", "فقد",
 ]);
 
+// Procedural and narrative vocabulary. These words are perfectly good Arabic
+// and often legally meaningful in a sentence, but as *search terms* they match
+// a large share of the corpus and drown the terms that actually identify the
+// issue — «المتهم» pulls in every criminal provision ever written. Excluded
+// from extracted terms only; a lawyer who types one deliberately still gets it.
+const WEAK_TERMS = new Set([
+  "المتهم", "متهم", "المتهمة", "المدعي", "المدعى", "المدعية", "عليه", "عليها",
+  "الطرف", "الطرفان", "الأطراف", "الشخص", "شخص", "السيد", "المحكمة", "محكمة",
+  "القاضي", "الدعوى", "دعوى", "القضية", "قضية", "الحكم", "حكم", "قام", "قامت",
+  "دخل", "دخلت", "خرج", "ذهب", "قال", "قالت", "أفاد", "ذكر", "حضر", "طلب",
+  "تقدم", "أصدر", "صدر", "يوم", "شهر", "سنة", "تاريخ", "رقم", "مبلغ", "جنيه",
+  "الجنيه", "قرش", "أثناء", "خلال", "نحو", "حوالي", "تقريبا", "تقريباً",
+  "الوقائع", "وقائع", "الموضوع", "بشأن", "بخصوص", "الحالة", "حالة",
+]);
+
 // Very common Sudanese/Arabic given names. A party's first name is a weak,
-// near-random signal for legal relevance — it mainly just happens to match
-// unrelated precedents whose parties share the same common name (e.g. a
-// debt dispute pulling in an unrelated case only because both involve
-// someone named "محمد"). Excluding these from *extracted* terms keeps the
-// extraction focused on actual legal-issue vocabulary; it does not touch
-// case type or keywords the lawyer typed in explicitly.
+// near-random signal: a debt dispute pulls in an unrelated precedent only
+// because both involve someone named «محمد».
 const COMMON_GIVEN_NAMES = new Set([
-  "محمد", "أحمد", "احمد", "علي", "عبدالله", "عبدالله", "عبد", "إبراهيم",
+  "محمد", "أحمد", "احمد", "علي", "عبدالله", "عبد", "إبراهيم",
   "ابراهيم", "الحسن", "حسن", "حسين", "عمر", "عثمان", "يوسف", "إسماعيل",
   "اسماعيل", "خالد", "عبدالرحمن", "عبدالرحيم", "الطيب", "الفاتح", "مصطفى",
   "مصطفي", "صالح", "آدم", "ادم", "بابكر", "التاج", "عوض", "النور", "نور",
@@ -126,52 +187,160 @@ const COMMON_GIVEN_NAMES = new Set([
   "أسماء", "اسماء", "منى", "سعاد", "نجوى", "سمية", "سميه",
 ]);
 
+/** Case type → corpus category slug. The input is free text, so this matches
+ * on substrings of what the lawyer wrote rather than an exact value. */
+const CASE_TYPE_TO_CATEGORY: { match: string[]; slug: string }[] = [
+  { match: ["جناي", "جريمة", "جرائم", "عقوب"], slug: "criminal" },
+  { match: ["أحوال شخصية", "احوال شخصية", "أسرة", "اسرة", "طلاق", "زواج", "نفقة", "حضانة", "ميراث", "تركة"], slug: "personal-status" },
+  { match: ["تجاري", "شركات", "كمبيال", "إفلاس", "افلاس"], slug: "commercial" },
+  { match: ["عمل", "عمالي", "عمالية", "نقاب"], slug: "labor" },
+  { match: ["إداري", "اداري", "تنظيم"], slug: "administrative" },
+  { match: ["دستور"], slug: "constitutional" },
+  { match: ["مالي", "ضريب", "جمارك", "زكاة", "مصرف", "بنك"], slug: "financial" },
+  { match: ["عسكري", "قوات مسلحة", "شرطة"], slug: "military" },
+  { match: ["إجراء", "اجراء", "مرافع"], slug: "procedural" },
+  { match: ["بيئ"], slug: "environmental" },
+  { match: ["اقتصاد", "استثمار", "تعدين"], slug: "economic" },
+  { match: ["اجتماعي", "معاشات", "تأمين اجتماعي"], slug: "social" },
+  { match: ["دولي"], slug: "international" },
+  { match: ["مدني", "عقد", "عقود", "أراضي", "اراضي", "ملكية", "إيجار", "ايجار"], slug: "civil" },
+];
+
 function stripTashkeel(text: string): string {
-  return text.replace(/[ً-ٰٟ]/g, "");
+  return text.replace(/[ً-ْٰ]/g, "");
 }
 
-/** Deterministic keyword extraction: frequency count over the facts text,
- * stopwords and short tokens removed. This is a mechanical word-frequency
- * pass, not legal reasoning — labeled as such everywhere it's shown. */
-export function extractTerms(text: string, max = MAX_EXTRACTED): string[] {
-  const cleaned = stripTashkeel(text);
-  const words = cleaned.split(/[^؀-ۿA-Za-z0-9]+/).filter(Boolean);
+function tokenize(text: string): string[] {
+  return stripTashkeel(text)
+    .split(/[^؀-ۿA-Za-z0-9]+/)
+    .filter(Boolean);
+}
+
+function isContentWord(w: string): boolean {
+  if (w.length < 3) return false;
+  if (STOPWORDS.has(w)) return false;
+  if (WEAK_TERMS.has(w)) return false;
+  if (COMMON_GIVEN_NAMES.has(w)) return false;
+  if (/^[0-9٠-٩]+$/.test(w)) return false;
+  return true;
+}
+
+/**
+ * Everyday words a lawyer writes in a statement of facts, mapped to the words
+ * the statute actually uses. This closes a gap that no amount of better
+ * matching can close on its own: a homicide described as «ضربه فأفضى إلى
+ * وفاته» shares no word with the provisions that govern it, whose heading is
+ * «القتل». Measured on the live corpus: «وفاته» returns inheritance
+ * provisions of the Personal Status Act, while «قتل» returns articles 129,
+ * 130, 131 and 132 of the Criminal Act — the correct ones.
+ *
+ * Three rules keep this honest:
+ *   1. It only ADDS terms. Nothing the lawyer wrote is replaced or dropped.
+ *   2. Every added term is shown in the issues list, labelled as an expansion,
+ *      so the lawyer can see exactly what was searched on their behalf.
+ *   3. Each entry is derived from statutory vocabulary in this corpus, not
+ *      from a view about how the case should be classified.
+ *
+ * NEEDS A LAWYER'S REVIEW. This is a starting set, not a legal taxonomy.
+ */
+const CONCEPT_EXPANSIONS: { when: string[]; add: string[] }[] = [
+  { when: ["وفاة", "وفاته", "وفاتها", "توفي", "توفى", "مات", "ماتت", "مقتل"], add: ["قتل"] },
+  { when: ["ضرب", "ضربه", "ضربها", "اعتدى", "اعتداء", "تشاجر", "شجار", "لكم", "طعن"], add: ["أذى", "جرح"] },
+  { when: ["دهس", "دهسه", "صدم", "صدمت", "اصطدم", "حادث"], add: ["مركبة", "خطأ"] },
+];
+
+/** Deterministic term extraction over the facts text: word frequency, with
+ * function words, procedural vocabulary and common given names removed, then
+ * concept expansions appended.
+ *
+ * An earlier attempt at this scored adjacent word pairs as phrases, on the
+ * theory that «غسل أموال» is one concept. It was removed after testing: in a
+ * short statement of facts every pair occurs exactly once, so the ranking was
+ * arbitrary and it produced «تشاجر الجاني» and «أصلية عبر» while crowding out
+ * the words that actually worked. Multi-word terms now come only from the
+ * keywords field, where the lawyer types them deliberately.
+ *
+ * This is word statistics, not legal reasoning, and is labelled as such
+ * everywhere it is shown. */
+export function extractTerms(
+  text: string,
+  max = CANDIDATE_LIMIT
+): { term: string; origin: "extracted" | "expanded" }[] {
+  const words = tokenize(text);
+
   const freq = new Map<string, number>();
   for (const w of words) {
-    if (w.length < 3) continue;
-    if (STOPWORDS.has(w)) continue;
-    // Pure numbers (e.g. "500", "000" split out of "500,000") are not
-    // legal issues — searching them also just noises up universal_search.
-    if (/^[0-9]+$/.test(w)) continue;
-    // A party's common given name is not a legal issue either — see
-    // COMMON_GIVEN_NAMES above.
-    if (COMMON_GIVEN_NAMES.has(w)) continue;
+    if (!isContentWord(w)) continue;
     freq.set(w, (freq.get(w) ?? 0) + 1);
+    // Arabic glues conjunctions and prepositions onto the word, and the search
+    // engine does not strip them: measured on this corpus, «ونفقة» returns 2
+    // articles where «نفقة» returns 40, and «وسرق» returns none where «سرق»
+    // returns 15. The bare form is offered as a *further* candidate, never as
+    // a replacement — a stripped form that means nothing simply finds nothing
+    // and is dropped later by the same corpus evidence that keeps the rest.
+    const bare = stripAttachedPrefix(w);
+    // Same weight as the word it came from: ranked lower, the bare forms
+    // were falling off the end of the candidate list — «حضانة» and «نفقة»
+    // were cut from their own case that way.
+    if (bare && !freq.has(bare)) freq.set(bare, freq.get(w) ?? 1);
   }
-  return [...freq.entries()]
-    .sort((a, b) => b[1] - a[1])
-    .map(([w]) => w)
-    .slice(0, max);
+
+  const ranked = [...freq.entries()]
+    .sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))
+    .map(([term]) => term);
+
+  const present = new Set(words);
+  const expansions: string[] = [];
+  for (const rule of CONCEPT_EXPANSIONS) {
+    if (!rule.when.some((w) => present.has(w))) continue;
+    for (const add of rule.add) {
+      if (!present.has(add) && !expansions.includes(add)) expansions.push(add);
+    }
+  }
+
+  // Expansions lead: they are the statutory vocabulary. The lawyer's own words
+  // follow. Which of them survives is decided afterwards by what each one
+  // actually finds in the corpus, not by this ordering — see selectIssues.
+  const out: { term: string; origin: "extracted" | "expanded" }[] = [
+    ...expansions.map((term) => ({ term, origin: "expanded" as const })),
+    ...ranked.map((term) => ({ term, origin: "extracted" as const })),
+  ];
+  return out.slice(0, max);
 }
 
+/** «ونفقة» → «نفقة». Strips one leading و/ف/ب/ك/ل when what remains is still
+ * a plausible word. Deliberately shallow: this is not a stemmer, and a wrong
+ * strip costs nothing because the result is only ever an extra candidate. */
+function stripAttachedPrefix(w: string): string | null {
+  // 4, not 5: «وسرق» is four letters and its stem «سرق» is exactly the term
+  // that finds the theft provisions — the longer threshold lost it.
+  if (w.length < 4) return null;
+  if (!/^[وفبكل]/.test(w)) return null;
+  const rest = w.slice(1);
+  if (rest.length < 3) return null;
+  return rest;
+}
+
+/** Split on commas only. Splitting on whitespace — as this did before — meant
+ * a lawyer could not enter a multi-word term at all: «غسل أموال» typed
+ * deliberately was torn into two useless words before it ever reached the
+ * search engine. */
 function splitKeywordsField(raw: string | undefined): string[] {
   if (!raw) return [];
   return raw
-    .split(/[,،\s]+/)
+    .split(/[,،;؛\n]+/)
     .map((s) => s.trim())
     .filter((s) => s.length >= 2);
 }
 
-/** Extractive, position-based "summary" — the leading sentences of what
- * the lawyer typed. No interpretation or inference is added; Phase 1 has
- * no AI summarization pipeline, so nothing is claimed beyond this. */
+/** Extractive, position-based excerpt — the leading sentences of what the
+ * lawyer typed. No interpretation is added. */
 export function buildFactsExcerpt(
   facts: string,
   maxChars = 480
 ): { excerpt: string; truncated: boolean } {
   const trimmed = facts.trim();
   if (trimmed.length <= maxChars) return { excerpt: trimmed, truncated: false };
-  // Cut on a sentence boundary near the limit where possible.
   const sentenceEnd = /[.!؟?]\s/g;
   let lastGood = -1;
   let m: RegExpExecArray | null;
@@ -192,7 +361,34 @@ function caseAuthority(row: { verified: boolean | null; authority_status: string
   return "unverified";
 }
 
-type UniversalSearchRow = {
+/** `status_rank` as quick_search_v4 emits it: 0 in force, 1 disputed,
+ * 2 repealed. `law_status = 'reference'` is the corpus's "under review". */
+function forceOf(row: { status_rank: number | null; law_status: string | null }): ForceStatus {
+  if (row.law_status === "reference") return "under_review";
+  if (row.status_rank === null || row.status_rank === undefined) return "unknown";
+  if (row.status_rank === 0) return "in_force";
+  return "not_in_force";
+}
+
+type V4Row = {
+  result_type: string;
+  entity_id: string;
+  title: string | null;
+  subtitle: string | null;
+  snippet: string | null;
+  identifier: string | null;
+  slug: string | null;
+  law_id: string | null;
+  law_slug: string | null;
+  year_val: number | null;
+  rank: number | null;
+  legal_status: string | null;
+  status_note_ar: string | null;
+  law_status: string | null;
+  status_rank: number | null;
+};
+
+type V3Row = {
   result_type: string;
   entity_id: string;
   title: string | null;
@@ -201,9 +397,30 @@ type UniversalSearchRow = {
   identifier: string | null;
   slug: string | null;
   parent_law_id: string | null;
-  rank: number;
+  rank: number | null;
   headline: string | null;
+  law_status: string | null;
+  status_rank: number | null;
+  status_note_ar: string | null;
 };
+
+async function resolveCaseTypeCategory(
+  supabase: SupabaseClient,
+  caseType: string | undefined
+): Promise<{ id: string; nameAr: string } | null> {
+  const raw = (caseType ?? "").trim();
+  if (!raw) return null;
+  const needle = stripTashkeel(raw);
+  const hit = CASE_TYPE_TO_CATEGORY.find((c) => c.match.some((m) => needle.includes(m)));
+  if (!hit) return null;
+  const { data } = await supabase
+    .from("categories")
+    .select("id, name_ar")
+    .eq("slug", hit.slug)
+    .maybeSingle();
+  if (!data) return null;
+  return { id: data.id as string, nameAr: (data.name_ar as string) ?? hit.slug };
+}
 
 export async function analyzeCase(
   supabase: SupabaseClient,
@@ -211,84 +428,237 @@ export async function analyzeCase(
 ): Promise<CaseMapResult> {
   const { excerpt, truncated } = buildFactsExcerpt(input.facts);
 
-  // Build the bounded list of search terms: case type + user keywords take
-  // priority, then frequency-extracted terms fill remaining slots.
-  const terms: { term: string; origin: IssueLens["origin"] }[] = [];
+  // The case type is a lens over the corpus, not a search term — see note 2
+  // at the top of this file.
+  const category = await resolveCaseTypeCategory(supabase, input.caseType);
+
+  // ── Phase 1: candidates ────────────────────────────────────────────────
+  // A wider pool than will be shown. Which terms survive is decided by what
+  // they find in the corpus, not by word frequency — in a short statement of
+  // facts almost every word occurs exactly once, so frequency ranking is a
+  // coin toss. Testing it that way dropped «الطلاق», «حضانة» and «غسل» from
+  // their own cases purely on an alphabetical tie-break.
+  const candidates: { term: string; origin: IssueLens["origin"] }[] = [];
   const seen = new Set<string>();
   const pushTerm = (term: string, origin: IssueLens["origin"]) => {
     const t = term.trim();
-    if (!t || seen.has(t) || terms.length >= MAX_TERMS) return;
+    if (!t || seen.has(t) || candidates.length >= CANDIDATE_LIMIT) return;
     seen.add(t);
-    terms.push({ term: t, origin });
+    candidates.push({ term: t, origin });
   };
 
-  if (input.caseType) pushTerm(input.caseType, "case_type");
   for (const kw of splitKeywordsField(input.keywords)) pushTerm(kw, "keyword");
-  for (const ex of extractTerms(input.facts)) pushTerm(ex, "extracted");
+  for (const ex of extractTerms(input.facts)) pushTerm(ex.term, ex.origin);
 
-  // One bounded universal_search call per term (never an unbounded scan,
-  // never select=*). Results are merged and deduped by entity id below.
-  const perTermResults = await Promise.all(
-    terms.map(async ({ term }) => {
-      const { data, error } = await supabase.rpc("universal_search", {
+  // ── Phase 2: what does each candidate actually find? ───────────────────
+  // Articles and cases come from quick_search_v4. `include_repealed: true`
+  // mirrors /search: nothing is hidden, everything is labelled with its legal
+  // force — a repealed provision a lawyer needs to read must still be
+  // findable, clearly marked.
+  const probed = await Promise.all(
+    candidates.map(async ({ term, origin }) => {
+      const { data, error } = await supabase.rpc("quick_search_v4", {
         q: term,
-        result_types: ["law", "article", "case", "principle"],
-        limit_per_type: PER_TERM_LIMIT,
-        overall_limit: OVERALL_TERM_LIMIT,
+        limit_rows: PER_TERM_LIMIT,
+        include_repealed: true,
       });
-      if (error) return { term, rows: [] as UniversalSearchRow[] };
-      return { term, rows: (data ?? []) as UniversalSearchRow[] };
+      const rows = (error ? [] : (data ?? [])) as V4Row[];
+      return { term, origin, rows };
     })
   );
 
-  const lawMap = new Map<string, RetrievedAuthority>();
-  const caseHitMap = new Map<string, { row: UniversalSearchRow; term: string }>();
-  const principleHitMap = new Map<string, { row: UniversalSearchRow; term: string }>();
+  // Which terms are worth showing is decided by CONCENTRATION: of a term's
+  // top article hits, what share falls in one law. A term that identifies a
+  // legal issue lands inside one statute — «غسل» and «حضانة» score 1.00, every
+  // hit in the Anti-Money-Laundering Act and the Personal Status Act
+  // respectively. Narrative vocabulary scatters — «رأسه» hits four unrelated
+  // laws, «الحائز» five.
+  //
+  // Two earlier rules were tried and discarded against these same six cases:
+  // word frequency (in a short text every word occurs once, so the tie-break
+  // decided, dropping «الطلاق» and «غسل» from their own cases), and "fewest
+  // hits is most specific" (which promoted «بعصا» and «ساعتين» and pushed
+  // «قتل» out of a homicide entirely).
+  const concentrationOf = (rows: V4Row[]): number => {
+    const articles = rows.filter((r) => r.result_type === "article").slice(0, 10);
+    if (articles.length === 0) return 0;
+    const byLaw = new Map<string, number>();
+    for (const r of articles) {
+      const key = r.law_slug ?? r.subtitle ?? "?";
+      byLaw.set(key, (byLaw.get(key) ?? 0) + 1);
+    }
+    return Math.max(...byLaw.values()) / articles.length;
+  };
 
-  for (const { term, rows } of perTermResults) {
-    for (const row of rows) {
-      if (row.result_type === "law" || row.result_type === "article") {
-        const existing = lawMap.get(row.entity_id);
-        if (!existing || row.rank > existing.rank) {
-          lawMap.set(row.entity_id, {
+  const originRank: Record<IssueLens["origin"], number> = {
+    keyword: 0,
+    expanded: 1,
+    extracted: 2,
+  };
+
+  const scored = probed.map((p) => ({ ...p, concentration: concentrationOf(p.rows) }));
+
+  // A term the lawyer typed is always kept, even empty-handed: they are owed
+  // the answer "this matched nothing". A term this module derived earns its
+  // place only by finding something, and a single stray hit is not evidence.
+  const kept = scored
+    .filter((p) => p.origin === "keyword" || p.rows.length >= 2)
+    .sort((a, b) => {
+      const aEmpty = a.rows.length === 0;
+      const bEmpty = b.rows.length === 0;
+      if (aEmpty !== bEmpty) return aEmpty ? 1 : -1;
+      if (originRank[a.origin] !== originRank[b.origin]) {
+        return originRank[a.origin] - originRank[b.origin];
+      }
+      if (a.concentration !== b.concentration) return b.concentration - a.concentration;
+      return b.rows.length - a.rows.length;
+    })
+    .slice(0, MAX_TERMS);
+
+  const terms = kept.map(({ term, origin }) => ({ term, origin }));
+
+  // ── Phase 3: laws and principles for the terms that survived ───────────
+  // v4 returns neither, so those come from universal_search_v3 — and only for
+  // the kept terms, to hold the request's query count down.
+  const v3ByTerm = await Promise.all(
+    terms.map(async ({ term }) => {
+      const { data, error } = await supabase.rpc("universal_search_v3", {
+        q: term,
+        result_types: ["law", "principle"],
+        filter_category_id: category?.id ?? null,
+        limit_per_type: V3_PER_TYPE,
+        overall_limit: V3_OVERALL,
+      });
+      return { term, rows: (error ? [] : (data ?? [])) as V3Row[] };
+    })
+  );
+  const v3Map = new Map(v3ByTerm.map((r) => [r.term, r.rows]));
+
+  const perTerm = kept.map(({ term, rows }) => ({
+    term,
+    v4: rows,
+    v3: v3Map.get(term) ?? [],
+  }));
+
+  const authorityMap = new Map<string, RetrievedAuthority>();
+  const caseMap = new Map<string, RetrievedCase>();
+  const principleMap = new Map<string, RetrievedPrinciple>();
+  const termsWithHits = new Set<string>();
+
+  const addTerm = (arr: string[], term: string) => {
+    if (!arr.includes(term)) arr.push(term);
+  };
+
+  for (const { term, v4, v3 } of perTerm) {
+    for (const row of v4) {
+      if (row.result_type === "article") {
+        const existing = authorityMap.get(row.entity_id);
+        if (existing) {
+          addTerm(existing.matchedTerms, term);
+          existing.rank = Math.max(existing.rank, row.rank ?? 0);
+        } else {
+          authorityMap.set(row.entity_id, {
             id: row.entity_id,
-            type: row.result_type as "law" | "article",
+            type: "article",
             title: row.title ?? "",
-            lawTitle: row.result_type === "article" ? row.subtitle : null,
-            articleNumber: row.result_type === "article" ? row.identifier : null,
-            excerptHtml: row.headline ?? row.snippet ?? "",
-            verified: false, // filled in from a follow-up query below
+            lawTitle: row.subtitle ?? null,
+            articleNumber: row.identifier ?? null,
+            excerptHtml: row.snippet ?? "",
+            verified: false,
             slug: row.slug,
+            lawSlug: row.law_slug ?? null,
             sourceUrl: null,
-            matchedTerm: term,
-            rank: row.rank,
+            force: forceOf(row),
+            statusNote: row.status_note_ar ?? null,
+            matchedTerms: [term],
+            rank: row.rank ?? 0,
+            inCaseTypeCategory: false,
           });
         }
+        termsWithHits.add(term);
       } else if (row.result_type === "case") {
-        const existing = caseHitMap.get(row.entity_id);
-        if (!existing || row.rank > existing.row.rank) {
-          caseHitMap.set(row.entity_id, { row, term });
+        const existing = caseMap.get(row.entity_id);
+        if (existing) {
+          addTerm(existing.matchedTerms, term);
+          existing.rank = Math.max(existing.rank, row.rank ?? 0);
+        } else {
+          caseMap.set(row.entity_id, {
+            id: row.entity_id,
+            title: row.title ?? "",
+            courtName: null,
+            year: row.year_val ?? null,
+            judgmentDate: null,
+            citation: row.subtitle ?? null,
+            caseNumber: row.identifier ?? null,
+            principle: null,
+            excerptHtml: row.snippet ?? "",
+            authority: "unverified",
+            slug: row.slug,
+            sourceUrl: null,
+            matchedTerms: [term],
+            rank: row.rank ?? 0,
+          });
         }
+        termsWithHits.add(term);
+      }
+    }
+
+    for (const row of v3) {
+      if (row.result_type === "law") {
+        const existing = authorityMap.get(row.entity_id);
+        if (existing) {
+          addTerm(existing.matchedTerms, term);
+        } else {
+          authorityMap.set(row.entity_id, {
+            id: row.entity_id,
+            type: "law",
+            title: row.title ?? "",
+            lawTitle: null,
+            articleNumber: null,
+            excerptHtml: row.headline ?? row.snippet ?? "",
+            verified: false,
+            slug: row.slug,
+            lawSlug: row.slug,
+            sourceUrl: null,
+            force: forceOf(row),
+            statusNote: row.status_note_ar ?? null,
+            matchedTerms: [term],
+            // v3 ranks are a different scale from v4's; law rows are ordered
+            // among themselves only, below the article rows.
+            rank: -1,
+            inCaseTypeCategory: Boolean(category),
+          });
+        }
+        termsWithHits.add(term);
       } else if (row.result_type === "principle") {
-        const existing = principleHitMap.get(row.entity_id);
-        if (!existing || row.rank > existing.row.rank) {
-          principleHitMap.set(row.entity_id, { row, term });
+        const existing = principleMap.get(row.entity_id);
+        if (existing) {
+          addTerm(existing.matchedTerms, term);
+        } else {
+          principleMap.set(row.entity_id, {
+            id: row.entity_id,
+            title: row.title ?? "",
+            category: row.subtitle ?? null,
+            summary: row.snippet ?? null,
+            slug: row.slug,
+            matchedTerms: [term],
+            rank: row.rank ?? 0,
+          });
         }
+        termsWithHits.add(term);
       }
     }
   }
 
-  // Follow-up field-selected queries — never select('*'), bounded to the
-  // small candidate id sets gathered above.
-  const lawIds = [...lawMap.entries()].filter(([, v]) => v.type === "law").map(([id]) => id);
-  const articleIds = [...lawMap.entries()].filter(([, v]) => v.type === "article").map(([id]) => id);
-  const caseIds = [...caseHitMap.keys()];
-  const principleIds = [...principleHitMap.keys()];
+  // Field-selected follow-ups, bounded to the small candidate id sets.
+  const lawIds = [...authorityMap.values()].filter((v) => v.type === "law").map((v) => v.id);
+  const articleIds = [...authorityMap.values()].filter((v) => v.type === "article").map((v) => v.id);
+  const caseIds = [...caseMap.keys()];
 
-  const [lawsDetail, articlesDetail, casesDetail, principlesDetail] = await Promise.all([
+  const [lawsDetail, articlesDetail, casesDetail] = await Promise.all([
     lawIds.length
-      ? supabase.from("laws").select("id, verified, source_url").in("id", lawIds)
-      : Promise.resolve({ data: [] as { id: string; verified: boolean | null; source_url: string | null }[] }),
+      ? supabase.from("laws").select("id, verified, source_url, category_id").in("id", lawIds)
+      : Promise.resolve({ data: [] as { id: string; verified: boolean | null; source_url: string | null; category_id: string | null }[] }),
     articleIds.length
       ? supabase.from("articles").select("id, verified, law_id").in("id", articleIds)
       : Promise.resolve({ data: [] as { id: string; verified: boolean | null; law_id: string }[] }),
@@ -302,30 +672,31 @@ export async function analyzeCase(
           year: number | null; judgment_date: string | null; case_number: string | null;
           citation_ar: string | null; principle_ar: string | null; source_url: string | null;
         }> }),
-    principleIds.length
-      ? supabase.from("legal_principles").select("id, category, summary_ar").in("id", principleIds)
-      : Promise.resolve({ data: [] as { id: string; category: string | null; summary_ar: string | null }[] }),
   ]);
 
-  // Laws referenced by articles, for the article's parent law source_url.
+  // Parent laws of the matched articles: needed for source_url, and for the
+  // case-type lens, which promotes articles whose law is in that category.
   const parentLawIds = [...new Set((articlesDetail.data ?? []).map((a) => a.law_id))];
   const { data: parentLaws } = parentLawIds.length
-    ? await supabase.from("laws").select("id, source_url").in("id", parentLawIds)
-    : { data: [] as { id: string; source_url: string | null }[] };
-  const parentLawSourceById = new Map((parentLaws ?? []).map((l) => [l.id, l.source_url]));
+    ? await supabase.from("laws").select("id, source_url, category_id").in("id", parentLawIds)
+    : { data: [] as { id: string; source_url: string | null; category_id: string | null }[] };
+  const parentById = new Map((parentLaws ?? []).map((l) => [l.id, l]));
 
   const lawDetailById = new Map((lawsDetail.data ?? []).map((l) => [l.id, l]));
   const articleDetailById = new Map((articlesDetail.data ?? []).map((a) => [a.id, a]));
 
-  for (const [id, entry] of lawMap) {
+  for (const entry of authorityMap.values()) {
     if (entry.type === "law") {
-      const d = lawDetailById.get(id);
+      const d = lawDetailById.get(entry.id);
       entry.verified = Boolean(d?.verified);
       entry.sourceUrl = d?.source_url ?? null;
+      entry.inCaseTypeCategory = Boolean(category && d?.category_id === category.id);
     } else {
-      const d = articleDetailById.get(id);
+      const d = articleDetailById.get(entry.id);
       entry.verified = Boolean(d?.verified);
-      entry.sourceUrl = d ? parentLawSourceById.get(d.law_id) ?? null : null;
+      const parent = d ? parentById.get(d.law_id) : undefined;
+      entry.sourceUrl = parent?.source_url ?? null;
+      entry.inCaseTypeCategory = Boolean(category && parent?.category_id === category.id);
     }
   }
 
@@ -336,55 +707,68 @@ export async function analyzeCase(
   const courtNameById = new Map((courts ?? []).map((c) => [c.id, c.name_ar]));
   const caseDetailById = new Map((casesDetail.data ?? []).map((c) => [c.id, c]));
 
-  const caseList: RetrievedCase[] = [...caseHitMap.entries()].map(([id, { row, term }]) => {
-    const d = caseDetailById.get(id);
-    return {
-      id,
-      title: row.title ?? d?.case_number ?? "",
-      courtName: d?.court_id ? courtNameById.get(d.court_id) ?? null : null,
-      year: d?.year ?? null,
-      judgmentDate: d?.judgment_date ?? null,
-      citation: d?.citation_ar ?? row.subtitle ?? null,
-      caseNumber: d?.case_number ?? row.identifier ?? null,
-      principle: d?.principle_ar ?? null,
-      excerptHtml: row.headline ?? row.snippet ?? "",
-      authority: d ? caseAuthority(d) : "unverified",
-      slug: row.slug,
-      sourceUrl: d?.source_url ?? null,
-      matchedTerm: term,
-      rank: row.rank,
-    };
+  for (const c of caseMap.values()) {
+    const d = caseDetailById.get(c.id);
+    if (!d) continue;
+    c.courtName = d.court_id ? courtNameById.get(d.court_id) ?? null : null;
+    c.year = d.year ?? c.year;
+    c.judgmentDate = d.judgment_date ?? null;
+    c.citation = d.citation_ar ?? c.citation;
+    c.caseNumber = d.case_number ?? c.caseNumber;
+    c.principle = d.principle_ar ?? null;
+    c.sourceUrl = d.source_url ?? null;
+    c.authority = caseAuthority(d);
+  }
+
+  // Ordering. The case-type lens promotes its category; it never removes a
+  // result, because category assignments are incomplete and hiding evidence
+  // behind an incomplete label is the more dangerous error. Within each band,
+  // in-force provisions come before ones that are not, then by rank.
+  const forceOrder: Record<ForceStatus, number> = {
+    in_force: 0,
+    unknown: 1,
+    under_review: 2,
+    not_in_force: 3,
+  };
+  const lawList = [...authorityMap.values()].sort((a, b) => {
+    if (a.inCaseTypeCategory !== b.inCaseTypeCategory) return a.inCaseTypeCategory ? -1 : 1;
+    if (a.type !== b.type) return a.type === "article" ? -1 : 1;
+    if (forceOrder[a.force] !== forceOrder[b.force]) return forceOrder[a.force] - forceOrder[b.force];
+    return b.rank - a.rank;
   });
 
-  const principleDetailById = new Map((principlesDetail.data ?? []).map((p) => [p.id, p]));
-  const principleList: RetrievedPrinciple[] = [...principleHitMap.entries()].map(([id, { row, term }]) => {
-    const d = principleDetailById.get(id);
-    return {
-      id,
-      title: row.title ?? "",
-      category: d?.category ?? row.subtitle ?? null,
-      summary: d?.summary_ar ?? row.snippet ?? null,
-      slug: row.slug,
-      matchedTerm: term,
-      rank: row.rank,
-    };
+  const authorityOrder: Record<AuthorityLevel, number> = {
+    verified: 0,
+    unverified: 1,
+    needs_review: 2,
+    overruled: 3,
+  };
+  const caseList = [...caseMap.values()].sort((a, b) => {
+    if (authorityOrder[a.authority] !== authorityOrder[b.authority]) {
+      return authorityOrder[a.authority] - authorityOrder[b.authority];
+    }
+    return b.rank - a.rank;
   });
 
-  const lawList = [...lawMap.values()].sort((a, b) => b.rank - a.rank);
-  caseList.sort((a, b) => b.rank - a.rank);
-  principleList.sort((a, b) => b.rank - a.rank);
+  const principleList = [...principleMap.values()].sort((a, b) => b.rank - a.rank);
 
-  // Per-term "issue lens" — the honest relationship chain (§F) for the map view.
-  const issues: IssueLens[] = terms.map(({ term, origin }) => {
-    const topLaw = lawList.find((l) => l.matchedTerm === term) ?? null;
-    const topCase = caseList.find((c) => c.matchedTerm === term) ?? null;
-    const topPrinciple = principleList.find((p) => p.matchedTerm === term) ?? null;
-    return { term, origin, topLaw, topCase, topPrinciple };
-  });
+  // Per-term lens. A result belongs to every term that matched it, so an issue
+  // no longer renders empty merely because another term outranked it.
+  const issues: IssueLens[] = terms.map(({ term, origin }) => ({
+    term,
+    origin,
+    topLaw: lawList.find((l) => l.matchedTerms.includes(term)) ?? null,
+    topCase: caseList.find((c) => c.matchedTerms.includes(term)) ?? null,
+    topPrinciple: principleList.find((p) => p.matchedTerms.includes(term)) ?? null,
+    searchedAndEmpty: !termsWithHits.has(term),
+  }));
 
   return {
     factsExcerpt: excerpt,
     factsIsTruncated: truncated,
+    caseTypeLens: input.caseType?.trim()
+      ? { input: input.caseType.trim(), categoryNameAr: category?.nameAr ?? null }
+      : null,
     issues,
     laws: lawList.slice(0, DISPLAY_CAP),
     cases: caseList.slice(0, DISPLAY_CAP),
@@ -392,4 +776,3 @@ export async function analyzeCase(
     hasAnyResults: lawList.length > 0 || caseList.length > 0 || principleList.length > 0,
   };
 }
-

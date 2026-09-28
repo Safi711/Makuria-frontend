@@ -53,6 +53,8 @@ export const dictionaries: Record<Locale, Record<string, string>> = {
     // ever means «we have not checked this record against an official source».
     unverified: "غير موثّق",
     textNotEnteredYet: "النص لم يُدخل بعد",
+    sourceLabel: "المصدر",
+    noSourceRecorded: "لا مصدر مسجَّل لهذا النص",
     comingSoonTitle: "قيد التطوير",
     comingSoonBody:
       "هذه الوحدة جزء من مساحة عمل المحامي في مكوريا وسيتم بناؤها في مرحلة لاحقة. لا توجد بيانات أو وظائف مُصطنعة هنا.",
@@ -98,6 +100,11 @@ export const dictionaries: Record<Locale, Record<string, string>> = {
     cmSectionIssues: "المسائل القانونية المحتملة",
     cmIssuesNote: "زوايا بحث أولية مستخرجة آليًا من النص المدخل — تحليل تمهيدي، وليست تكييفًا قانونيًا نهائيًا.",
     cmIssueOriginCaseType: "من نوع القضية",
+    cmIssueOriginExpanded: "مصطلح القانون المقابل لكلمة في الوقائع — أُضيف للبحث",
+    cmIssueNothingFound: "بُحث عنها في المتن ولم تُطابق شيئًا.",
+    cmCaseTypeLens: "نوع القضية يُستعمل لترتيب النتائج، لا ككلمة بحث",
+    cmCaseTypeLensOn: "قُدِّمت نتائج مجال:",
+    cmCaseTypeLensNone: "لم يُطابق نوع القضية أي مجال في المتن، فلم يُستعمل في الترتيب.",
     cmIssueOriginKeyword: "من الكلمات المفتاحية",
     cmIssueOriginExtracted: "مستخرجة من نص الوقائع",
     cmSectionLaws: "القوانين والمواد ذات الصلة",
@@ -172,6 +179,8 @@ export const dictionaries: Record<Locale, Record<string, string>> = {
     // See the Arabic note: kept distinct from `statusUnknown`.
     unverified: "Unverified",
     textNotEnteredYet: "Text not yet entered",
+    sourceLabel: "Source",
+    noSourceRecorded: "No source recorded for this text",
     comingSoonTitle: "Coming Soon",
     comingSoonBody:
       "This module is part of the Makuria Lawyer Workspace and will be built in a later phase. No fabricated data or functionality lives here.",
@@ -217,6 +226,11 @@ export const dictionaries: Record<Locale, Record<string, string>> = {
     cmSectionIssues: "Potential Legal Issues",
     cmIssuesNote: "Preliminary search angles extracted mechanically from the text — an initial pass, not a final legal classification.",
     cmIssueOriginCaseType: "from case type",
+    cmIssueOriginExpanded: "the statute's term for a word in the facts — added to the search",
+    cmIssueNothingFound: "Searched in the corpus; matched nothing.",
+    cmCaseTypeLens: "Case type orders the results; it is not a search word",
+    cmCaseTypeLensOn: "Promoted results from:",
+    cmCaseTypeLensNone: "The case type matched no category in the corpus, so it was not used for ordering.",
     cmIssueOriginKeyword: "from keywords",
     cmIssueOriginExtracted: "extracted from the facts",
     cmSectionLaws: "Related Laws & Articles",

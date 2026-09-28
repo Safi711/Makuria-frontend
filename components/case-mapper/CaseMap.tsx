@@ -1,6 +1,5 @@
 import { Locale, t } from "@/lib/i18n";
 import { AuthorityBadge } from "@/components/case-mapper/AuthorityBadge";
-import { VerificationBadge } from "@/components/VerificationBadge";
 import type { IssueLens } from "@/lib/case-mapper/analyze";
 
 /**
@@ -38,10 +37,10 @@ export function CaseMap({ locale, issues }: { locale: Locale; issues: IssueLens[
           <div key={issue.term} className="flex flex-col">
             <MapNode label={t(locale, "cmMapFacts")}>
               <p className="text-neutral-600">
-                {issue.origin === "case_type"
-                  ? t(locale, "cmIssueOriginCaseType")
-                  : issue.origin === "keyword"
-                    ? t(locale, "cmIssueOriginKeyword")
+                {issue.origin === "keyword"
+                  ? t(locale, "cmIssueOriginKeyword")
+                  : issue.origin === "expanded"
+                    ? t(locale, "cmIssueOriginExpanded")
                     : t(locale, "cmIssueOriginExtracted")}
               </p>
             </MapNode>
@@ -58,7 +57,6 @@ export function CaseMap({ locale, issues }: { locale: Locale; issues: IssueLens[
                       ? `${issue.topLaw.lawTitle ?? ""} — ${t(locale, "cmArticleLabel")} ${issue.topLaw.articleNumber ?? ""}`
                       : issue.topLaw.title}
                   </span>
-                  <VerificationBadge verified={issue.topLaw.verified} locale={locale} />
                 </div>
               ) : (
                 <span className="text-neutral-400">{t(locale, "cmNoLaws")}</span>

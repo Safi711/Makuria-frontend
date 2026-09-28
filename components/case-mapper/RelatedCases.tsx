@@ -34,7 +34,7 @@ export function RelatedCases({ locale, cases }: { locale: Locale; cases: Retriev
                 <Highlight html={c.excerptHtml} />
               </p>
               <p className="text-xs text-neutral-400">
-                {t(locale, "cmMatchedOn")}: {c.matchedTerm}
+                {t(locale, "cmMatchedOn")}: {c.matchedTerms.join("، ")}
               </p>
               {c.slug && (
                 <Link href={`/cases/${c.slug}`} className="mt-1 inline-block text-xs hover:text-[var(--mk-gold)]">

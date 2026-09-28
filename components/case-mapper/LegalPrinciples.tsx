@@ -16,7 +16,7 @@ export function LegalPrinciples({ locale, principles }: { locale: Locale; princi
               {p.category && <p className="mt-0.5 text-xs text-neutral-500">{p.category}</p>}
               {p.summary && <p className="mt-2 text-sm leading-relaxed">{p.summary.slice(0, 220)}</p>}
               <p className="mt-2 text-xs text-neutral-400">
-                {t(locale, "cmMatchedOn")}: {p.matchedTerm}
+                {t(locale, "cmMatchedOn")}: {p.matchedTerms.join("، ")}
               </p>
               {p.slug && (
                 <Link href={`/principles/${p.slug}`} className="mt-1 inline-block text-xs hover:text-[var(--mk-gold)]">

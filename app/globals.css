@@ -42,12 +42,21 @@ body {
   font-family: Tahoma, "Segoe UI", "Geeza Pro", Arial, sans-serif;
 }
 
-.mk-badge-verified {
-  background: var(--mk-verified-bg);
-  color: var(--mk-verified-fg);
-}
+/* RETIRED 2026-09-28, by Safi's decision: the site shows legal force
+   («ساري» / «ملغى» / «تحت المراجعة») and the source of a text. It no longer
+   shows a «موثّق / غير موثّق» stamp — that stamp reported whether a box had
+   been ticked in the database, not where the text came from. It read
+   «غير موثّق» on the Traffic Act the day its full official Ministry of
+   Justice text was loaded, and «موثّق» on six records holding no text at all.
 
+   Hidden here in the stylesheet, not only in the component, ON PURPOSE:
+   the build running in production renders this badge on /laws from a version
+   of that page we do not have a copy of. Emptying `VerificationBadge` only
+   reaches the pages we can see; `display: none` on the badge's own classes
+   reaches every page that draws it, including the ones we cannot read.
+
+   Belt and braces. Remove both together if the badge is ever brought back. */
+.mk-badge-verified,
 .mk-badge-unverified {
-  background: var(--mk-unverified-bg);
-  color: var(--mk-unverified-fg);
+  display: none !important;
 }

@@ -77,7 +77,7 @@ export default async function CaseMapperPage(props: PageProps<"/case-mapper">) {
             ) : null}
 
             <CaseSummary locale={locale} excerpt={result.factsExcerpt} truncated={result.factsIsTruncated} />
-            <LegalIssues locale={locale} issues={result.issues} />
+            <LegalIssues locale={locale} issues={result.issues} caseTypeLens={result.caseTypeLens} />
             <RelatedLaws locale={locale} laws={result.laws} />
             <RelatedCases locale={locale} cases={result.cases} />
             <LegalPrinciples locale={locale} principles={result.principles} />
