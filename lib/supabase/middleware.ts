@@ -4,7 +4,16 @@ import { NextResponse, type NextRequest } from "next/server";
 const PROTECTED_PREFIXES = [
   "/workspace",
   "/matters",
-  "/case-mapper",
+  // «/case-mapper» was here until 2026-09-28. It is now PUBLIC, by Safi's
+  // decision: «المستشار القانوني الذكي» is the reason the site exists, it is
+  // linked from the main navigation on every page, and a visitor who clicked
+  // that link was redirected to /login. A locked front door on the one tool
+  // the site is built around.
+  //
+  // Nothing is given away by opening it: the page reads the same public
+  // corpus as /search and /laws, through the same anon key under the same
+  // RLS policies, and writes nothing. Saving an analysis to a matter stays
+  // behind /matters, which is still protected.
   "/quick-check",
   "/practical-law",
   "/alerts",
@@ -13,7 +22,8 @@ const PROTECTED_PREFIXES = [
 /**
  * Refreshes the Supabase session on every request and gates the
  * authenticated Lawyer Workspace routes. Public research routes
- * (/, /laws, /cases, /search, /principles) are never touched here.
+ * (/, /laws, /cases, /search, /principles, /case-mapper) are never
+ * touched here.
  */
 export async function updateSession(request: NextRequest) {
   let response = NextResponse.next({ request });

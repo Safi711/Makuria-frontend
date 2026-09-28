@@ -43,8 +43,8 @@ export default async function WorkspacePage() {
             {mattersCount === 0 || mattersCount === null
               ? t(locale, "workspaceEmpty")
               : locale === "ar"
-                ? "Case Mapper لعرض وإدارة هذه الملفات لم يُبنَ بعد في هذه المرحلة."
-                : "The Case Mapper UI to view/manage these matters is not built in this phase yet."}
+                ? "واجهة عرض هذه الملفات وإدارتها لم تُبنَ بعد في هذه المرحلة."
+                : "The interface to view and manage these matters is not built in this phase yet."}
           </p>
         </div>
       </div>

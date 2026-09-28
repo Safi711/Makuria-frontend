@@ -9,8 +9,12 @@ export async function Header({ locale }: { locale: Locale }) {
   const { data } = await supabase.auth.getUser();
   const isAuthed = Boolean(data.user);
 
-  const navItems: { href: string; label: string }[] = [
+  const navItems: { href: string; label: string; highlight?: boolean }[] = [
     { href: "/", label: t(locale, "navHome") },
+    // ثانياً في الترتيب بطلب صافي: «هذا هو السبب، الموقع كله».
+    // والعنوان يبقى /case-mapper ولا يتغيّر مع تغيّر الاسم المعروض،
+    // فلا ينكسر رابط سبق أن شاركه أحد.
+    { href: "/case-mapper", label: t(locale, "navAdvisor"), highlight: true },
     { href: "/laws", label: t(locale, "navLaws") },
     { href: "/cases", label: t(locale, "navCases") },
     { href: "/principles", label: t(locale, "navPrinciples") },
@@ -35,7 +39,12 @@ export async function Header({ locale }: { locale: Locale }) {
 
         <nav className="hidden items-center gap-5 text-sm font-medium md:flex">
           {navItems.map((item) => (
-            <Link key={item.href} href={item.href} className="hover:text-[var(--mk-gold)]">
+            <Link
+              key={item.href}
+              href={item.href}
+              className="hover:text-[var(--mk-gold)]"
+              style={item.highlight ? { color: "var(--mk-gold)" } : undefined}
+            >
               {item.label}
             </Link>
           ))}
