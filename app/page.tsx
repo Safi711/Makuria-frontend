@@ -2,7 +2,6 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getLocale } from "@/lib/i18n-server";
 import { t } from "@/lib/i18n";
-import { VerificationBadge } from "@/components/VerificationBadge";
 import { LawStatusBadge } from "@/components/LawStatusBadge";
 
 export const revalidate = 60;
@@ -94,13 +93,15 @@ export default async function HomePage() {
                   {/* Legal force first: it is what a reader needs before the text. */}
                   <LawStatusBadge status={law.status} locale={locale} />
                 </div>
-                <p className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-neutral-500">
-                  <span>
-                    {t(locale, "lawNumber")} {law.law_number} · {law.year_issued}
-                  </span>
-                  {/* Whether the record itself was checked against an official
-                      source — a separate question from whether it is in force. */}
-                  <VerificationBadge verified={Boolean(law.verified)} locale={locale} />
+                {/* 90 of 108 laws have no law_number, so a fixed label printed
+                    "رقم القانون ·" with nothing after it. Build from what exists. */}
+                <p className="text-xs text-neutral-500">
+                  {[
+                    law.law_number ? `${t(locale, "lawNumber")} ${law.law_number}` : null,
+                    law.year_issued || null,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")}
                 </p>
               </Link>
             ))}

@@ -30,6 +30,34 @@ export function lawStatusWordAr(status?: string | null): string {
 }
 
 /**
+ * A readable name for where a text came from.
+ *
+ * This replaces the «موثّق / غير موثّق» badge that used to sit on every law
+ * and case. That badge was an editorial verdict the reader could not check,
+ * and an audit on 24 Sep found it unreliable in its own right: 4 of the 8
+ * laws marked verified had no recorded source at all. Naming the source, and
+ * saying plainly when there is none, gives the reader something they can
+ * check for themselves instead of a claim they have to take on trust.
+ */
+const SOURCE_NAMES_AR: Record<string, string> = {
+  "moj.gov.sd": "وزارة العدل — جمهورية السودان",
+  "cbos.gov.sd": "بنك السودان المركزي",
+  "judiciary.gov.sd": "السلطة القضائية — جمهورية السودان",
+};
+
+export function sourceNameAr(url?: string | null): string | null {
+  if (!url || !url.trim()) return null;
+  let host: string;
+  try {
+    host = new URL(url).hostname.replace(/^www\./, "");
+  } catch {
+    // Not a URL — a citation typed by hand is still a source worth showing.
+    return url.trim();
+  }
+  return SOURCE_NAMES_AR[host] ?? host;
+}
+
+/**
  * Collapse whitespace and cut to a length that search engines actually
  * display, breaking on a word boundary rather than mid-word.
  */

@@ -3,10 +3,9 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getLocale } from "@/lib/i18n-server";
 import { t } from "@/lib/i18n";
-import { VerificationBadge } from "@/components/VerificationBadge";
 import { LawStatusBadge } from "@/components/LawStatusBadge";
 import { Pagination } from "@/components/Pagination";
-import { SITE_URL, clampDescription, lawStatusWordAr } from "@/lib/site";
+import { SITE_URL, clampDescription, lawStatusWordAr, sourceNameAr } from "@/lib/site";
 
 const ARTICLES_PAGE_SIZE = 30;
 
@@ -104,6 +103,8 @@ export default async function LawDetailPage(props: PageProps<"/laws/[slug]">) {
     law.issuing_authority || null,
   ].filter(Boolean);
 
+  const sourceName = sourceNameAr(law.source_url);
+
   const page = Math.max(1, Number(searchParams.page ?? "1") || 1);
   const from = (page - 1) * ARTICLES_PAGE_SIZE;
   const to = from + ARTICLES_PAGE_SIZE - 1;
@@ -148,17 +149,38 @@ export default async function LawDetailPage(props: PageProps<"/laws/[slug]">) {
       />
       <div className="mb-2 flex items-start justify-between gap-4">
         <h1 className="text-2xl font-bold">{law.title_ar || law.title_en}</h1>
-        <span className="flex shrink-0 flex-wrap items-center justify-end gap-1.5">
-          {/* Force first. Until now this page showed only the verification
-              badge, so a reader had no way to tell a repealed text from a
-              current one without reading the articles. */}
-          <LawStatusBadge status={law.status} locale={locale} />
-          <VerificationBadge verified={Boolean(law.verified)} locale={locale} />
-        </span>
+        {/* Legal force is the one judgement this page makes, and it is
+            checkable against the articles themselves. Provenance is stated
+            below rather than summarised into a trust badge. */}
+        <LawStatusBadge status={law.status} locale={locale} />
       </div>
       {facts.length > 0 && (
-        <p className="mb-6 text-sm text-neutral-500">{facts.join(" · ")}</p>
+        <p className="mb-2 text-sm text-neutral-500">{facts.join(" · ")}</p>
       )}
+
+      {/* Where this text came from — or, just as important, that we do not
+          know. A reader can follow the link and judge for themselves. */}
+      <p className="mb-6 text-sm" style={{ color: sourceName ? "#52525b" : "#8A6414" }}>
+        {sourceName ? (
+          <>
+            {t(locale, "sourceLabel")}:{" "}
+            {law.source_url?.startsWith("http") ? (
+              <a
+                href={law.source_url}
+                target="_blank"
+                rel="noopener noreferrer nofollow"
+                className="underline underline-offset-2"
+              >
+                {sourceName}
+              </a>
+            ) : (
+              sourceName
+            )}
+          </>
+        ) : (
+          t(locale, "noSourceRecorded")
+        )}
+      </p>
 
       {/* When force is not established, the summary carries the warning about
           why — it must not read as ordinary descriptive prose. */}
@@ -191,7 +213,6 @@ export default async function LawDetailPage(props: PageProps<"/laws/[slug]">) {
                 <span className="text-sm font-semibold">
                   {locale === "ar" ? "المادة" : "Article"} {a.article_number}
                 </span>
-                <VerificationBadge verified={Boolean(a.verified)} locale={locale} />
               </div>
               <p className="text-sm leading-relaxed">{a.content_ar}</p>
               {a.status_note_ar && (

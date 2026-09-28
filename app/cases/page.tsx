@@ -2,7 +2,6 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getLocale } from "@/lib/i18n-server";
 import { t } from "@/lib/i18n";
-import { VerificationBadge } from "@/components/VerificationBadge";
 import { Pagination } from "@/components/Pagination";
 import type { Metadata } from "next";
 
@@ -52,11 +51,14 @@ export default async function CasesPage(props: PageProps<"/cases">) {
                 <div>
                   <p className="font-medium group-hover:text-[var(--mk-gold)]">{c.case_title_ar}</p>
                   <p className="mt-1 text-xs text-neutral-500">
-                    {t(locale, "caseNumber")} {c.case_number} · {t(locale, "judgmentDate")}{" "}
-                    {c.judgment_date}
+                    {[
+                      c.case_number ? `${t(locale, "caseNumber")} ${c.case_number}` : null,
+                      c.judgment_date ? `${t(locale, "judgmentDate")} ${c.judgment_date}` : null,
+                    ]
+                      .filter(Boolean)
+                      .join(" · ")}
                   </p>
                 </div>
-                <VerificationBadge verified={Boolean(c.verified)} locale={locale} />
               </Link>
             </li>
           ))}

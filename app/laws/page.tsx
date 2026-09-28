@@ -2,7 +2,6 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getLocale } from "@/lib/i18n-server";
 import { t } from "@/lib/i18n";
-import { VerificationBadge } from "@/components/VerificationBadge";
 import { LawStatusBadge } from "@/components/LawStatusBadge";
 import { Pagination } from "@/components/Pagination";
 import type { Metadata } from "next";
@@ -109,18 +108,21 @@ export default async function LawsPage(props: PageProps<"/laws">) {
                   <p className="font-medium group-hover:text-[var(--mk-gold)]">
                     {law.title_ar || law.title_en}
                   </p>
+                  {/* A title-only record says so here rather than after the
+                      click, and an absent law number prints nothing at all. */}
                   <p className="mt-1 text-xs text-neutral-500">
-                    {t(locale, "lawNumber")} {law.law_number} · {law.year_issued} ·{" "}
-                    {/* A title-only record says so here rather than after the click. */}
-                    {(law.total_articles ?? 0) > 0
-                      ? `${law.total_articles} ${t(locale, "articlesCount")}`
-                      : t(locale, "textNotEnteredYet")}
+                    {[
+                      law.law_number ? `${t(locale, "lawNumber")} ${law.law_number}` : null,
+                      law.year_issued || null,
+                      (law.total_articles ?? 0) > 0
+                        ? `${law.total_articles} ${t(locale, "articlesCount")}`
+                        : t(locale, "textNotEnteredYet"),
+                    ]
+                      .filter(Boolean)
+                      .join(" · ")}
                   </p>
                 </div>
-                <span className="flex shrink-0 flex-wrap items-center justify-end gap-1.5">
-                  <LawStatusBadge status={law.status} locale={locale} />
-                  <VerificationBadge verified={Boolean(law.verified)} locale={locale} />
-                </span>
+                <LawStatusBadge status={law.status} locale={locale} />
               </Link>
             </li>
           ))}

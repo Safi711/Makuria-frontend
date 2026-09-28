@@ -3,8 +3,7 @@ import { notFound } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getLocale } from "@/lib/i18n-server";
 import { t } from "@/lib/i18n";
-import { VerificationBadge } from "@/components/VerificationBadge";
-import { SITE_URL, clampDescription } from "@/lib/site";
+import { SITE_URL, clampDescription, sourceNameAr } from "@/lib/site";
 
 /**
  * A precedent is the kind of page people search for by its principle, not by
@@ -64,6 +63,8 @@ export default async function CaseDetailPage(props: PageProps<"/cases/[slug]">) 
 
   if (!caseRow) notFound();
 
+  const caseSource = sourceNameAr(caseRow.source_url);
+
   const sections: { label: string; value: string | null }[] = [
     { label: locale === "ar" ? "الوقائع" : "Facts", value: caseRow.facts_ar },
     { label: locale === "ar" ? "المسألة القانونية" : "Legal Issue", value: caseRow.legal_issue_ar },
@@ -74,12 +75,39 @@ export default async function CaseDetailPage(props: PageProps<"/cases/[slug]">) 
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-10">
-      <div className="mb-2 flex items-start justify-between gap-4">
-        <h1 className="text-2xl font-bold">{caseRow.case_title_ar}</h1>
-        <VerificationBadge verified={Boolean(caseRow.verified)} locale={locale} />
-      </div>
-      <p className="mb-8 text-sm text-neutral-500">
-        {t(locale, "caseNumber")} {caseRow.case_number} · {t(locale, "judgmentDate")} {caseRow.judgment_date}
+      <h1 className="mb-2 text-2xl font-bold">{caseRow.case_title_ar}</h1>
+      <p className="mb-2 text-sm text-neutral-500">
+        {[
+          caseRow.case_number ? `${t(locale, "caseNumber")} ${caseRow.case_number}` : null,
+          caseRow.judgment_date ? `${t(locale, "judgmentDate")} ${caseRow.judgment_date}` : null,
+        ]
+          .filter(Boolean)
+          .join(" · ")}
+      </p>
+
+      {/* Same rule as the law pages: name the source, or say there is none.
+          42 of 224 published cases carry no source at all — that is a fact a
+          reader needs, and a trust badge was hiding it. */}
+      <p className="mb-8 text-sm" style={{ color: caseSource ? "#52525b" : "#8A6414" }}>
+        {caseSource ? (
+          <>
+            {t(locale, "sourceLabel")}:{" "}
+            {caseRow.source_url?.startsWith("http") ? (
+              <a
+                href={caseRow.source_url}
+                target="_blank"
+                rel="noopener noreferrer nofollow"
+                className="underline underline-offset-2"
+              >
+                {caseSource}
+              </a>
+            ) : (
+              caseSource
+            )}
+          </>
+        ) : (
+          t(locale, "noSourceRecorded")
+        )}
       </p>
 
       <div className="space-y-6">
