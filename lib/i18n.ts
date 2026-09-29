@@ -93,6 +93,28 @@ export const dictionaries: Record<Locale, Record<string, string>> = {
     cmStep3Body: "افتح المصدر وتحقق من النص والحكم.",
     cmHowFooter:
       "المستشار أداة بحثية تساعدك على الوصول للمصادر؛ ولا تحل محل مراجعة المحامي أو النص الرسمي.",
+
+    // ——— الصفحة الرئيسية (بابان: بحث سريع، ومستشار) ———
+    homeEyebrow: "أكبر قاعدة قانونية سودانية",
+    homeTitle: "ابحث في القانون السوداني",
+    homeSubtitle:
+      "نصوص القوانين كاملة بموادها، والسوابق القضائية، والمبادئ — مع بيان حالة نفاذ كل نص ومصدره.",
+    homeSearchBtn: "بحث",
+    homeExamplesLabel: "أمثلة",
+    homeStatLaws: "قانون",
+    homeStatArticles: "مادة",
+    homeStatCases: "حكماً قضائياً",
+    homeAdvisorTag: "الأداة التي يقوم عليها المعهد",
+    homeAdvisorTitle: "المستشار القانوني الذكي",
+    homeAdvisorBody:
+      "اكتب وقائع دعواك — لا كلمة بحث — فيقابلها المستشار بالمواد القانونية والسوابق القضائية المرتبطة بها، ويبيّن لك لماذا ظهرت كل نتيجة.",
+    homeAdvisorCta: "افتح المستشار",
+    homeBrowseTitle: "استعرض المحتوى",
+    homeBrowseLawsBody: "قوانين السودان بموادها، مصنَّفة، وعلى كل نص حالة نفاذه.",
+    homeBrowseCasesBody: "أحكام المحاكم بمبادئها ومحاكمها وتواريخها.",
+    homeBrowsePrinciplesBody: "المبادئ القانونية المستخلصة من الأحكام.",
+    homeLatestTitle: "أحدث القوانين",
+    homeLatestAll: "استعرض القوانين كلها",
     cmFactsCardTitle: "وقائع الدعوى",
     cmFactsCardSub: "صف الوقائع بوضوح، واذكر الإجراء أو النزاع الذي تريد بحثه.",
     cmFactsPlaceholder2: "اكتب ملخص الوقائع هنا...",
@@ -280,6 +302,28 @@ export const dictionaries: Record<Locale, Record<string, string>> = {
     cmStep3Body: "Open the source and verify the text and the judgment.",
     cmHowFooter:
       "The advisor is a research tool that helps you reach the sources; it does not replace a lawyer's review or the official text.",
+
+    // ——— Homepage (two doors: quick search, and the advisor) ———
+    homeEyebrow: "Sudan's largest legal database",
+    homeTitle: "Search Sudanese law",
+    homeSubtitle:
+      "The full text of the laws article by article, the judicial precedents and the principles — each with its legal force and its source.",
+    homeSearchBtn: "Search",
+    homeExamplesLabel: "Examples",
+    homeStatLaws: "laws",
+    homeStatArticles: "articles",
+    homeStatCases: "judgments",
+    homeAdvisorTag: "The tool the institute is built around",
+    homeAdvisorTitle: "The Smart Legal Advisor",
+    homeAdvisorBody:
+      "Write the facts of your case — not a search term — and the advisor matches them against the provisions and precedents connected to them, and shows you why each result appeared.",
+    homeAdvisorCta: "Open the advisor",
+    homeBrowseTitle: "Browse the collection",
+    homeBrowseLawsBody: "Sudan's laws article by article, categorised, each text carrying its legal force.",
+    homeBrowseCasesBody: "Court judgments with their principles, courts and dates.",
+    homeBrowsePrinciplesBody: "Legal principles drawn from the judgments.",
+    homeLatestTitle: "Most recent laws",
+    homeLatestAll: "Browse all the laws",
     cmFactsCardTitle: "Facts of the case",
     cmFactsCardSub: "Describe the facts clearly, and state the procedure or dispute you want researched.",
     cmFactsPlaceholder2: "Write a summary of the facts here...",

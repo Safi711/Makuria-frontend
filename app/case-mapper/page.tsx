@@ -3,25 +3,23 @@ import { getLocale } from "@/lib/i18n-server";
 import { AdvisorPage } from "@/components/case-mapper/AdvisorPage";
 
 /**
- * «المستشار القانوني الذكي» at its own address.
+ * «المستشار القانوني الذكي» — an ordinary, indexed page again.
  *
- * The advisor now also IS the homepage (see `app/page.tsx`), but this route
- * stays and renders exactly the same thing. Makuria's standing rule is that a
- * path never moves once it is public: anything already linked, bookmarked or
- * cited as /case-mapper keeps working. The page is rendered from one shared
- * component, so the two can never drift apart.
+ * For part of 2026-09-29 the advisor WAS the homepage, and this route carried
+ * `robots: noindex` so the two URLs would not compete over identical content.
+ * That arrangement was reversed the same day (see app/page.tsx): the homepage
+ * is now a landing page that leads here, the two pages no longer serve the
+ * same thing, and so the `noindex` and the self-referencing canonical are
+ * both restored to normal.
  *
- * `robots: index: false` — not because the page is private, but because it and
- * the homepage would otherwise be two URLs serving identical content, which
- * search engines treat as duplication and one of the two loses. The homepage
- * is the one that should rank.
+ * The path never moved through any of it. Anything bookmarked, shared or cited
+ * as /case-mapper has worked continuously.
  */
 export const metadata: Metadata = {
   title: "المستشار القانوني الذكي",
   description:
-    "أدخل وقائع الدعوى ليقابلها المستشار بالمواد القانونية والسوابق القضائية في متن مكوريا، مع بيان حالة نفاذ كل نص ومصدره.",
-  alternates: { canonical: "/" },
-  robots: { index: false, follow: true },
+    "اكتب وقائع دعواك ليقابلها المستشار بالمواد القانونية والسوابق القضائية في متن مكوريا، مع بيان حالة نفاذ كل نص ومصدره، وبيان سبب ظهور كل نتيجة.",
+  alternates: { canonical: "/case-mapper" },
 };
 
 export default async function CaseMapperRoute(props: PageProps<"/case-mapper">) {

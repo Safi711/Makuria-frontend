@@ -39,9 +39,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     entry("/laws", null, "daily", 0.9),
     entry("/cases", null, "daily", 0.9),
     entry("/principles", null, "weekly", 0.7),
-    // /case-mapper is a working module. /practical-law and /quick-check are
-    // «قيد التطوير» placeholders and are deliberately absent — see app/robots.ts.
-    entry("/case-mapper", null, "monthly", 0.5),
+    // /case-mapper is a real, distinct page again — the homepage leads to it
+    // rather than being it — so it is advertised normally. (It was pulled from
+    // this list for a few hours on 2026-09-29, while the advisor and the
+    // homepage were the same page and one of them had to carry `noindex`.)
+    //
+    // /practical-law and /quick-check are «قيد التطوير» placeholders and are
+    // deliberately absent — see app/robots.ts.
+    entry("/case-mapper", null, "monthly", 0.8),
   ];
 
   const supabase = publicClient();
