@@ -22,15 +22,23 @@ export async function Header({ locale }: { locale: Locale }) {
   ];
 
   return (
+    // The one place on the site whose background was hard-coded white rather
+    // than inherited. Now navy, slightly deeper than the page so the bar
+    // reads as chrome and not as another card. (Safi, 2026-09-29: the design
+    // applies to every page.)
     <header
       className="sticky top-0 z-40 border-b backdrop-blur"
-      style={{ borderColor: "var(--mk-border)", background: "rgba(255,255,255,0.9)" }}
+      style={{ borderColor: "var(--mk-border)", background: "rgba(9,20,43,0.92)" }}
     >
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
-        <Link href="/" className="flex items-center gap-2 font-bold" style={{ color: "var(--mk-black)" }}>
+        <Link href="/" className="flex items-center gap-2 font-bold" style={{ color: "var(--cm-text)" }}>
           <span
-            className="flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold text-white"
-            style={{ background: "var(--mk-black)", border: "1px solid var(--mk-gold)" }}
+            className="flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold"
+            style={{
+              background: "rgba(228,193,67,0.12)",
+              color: "var(--mk-gold-soft)",
+              border: "1px solid rgba(228,193,67,0.5)",
+            }}
           >
             م
           </span>
@@ -56,8 +64,8 @@ export async function Header({ locale }: { locale: Locale }) {
             <>
               <Link
                 href="/workspace"
-                className="rounded-md px-3 py-1.5 text-xs font-semibold text-white"
-                style={{ background: "var(--mk-black)", border: "1px solid var(--mk-gold)" }}
+                className="rounded-md px-3 py-1.5 text-xs font-bold"
+                style={{ background: "var(--mk-gold)", color: "#071226" }}
               >
                 {t(locale, "navWorkspace")}
               </Link>
@@ -66,8 +74,8 @@ export async function Header({ locale }: { locale: Locale }) {
           ) : (
             <Link
               href="/login"
-              className="rounded-md px-3 py-1.5 text-xs font-semibold text-white"
-              style={{ background: "var(--mk-black)", border: "1px solid var(--mk-gold)" }}
+              className="rounded-md px-3 py-1.5 text-xs font-bold"
+              style={{ background: "var(--mk-gold)", color: "#071226" }}
             >
               {t(locale, "navLogin")}
             </Link>

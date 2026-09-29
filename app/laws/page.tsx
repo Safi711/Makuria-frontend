@@ -100,7 +100,7 @@ export default async function LawsPage(props: PageProps<"/laws">) {
       )}
 
       {laws && laws.length > 0 ? (
-        <ul className="divide-y" style={{ borderColor: "var(--mk-border)" }}>
+        <ul className="divide-y [&>li]:border-[var(--mk-border)]">
           {laws.map((law) => (
             <li key={law.id} className="py-4">
               <Link href={`/laws/${law.slug}`} className="flex items-start justify-between gap-4 group">

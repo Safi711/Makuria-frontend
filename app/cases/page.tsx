@@ -44,7 +44,7 @@ export default async function CasesPage(props: PageProps<"/cases">) {
       <h1 className="mb-6 text-2xl font-bold">{t(locale, "navCases")}</h1>
 
       {cases && cases.length > 0 ? (
-        <ul className="divide-y" style={{ borderColor: "var(--mk-border)" }}>
+        <ul className="divide-y [&>li]:border-[var(--mk-border)]">
           {cases.map((c) => (
             <li key={c.id} className="py-4">
               <Link href={`/cases/${c.slug}`} className="flex items-start justify-between gap-4 group">

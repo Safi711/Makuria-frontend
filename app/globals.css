@@ -3,18 +3,57 @@
 /* Makuria design tokens — ported from the current gold/black visual
    identity on makuria.pplx.app. Swap these values, not the components,
    if the brand palette changes. */
+/* ═══════════════════════════════════════════════════════════════════════
+   THE WHOLE SITE IS DARK — Safi, 2026-09-29:
+   «اريد التصميم موجود لكل المواقع. الصور الأولى والثانية لا تشبه صور الموقع»
+   (sending /laws and /search, still white, beside the advisor's design).
+
+   He had twice said «لا تغيير في تصميم الموقع», and was right to change his
+   mind: once the advisor and the auth pages carried the navy-and-gold
+   identity, every remaining white page read as a different website. A legal
+   reference that looks like two sites stitched together is not trustworthy
+   on sight, and trust is the whole product.
+
+   Every value below was sampled pixel-by-pixel from Safi's own mockup
+   (Makuria_Case_Mapper_Smart_Advisor.pdf / _Login_Page.html), not picked by
+   eye. This block is now the single source: the advisor and auth pages used
+   to declare the same variables locally, and they were lifted here exactly
+   as the note in AdvisorPage.tsx said they should be.
+   ═══════════════════════════════════════════════════════════════════════ */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
-  --mk-black: #0b0b0c;
-  --mk-black-soft: #17181a;
-  --mk-gold: #c9a227;
-  --mk-gold-soft: #e4c766;
-  --mk-border: #e5e2d8;
+  --background: #071226;
+  --foreground: #e6edf5;
+
+  /* The Makuria palette */
+  --mk-black: #0b1930;
+  --mk-black-soft: #0e203b;
+  --mk-gold: #e4c143;
+  --mk-gold-soft: #f0d65c;
+  /* Every hairline on the site reads this one variable — 30 call sites —
+     so the whole site's borders moved from parchment to navy in one edit. */
+  --mk-border: #263752;
+
+  /* Status pill colours stay light-on-pastel. They are small solid chips,
+     they read correctly against navy, and they are the same colours a
+     visitor already learned on the search page. Consistency of MEANING
+     matters more here than consistency of background. */
   --mk-verified-bg: #eef7ee;
   --mk-verified-fg: #1f7a3d;
   --mk-unverified-bg: #fdf2e0;
   --mk-unverified-fg: #92600b;
+
+  /* Surfaces and type, sampled from the mockup */
+  --cm-bg: #071226;
+  --cm-surface: #0e203b;
+  --cm-surface-2: #0b1930;
+  --cm-line: #263752;
+  --cm-line-2: #344763;
+  --cm-text: #f4e9d5;
+  --cm-text-2: #c6d2e0;
+  --cm-muted: #aeb9c4;
+  --cm-faint: #8897aa;
+  --cm-gold: #e4c143;
+  --cm-gold-bright: #f0d65c;
 }
 
 @theme inline {
@@ -22,12 +61,10 @@
   --color-foreground: var(--foreground);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
-}
+/* No light-mode branch any more. The site has one identity and it does not
+   flip with the reader's operating-system setting — a law either reads
+   «ساري» or «ملغى», and the page it sits on should look the same to every
+   lawyer who opens it. */
 
 body {
   background: var(--background);
@@ -59,4 +96,88 @@ body {
 .mk-badge-verified,
 .mk-badge-unverified {
   display: none !important;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   THE GREY-TEXT SWEEP — 2026-09-29
+
+   Roughly sixty places across twenty files write their colour as a literal
+   Tailwind class: `text-neutral-500` for a caption, `text-neutral-400` for a
+   source line, `bg-neutral-100` for an inset. Those are fixed greys chosen
+   for black-on-white; on navy the lightest of them is barely legible and
+   the backgrounds turn into pale scars.
+
+   They are remapped here rather than edited file by file, on purpose, and
+   the reason is one we have already paid for once: when the verification
+   badge was retired, emptying the component was not enough because a page
+   running in production imported it from a file this repository does not
+   hold. A stylesheet rule reaches every page that renders, including any we
+   cannot read.
+
+   It is also one block to delete if the site ever goes back to white.
+
+   `text-black` and `text-white` are deliberately NOT remapped: those sit on
+   gold buttons and on dark chips, where they are already correct. */
+.text-neutral-700,
+.text-neutral-600 {
+  color: var(--cm-text-2) !important;
+}
+
+.text-neutral-500 {
+  color: var(--cm-muted) !important;
+}
+
+.text-neutral-400,
+.text-neutral-300 {
+  color: var(--cm-faint) !important;
+}
+
+.bg-neutral-100 {
+  background-color: var(--cm-surface-2) !important;
+}
+
+.bg-white {
+  background-color: var(--cm-surface) !important;
+}
+
+/* Form controls: the browser's own defaults are white-on-white. Inputs are
+   written in a dozen places with only a border colour set, so the fill and
+   the typed text come from the user agent — which means navy pages with
+   blinding white boxes on them. */
+input[type="text"],
+input[type="email"],
+input[type="password"],
+input[type="date"],
+input[type="search"],
+textarea,
+select {
+  background-color: var(--cm-surface-2);
+  color: var(--cm-text);
+  border-color: var(--mk-border);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--cm-faint);
+}
+
+/* Safari paints autofilled fields a fixed pale yellow that no background
+   rule can override; an inset shadow the size of the field is the one way
+   to cover it. */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus {
+  -webkit-text-fill-color: var(--cm-text);
+  -webkit-box-shadow: 0 0 0 1000px var(--cm-surface-2) inset;
+  caret-color: var(--cm-text);
+}
+
+/* The skip-to-content link only becomes visible on keyboard focus, and it
+   kept `focus:bg-white` — white panel, white text, invisible exactly when a
+   keyboard user needs it. */
+a[href="#main-content"]:focus {
+  background-color: var(--cm-surface) !important;
+  color: var(--cm-text);
+  border: 1px solid var(--mk-gold);
+  border-radius: 8px;
 }
