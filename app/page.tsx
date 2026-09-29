@@ -105,12 +105,28 @@ export default async function HomePage() {
   // Every count excludes `site-migration-notice`: it is an operational row
   // that steers the OLD site's visitors here, not a law, and it must never be
   // counted as one — see claude/makurialaw-traffic-and-control-lever.md.
+  // The migration notice is a law-shaped row, not a law — it exists to steer
+  // the OLD site's visitors here. The laws count already excludes it by slug.
+  // Its single «article» has to be excluded from the ARTICLES count too, or
+  // the page advertises 5,822 articles of Sudanese law when it holds 5,821 and
+  // a notice. Small, but the number is a claim about the corpus, and a legal
+  // reference that rounds its own claims up has given away the only thing it
+  // sells.
+  const notice = await supabase
+    .from("laws")
+    .select("id")
+    .eq("slug", "site-migration-notice")
+    .maybeSingle();
+  const noticeId = notice.data?.id ?? null;
+
+  const articlesQuery = supabase.from("articles").select("id", { count: "exact", head: true });
+
   const [lawCount, articleCount, caseCount, recent] = await Promise.all([
     supabase
       .from("laws")
       .select("id", { count: "exact", head: true })
       .neq("slug", "site-migration-notice"),
-    supabase.from("articles").select("id", { count: "exact", head: true }),
+    noticeId ? articlesQuery.neq("law_id", noticeId) : articlesQuery,
     supabase
       .from("cases")
       .select("id", { count: "exact", head: true })

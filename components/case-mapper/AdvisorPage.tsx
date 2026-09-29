@@ -5,6 +5,7 @@ import { LawStatusBadge } from "@/components/LawStatusBadge";
 import { AuthorityBadge } from "@/components/case-mapper/AuthorityBadge";
 import { Highlight } from "@/components/case-mapper/Highlight";
 import { sourceNameAr } from "@/lib/site";
+import { AbuRannatSeal } from "@/components/case-mapper/AbuRannatSeal";
 import { analyzeCase } from "@/lib/case-mapper/analyze";
 import type {
   CaseMapResult,
@@ -500,32 +501,39 @@ export async function AdvisorPage({
             A <div>, not a <header>: a <header> that is not inside a sectioning
             element maps to the `banner` landmark, and the site already has one
             in the layout. Two banners is a screen-reader defect. */}
-        <div className="mb-8 sm:mb-10">
-          <p
-            className="mb-4 inline-flex items-center rounded-full px-4 py-1.5 text-[11px] font-bold tracking-[0.16em] sm:text-xs"
-            style={{ background: "#EAE2CD", color: "#5A4A22" }}
-            dir="ltr"
-          >
-            {t(locale, "cmEyebrow")}
-          </p>
-          <h1 className="mb-3 text-2xl font-bold sm:text-3xl">{t(locale, "cmPageTitle")}</h1>
-          <p className="max-w-2xl text-sm leading-relaxed sm:text-base" style={{ color: "var(--cm-muted)" }}>
-            {t(locale, "cmHeroSub")}
-          </p>
+        {/* The seal sits beside the name, not above the answer box — a mark
+            that identifies the tool, not a face that appears to author its
+            output. See components/case-mapper/AbuRannatSeal.tsx. */}
+        <div className="mb-8 flex flex-col-reverse items-start gap-6 sm:mb-10 sm:flex-row sm:items-center sm:justify-between">
+          <div className="min-w-0">
+            <p
+              className="mb-4 inline-flex items-center rounded-full px-4 py-1.5 text-[11px] font-bold tracking-[0.16em] sm:text-xs"
+              style={{ background: "#F4EDDA", color: "#5A4A22" }}
+              dir="ltr"
+            >
+              {t(locale, "cmEyebrow")}
+            </p>
+            <h1 className="mb-1 text-3xl font-bold sm:text-4xl" style={{ color: "#F4DC94" }}>
+              {t(locale, "cmPageTitle")}
+            </h1>
+            <p className="mb-3 text-lg font-semibold sm:text-xl">{t(locale, "cmPageSubtitle")}</p>
+            <p className="max-w-2xl text-sm leading-relaxed sm:text-base" style={{ color: "var(--cm-muted)" }}>
+              {t(locale, "cmHeroSub")}
+            </p>
+          </div>
+
+          <AbuRannatSeal size={104} className="shrink-0" />
         </div>
 
         {/* --------------------------------------------- facts + how it works
-            SIDE BY SIDE, per Safi 2026-09-29: «دا المفروض», pointing at
-            Makuria_Case_Mapper_Smart_Advisor.pdf. His two design files disagree
-            on exactly this — the PDF sets the two cards beside each other, the
-            later HTML stacks them — and the PDF is the one he chose.
-
-            «وقائع الدعوى» comes first in the DOM, so in RTL it takes the right
-            (wider) side and «كيف يعمل المستشار؟» sits to its left, as drawn.
-            On a phone the grid collapses and the order still reads correctly:
-            the box to type in, then the explanation. */}
-        <div className="grid gap-5 lg:grid-cols-5">
-          <Card className="lg:col-span-3">
+            STACKED, per Abu_Rannat_Makuria_Design.pdf (2026-09-29, evening),
+            which is the latest of three designs Safi has sent for this page and
+            the one this follows. The earlier Smart_Advisor.pdf set the two
+            cards side by side and he chose that at the time («دا المفروض»);
+            this one returns to a full-width facts box with the explanation
+            beneath it. Both readings were his; the newest wins. */}
+        <div className="space-y-5">
+          <Card>
             <CardTitle>{t(locale, "cmFactsCardTitle")}</CardTitle>
             <Muted className="mb-4">{t(locale, "cmFactsCardSub")}</Muted>
 
@@ -614,7 +622,7 @@ export async function AdvisorPage({
             </form>
           </Card>
 
-          <Card className="lg:col-span-2">
+          <Card>
             <CardTitle>{t(locale, "cmHowTitle")}</CardTitle>
             <ol className="mt-4 space-y-4">
               <Step n={1} locale={locale} title={t(locale, "cmStep1Title")} body={t(locale, "cmStep1Body")} />
@@ -661,6 +669,18 @@ export async function AdvisorPage({
         {/* --------------------------------------------------------- results */}
         <div className="mt-10 sm:mt-14">
           <h2 className="mb-1 text-xl font-bold sm:text-2xl">{t(locale, "cmResultsTitle")}</h2>
+          {hasResult && (
+            <p
+              className="mt-3 mb-1 rounded-xl border px-4 py-3 text-xs leading-relaxed"
+              style={{
+                borderColor: "rgba(228,193,67,0.40)",
+                background: "rgba(228,193,67,0.08)",
+                color: "var(--cm-text-2)",
+              }}
+            >
+              {t(locale, "cmHonourNote")}
+            </p>
+          )}
           {!hasResult && <Muted className="mb-6">{t(locale, "cmResultsSub")}</Muted>}
 
           {/* `items-start`: without it the grid stretches every card to the
@@ -730,7 +750,13 @@ export async function AdvisorPage({
           </div>
         </div>
 
-        <p className="mt-10 text-xs leading-relaxed" style={{ color: "var(--cm-faint)" }}>
+        <p
+          className="mt-10 rounded-xl border px-4 py-3 text-xs leading-relaxed"
+          style={{ borderColor: "var(--cm-line)", color: "var(--cm-text-2)" }}
+        >
+          {t(locale, "cmHonourNote")}
+        </p>
+        <p className="mt-4 text-xs leading-relaxed" style={{ color: "var(--cm-faint)" }}>
           {t(locale, "cmDisclaimer")}
         </p>
       </div>

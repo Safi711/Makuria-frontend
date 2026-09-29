@@ -16,9 +16,9 @@ import { AdvisorPage } from "@/components/case-mapper/AdvisorPage";
  * as /case-mapper has worked continuously.
  */
 export const metadata: Metadata = {
-  title: "المستشار القانوني الذكي",
+  title: "أبو رنات — المستشار القانوني الذكي",
   description:
-    "اكتب وقائع دعواك ليقابلها المستشار بالمواد القانونية والسوابق القضائية في متن مكوريا، مع بيان حالة نفاذ كل نص ومصدره، وبيان سبب ظهور كل نتيجة.",
+    "اكتب وقائع دعواك ليقابلها أبو رنات — المستشار القانوني الذكي من مكوريا — بالمواد القانونية والسوابق القضائية، مع بيان حالة نفاذ كل نص ومصدره، وسبب ظهور كل نتيجة.",
   alternates: { canonical: "/case-mapper" },
 };
 
