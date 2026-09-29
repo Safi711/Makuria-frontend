@@ -91,7 +91,8 @@ export const dictionaries: Record<Locale, Record<string, string>> = {
     cmStep2Body: "يقارن النظام الوقائع بالنصوص والأحكام.",
     cmStep3Title: "راجع المواد والسوابق",
     cmStep3Body: "افتح المصدر وتحقق من النص والحكم.",
-    cmHowFooter: "المستشار أداة بحثية، وليس بديلاً عن الرأي القانوني.",
+    cmHowFooter:
+      "المستشار أداة بحثية تساعدك على الوصول للمصادر؛ ولا تحل محل مراجعة المحامي أو النص الرسمي.",
     cmFactsCardTitle: "وقائع الدعوى",
     cmFactsCardSub: "صف الوقائع بوضوح، واذكر الإجراء أو النزاع الذي تريد بحثه.",
     cmFactsPlaceholder2: "اكتب ملخص الوقائع هنا...",
@@ -277,7 +278,8 @@ export const dictionaries: Record<Locale, Record<string, string>> = {
     cmStep2Body: "The system compares the facts against texts and judgments.",
     cmStep3Title: "Review the provisions and precedents",
     cmStep3Body: "Open the source and verify the text and the judgment.",
-    cmHowFooter: "The advisor is a research tool, not a substitute for legal advice.",
+    cmHowFooter:
+      "The advisor is a research tool that helps you reach the sources; it does not replace a lawyer's review or the official text.",
     cmFactsCardTitle: "Facts of the case",
     cmFactsCardSub: "Describe the facts clearly, and state the procedure or dispute you want researched.",
     cmFactsPlaceholder2: "Write a summary of the facts here...",
