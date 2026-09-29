@@ -165,6 +165,34 @@ export const dictionaries: Record<Locale, Record<string, string>> = {
     cmRelevanceReason: "سبب الصلة",
     cmDisclaimer:
       "المستشار القانوني الذكي أداة بحث أولية تعرض فقط ما هو موجود فعليًا في قاعدة بيانات مكوريا. أي استنتاج أو تصنيف هنا هو تحليل آلي أولي يتطلب مراجعة محامٍ مرخّص، وليس رأيًا قانونيًا.",
+
+    // ——— تسجيل الدخول وإنشاء الحساب ———
+    authLoginTitle: "تسجيل الدخول",
+    authLoginSub: "ادخل إلى مساحة المحامي: ملفات القضايا والتنبيهات المحفوظة.",
+    authSignupTitle: "إنشاء حساب محامٍ",
+    authSignupSub: "حساب واحد يحفظ ملفاتك وتنبيهاتك عبر أجهزتك.",
+    authEmail: "البريد الإلكتروني",
+    authPassword: "كلمة المرور",
+    authPasswordHint: "ثمانية أحرف فأكثر.",
+    authLoginBtn: "تسجيل الدخول",
+    authSignupBtn: "إنشاء الحساب",
+    authWorking: "جارٍ…",
+    authNoAccount: "ليس لديك حساب؟",
+    authGoSignup: "أنشئ حساباً",
+    authHaveAccount: "لديك حساب؟",
+    authGoLogin: "سجّل الدخول",
+    authPublicNote:
+      "لا تحتاج حساباً للبحث في القوانين والسوابق، ولا لاستعمال المستشار القانوني الذكي — كلها مفتوحة للجميع.",
+    authPublicCta: "افتح المستشار القانوني الذكي",
+    authCheckEmailTitle: "تحقّق من بريدك",
+    authCheckEmailBody:
+      "أرسلنا رسالة تأكيد إلى بريدك. افتحها وأكّد حسابك، ثم عد وسجّل الدخول.",
+    authErrInvalid: "البريد الإلكتروني أو كلمة المرور غير صحيحة.",
+    authErrNotConfirmed: "لم يُفعَّل بريدك بعد. افتح رسالة التأكيد في بريدك أولاً.",
+    authErrExists: "هذا البريد مسجَّل بالفعل. سجّل الدخول بدل إنشاء حساب جديد.",
+    authErrWeakPassword: "كلمة المرور قصيرة. اجعلها ثمانية أحرف فأكثر.",
+    authErrRate: "حاولتَ مرات كثيرة في وقت قصير. انتظر قليلاً ثم أعد المحاولة.",
+    authErrGeneric: "تعذّر إتمام الطلب. تحقّق من اتصالك وأعد المحاولة.",
   },
   en: {
     siteName: "Makuria",
@@ -323,6 +351,34 @@ export const dictionaries: Record<Locale, Record<string, string>> = {
     cmRelevanceReason: "Relevance",
     cmDisclaimer:
       "The Smart Legal Advisor is a preliminary research tool that only surfaces what actually exists in the Makuria database. Any grouping or inference here is preliminary automated analysis requiring review by a licensed lawyer, not a legal opinion.",
+
+    // ——— Authentication ———
+    authLoginTitle: "Log in",
+    authLoginSub: "Enter the lawyer workspace: your saved matters and alerts.",
+    authSignupTitle: "Create a lawyer account",
+    authSignupSub: "One account keeps your matters and alerts across your devices.",
+    authEmail: "Email",
+    authPassword: "Password",
+    authPasswordHint: "Eight characters or more.",
+    authLoginBtn: "Log in",
+    authSignupBtn: "Create account",
+    authWorking: "Working…",
+    authNoAccount: "No account yet?",
+    authGoSignup: "Create one",
+    authHaveAccount: "Already have an account?",
+    authGoLogin: "Log in",
+    authPublicNote:
+      "You do not need an account to search the laws and precedents, or to use the Smart Legal Advisor — all of it is open to everyone.",
+    authPublicCta: "Open the Smart Legal Advisor",
+    authCheckEmailTitle: "Check your email",
+    authCheckEmailBody:
+      "We sent a confirmation message to your inbox. Confirm your account, then come back and log in.",
+    authErrInvalid: "That email or password is not correct.",
+    authErrNotConfirmed: "Your email is not confirmed yet. Open the confirmation message first.",
+    authErrExists: "That email is already registered. Log in instead of creating a new account.",
+    authErrWeakPassword: "That password is too short. Use eight characters or more.",
+    authErrRate: "Too many attempts in a short time. Wait a moment and try again.",
+    authErrGeneric: "The request could not be completed. Check your connection and try again.",
   },
 };
 
