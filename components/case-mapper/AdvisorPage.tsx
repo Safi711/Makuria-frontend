@@ -6,6 +6,7 @@ import { AuthorityBadge } from "@/components/case-mapper/AuthorityBadge";
 import { Highlight } from "@/components/case-mapper/Highlight";
 import { sourceNameAr } from "@/lib/site";
 import { AbuRannatSeal } from "@/components/case-mapper/AbuRannatSeal";
+import AbuRannatStamp from "@/components/AbuRannatStamp";
 import { analyzeCase } from "@/lib/case-mapper/analyze";
 import type {
   CaseMapResult,
@@ -749,6 +750,8 @@ export async function AdvisorPage({
             </Card>
           </div>
         </div>
+
+        {result && !errored && result.hasAnyResults && <AbuRannatStamp />}
 
         <p
           className="mt-10 rounded-xl border px-4 py-3 text-xs leading-relaxed"
