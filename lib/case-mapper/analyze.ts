@@ -607,6 +607,66 @@ function getCaseTypeSlug(caseType: string | undefined): string | null {
   return hit?.slug ?? null;
 }
 
+function stripHtmlTags(html: string): string {
+  return html.replace(/<[^>]*>/g, " ");
+}
+
+/** True when the article's title or excerpt places "جريمة" within 5 tokens of
+ * one of the expanded statutory terms. This identifies the definitional
+ * articles ("يُعدّ مرتكباً لجريمة السرقة كل من...") that should rank first. */
+function isOffenceDefiningFor(
+  entry: RetrievedAuthority,
+  expandedTerms: ReadonlySet<string>
+): boolean {
+  if (entry.type !== "article" || expandedTerms.size === 0) return false;
+  const titleTokens = arabicNormalize(entry.title ?? "")
+    .split(/[^؀-ۿA-Za-z0-9]+/)
+    .filter(Boolean);
+  const excerptTokens = arabicNormalize(stripHtmlTags(entry.excerptHtml))
+    .split(/[^؀-ۿA-Za-z0-9]+/)
+    .filter(Boolean);
+  for (const term of expandedTerms) {
+    const termN = arabicNormalize(term);
+    if (
+      // "جريمة [term]" as article heading
+      windowContainsAll(titleTokens, ["جريمة", termN], 5) ||
+      // article title IS the offence name (e.g. "السرقة")
+      titleTokens.some((t) => tokenMatchesTrigger(t, term)) ||
+      // definitional sentence in excerpt: "يعد مرتكباً لجريمة [term]"
+      windowContainsAll(excerptTokens, ["جريمة", termN], 5)
+    ) return true;
+  }
+  return false;
+}
+
+/** True when the article number (parsed as an integer) is 1–5. Articles 1–5
+ * of most Sudanese statutes are interpretation/definitions sections. */
+function isDefinitionsArticle(entry: RetrievedAuthority): boolean {
+  if (entry.type !== "article") return false;
+  const raw = (entry.articleNumber ?? "")
+    .trim()
+    .replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) - 0x0660));
+  const m = raw.match(/^(\d+)/);
+  if (!m) return false;
+  const n = parseInt(m[1], 10);
+  return n >= 1 && n <= 5;
+}
+
+/** True when the case's excerpt or legal principle explicitly mentions one of
+ * the expanded statutory terms — a stronger signal than sharing a category. */
+function caseMatchesExpandedTerms(
+  c: RetrievedCase,
+  expandedTerms: ReadonlySet<string>
+): boolean {
+  if (expandedTerms.size === 0) return false;
+  const rawText = stripHtmlTags(c.excerptHtml) + " " + (c.principle ?? "");
+  const tokens = arabicNormalize(rawText).split(/[^؀-ۿA-Za-z0-9]+/).filter(Boolean);
+  for (const term of expandedTerms) {
+    if (tokens.some((t) => tokenMatchesTrigger(t, term))) return true;
+  }
+  return false;
+}
+
 /** `status_rank` as quick_search_v4 emits it: 0 in force, 1 disputed,
  * 2 repealed. `law_status = 'reference'` is the corpus's "under review". */
 function forceOf(row: { status_rank: number | null; law_status: string | null }): ForceStatus {
@@ -1032,6 +1092,28 @@ export async function analyzeCase(
     c.inScope = Boolean(caseTypeFull && d.category_id === caseTypeFull.categoryId);
   }
 
+  // ── Ranking boosts derived from expanded statutory terms ─────────────────
+  // Offence-defining articles (those whose title/excerpt contains "جريمة [term]")
+  // rank above other articles inside their scope band — these are the statutes
+  // that literally define the crime and must surface first. Articles 1–5
+  // (general interpretation/definitions) rank below other in-scope articles
+  // unless they are the only ones present. Cases whose text explicitly names the
+  // expanded statutory term rank above cases that merely share a category.
+  const expandedTermSet = new Set(criminalTerms.map((t) => t.term));
+  const offenceDefiningIds = new Set(
+    [...authorityMap.values()]
+      .filter((e) => isOffenceDefiningFor(e, expandedTermSet))
+      .map((e) => e.id)
+  );
+  const definitionsArticleIds = new Set(
+    [...authorityMap.values()].filter(isDefinitionsArticle).map((e) => e.id)
+  );
+  const caseExpandedMatchIds = new Set(
+    [...caseMap.values()]
+      .filter((c) => caseMatchesExpandedTerms(c, expandedTermSet))
+      .map((c) => c.id)
+  );
+
   // Ordering. In-scope results (primary category + companion laws) come first.
   // Within each band, in-force provisions precede repealed ones, then by rank.
   const forceOrder: Record<ForceStatus, number> = {
@@ -1043,6 +1125,15 @@ export async function analyzeCase(
   const lawList = [...authorityMap.values()].sort((a, b) => {
     if (a.inScope !== b.inScope) return a.inScope ? -1 : 1;
     if (a.type !== b.type) return a.type === "article" ? -1 : 1;
+    // Offence-defining articles rank first within their scope band.
+    const aOD = offenceDefiningIds.has(a.id);
+    const bOD = offenceDefiningIds.has(b.id);
+    if (aOD !== bOD) return aOD ? -1 : 1;
+    // General interpretation/definitions articles (Arts 1–5) rank last within
+    // their scope band so substantive provisions surface first.
+    const aDef = definitionsArticleIds.has(a.id);
+    const bDef = definitionsArticleIds.has(b.id);
+    if (aDef !== bDef) return aDef ? 1 : -1;
     if (forceOrder[a.force] !== forceOrder[b.force]) return forceOrder[a.force] - forceOrder[b.force];
     return b.rank - a.rank;
   });
@@ -1055,6 +1146,11 @@ export async function analyzeCase(
   };
   const caseList = [...caseMap.values()].sort((a, b) => {
     if (a.inScope !== b.inScope) return a.inScope ? -1 : 1;
+    // Cases whose text names the expanded statutory term outrank those that
+    // only share a category tag.
+    const aEM = caseExpandedMatchIds.has(a.id);
+    const bEM = caseExpandedMatchIds.has(b.id);
+    if (aEM !== bEM) return aEM ? -1 : 1;
     if (authorityOrder[a.authority] !== authorityOrder[b.authority]) {
       return authorityOrder[a.authority] - authorityOrder[b.authority];
     }
