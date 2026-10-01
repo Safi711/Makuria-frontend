@@ -232,6 +232,14 @@ function stripTashkeel(text: string): string {
   return text.replace(/[ً-ْٰ]/g, "");
 }
 
+/** Strips tashkeel AND folds alef variants (أ إ آ ٱ) to bare alef.
+ * quick_search_v4 does the same on the DB side; mirroring it here lets
+ * trigger "أخذ" match a text token "اخذ" or vice-versa without special-casing
+ * every alef spelling a lawyer might use. */
+function arabicNormalize(text: string): string {
+  return stripTashkeel(text).replace(/[أإآٱ]/g, "ا");
+}
+
 function tokenize(text: string): string[] {
   return stripTashkeel(text)
     .split(/[^؀-ۿA-Za-z0-9]+/)
@@ -392,10 +400,11 @@ function caseAuthority(row: { verified: boolean | null; authority_status: string
  * case even if the facts happen to include the word "أخذ" (took delivery of
  * goods under a contract is not theft).
  *
- * Multi-word entries (containing a space) are matched against the full
- * normalised facts text. Single-word entries are matched against the token
- * set, so Arabic word-initial conjunctions ("وسرق" ≠ "سرق") do not prevent
- * matching — tokenise() already handles prefix-stripping separately.
+ * Matching uses proximity rather than exact substring: all words in a trigger
+ * must appear within a window of EXPANSION_PROXIMITY_WINDOW consecutive text
+ * tokens, in any order. Attached prefixes (و ف ب ل ك ال) are stripped from
+ * text tokens before comparison, so "وأخذ" matches trigger "أخذ". Alef
+ * variants (أ إ آ ٱ) are folded to bare alef on both sides via arabicNormalize.
  *
  * All statutory terms here are from the Criminal Act 1991 Arabic text:
  *  - Theft (سرقة): Arts. 171–177
@@ -473,37 +482,115 @@ const CRIMINAL_VOCABULARY_EXPANSIONS: CriminalExpansionRule[] = [
   },
 ];
 
+/** Tokens within this many positions of each other are considered "near". */
+const EXPANSION_PROXIMITY_WINDOW = 6;
+
+/** Words that identify a dwelling in the facts text — used by the special
+ * "دخل + dwelling" trespass trigger. */
+const DWELLING_WORDS = [
+  "منزل", "بيت", "دار", "شقة", "محل", "مبنى", "مسكن", "غرفة",
+  "عمارة", "مخزن", "مستودع",
+];
+
+/** All bare forms of a text token, after arabicNormalize: the token itself;
+ * with the definite article (ال) stripped; with a one-char conjunction /
+ * preposition (و ف ب ل ك) stripped; and with both stripped in sequence.
+ * "وأخذ" → {"وأخذ", "واخذ" (already normalized), "اخذ"} which matches
+ * trigger "أخذ" whose normalized form is "اخذ". */
+function getBareFormsNormalized(rawToken: string): Set<string> {
+  const n = arabicNormalize(rawToken);
+  const s = new Set<string>([n]);
+  let t = n;
+  if (t.startsWith("ال") && t.length > 3) { t = t.slice(2); s.add(t); }
+  if (/^[وفبلك]/.test(t) && t.length > 2) {
+    const stripped1 = t.slice(1);
+    s.add(stripped1);
+    if (stripped1.startsWith("ال") && stripped1.length > 3) s.add(stripped1.slice(2));
+  }
+  return s;
+}
+
+/** True when any bare form of `textToken` equals the arabicNormalized form
+ * of `triggerWord`. Handles prefix attachments on both sides. */
+function tokenMatchesTrigger(textToken: string, triggerWord: string): boolean {
+  return getBareFormsNormalized(textToken).has(arabicNormalize(triggerWord));
+}
+
+/** True when every word in `triggerWords` appears at least once inside at
+ * least one consecutive window of `windowSize` text tokens, in any order.
+ * Order-independence handles natural Arabic word order variation; the window
+ * cap prevents a common word in one clause from pairing with an unrelated word
+ * fifty tokens away. */
+function windowContainsAll(
+  tokens: string[],
+  triggerWords: string[],
+  windowSize: number
+): boolean {
+  if (triggerWords.length === 0) return false;
+  for (let i = 0; i < tokens.length; i++) {
+    const win = tokens.slice(i, i + windowSize);
+    if (triggerWords.every((tw) => win.some((t) => tokenMatchesTrigger(t, tw)))) return true;
+  }
+  return false;
+}
+
 /**
  * Apply criminal vocabulary expansions to the facts text. Returns the new
  * statutory terms to add to the candidate pool and a flag indicating whether
  * any rule fired (used to infer the case type when none was supplied).
  *
- * Checks multi-word triggers against the full normalised text; single-word
- * triggers against the token set — same approach as `CONCEPT_EXPANSIONS`.
+ * Three improvements over the original substring/set approach:
+ *   1. arabicNormalize folds alef variants on both text and triggers, so
+ *      "أخذ" and "اخذ" both match.
+ *   2. Proximity matching: all words of a multi-word trigger must appear within
+ *      EXPANSION_PROXIMITY_WINDOW consecutive tokens (any order), so gaps
+ *      between words ("دخل شخص منزله") no longer cause a miss.
+ *   3. getBareFormsNormalized strips attached prefixes (وأخذ → أخذ) from text
+ *      tokens before comparing to triggers, so conjunction-prefixed verbs match.
  */
 function applyCriminalExpansions(
   text: string
 ): { terms: { term: string; origin: "expanded" }[]; anyFired: boolean } {
-  const stripped = stripTashkeel(text);
-  const tokens = new Set(tokenize(stripped));
+  // Work from arabicNormalize'd tokens. Splitting after normalize (rather than
+  // calling tokenize which uses stripTashkeel only) ensures alef variants are
+  // folded before getBareFormsNormalized compares them to triggers.
+  const tokens = arabicNormalize(text)
+    .split(/[^؀-ۿA-Za-z0-9]+/)
+    .filter(Boolean);
   const out: { term: string; origin: "expanded" }[] = [];
   const added = new Set<string>();
   let anyFired = false;
 
   for (const rule of CRIMINAL_VOCABULARY_EXPANSIONS) {
-    const fires = rule.when.some((w) => {
-      const ws = stripTashkeel(w);
-      return ws.includes(" ") ? stripped.includes(ws) : tokens.has(ws);
-    });
+    // Each trigger is split into words (handles both single-word and
+    // multi-word triggers uniformly via proximity matching).
+    const fires = rule.when.some((w) =>
+      windowContainsAll(tokens, w.split(/\s+/), EXPANSION_PROXIMITY_WINDOW)
+    );
     if (!fires) continue;
     anyFired = true;
     for (const t of rule.add) {
-      if (!added.has(t)) {
-        added.add(t);
-        out.push({ term: t, origin: "expanded" });
+      if (!added.has(t)) { added.add(t); out.push({ term: t, origin: "expanded" }); }
+    }
+  }
+
+  // Special trespass trigger: "دخل" (entered) alone is too broad to be useful,
+  // but "دخل" within EXPANSION_PROXIMITY_WINDOW tokens of a dwelling word
+  // reliably identifies a break-in narrative even when the lawyer does not
+  // use the statutory "اقتحم" or "تسلل".
+  const trespassAlreadyFired = added.has("تعدٍّ") || added.has("اقتحام");
+  if (!trespassAlreadyFired) {
+    const firesViaDwelling = DWELLING_WORDS.some((dw) =>
+      windowContainsAll(tokens, ["دخل", dw], EXPANSION_PROXIMITY_WINDOW)
+    );
+    if (firesViaDwelling) {
+      anyFired = true;
+      for (const t of ["تعدٍّ", "اقتحام"]) {
+        if (!added.has(t)) { added.add(t); out.push({ term: t, origin: "expanded" }); }
       }
     }
   }
+
   return { terms: out, anyFired };
 }
 
