@@ -658,7 +658,20 @@ export async function AdvisorPage({
           </p>
         )}
 
-        {result && !result.hasAnyResults && (
+        {result?.noConfidentMatch && (
+          <p
+            className="mt-6 rounded-xl border px-4 py-3 text-sm leading-relaxed"
+            style={{
+              borderColor: "rgba(228,193,67,0.50)",
+              background: "rgba(228,193,67,0.09)",
+              color: "var(--cm-text-2)",
+            }}
+          >
+            {t(locale, "cmNoConfidentMatch")}
+          </p>
+        )}
+
+        {result && !result.hasAnyResults && !result.noConfidentMatch && (
           <p
             className="mt-6 rounded-xl border px-4 py-3 text-sm leading-relaxed"
             style={{ borderColor: "var(--cm-line)", background: "var(--cm-surface)", color: "var(--cm-text-2)" }}

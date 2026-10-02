@@ -147,6 +147,11 @@ export type CaseMapResult = {
   /** Number of out-of-scope articles/cases excluded from the main results
    * because ≥3 in-scope results were available. Zero means nothing was hidden. */
   outOfScopeCount: number;
+  /** True when a case type was resolved AND every retrieved result falls outside
+   * that category. Results noise exists but none is trustworthy for this case —
+   * different from hasAnyResults=false (nothing found at all). The UI must show
+   * a "no confident match" message rather than the unrelated results. */
+  noConfidentMatch: boolean;
   hasAnyResults: boolean;
 };
 
@@ -180,6 +185,9 @@ const WEAK_TERMS = new Set([
   "تقدم", "أصدر", "صدر", "يوم", "شهر", "سنة", "تاريخ", "رقم", "مبلغ", "جنيه",
   "الجنيه", "قرش", "أثناء", "خلال", "نحو", "حوالي", "تقريبا", "تقريباً",
   "الوقائع", "وقائع", "الموضوع", "بشأن", "بخصوص", "الحالة", "حالة",
+  // Assertion / denial verbs: appear in virtually every court record but
+  // identify no legal issue — "أقر بأنه..." is a frame, not a subject.
+  "أقر", "أنكر", "ادعى", "نفى", "زعم", "أشار", "وصف", "أوضح", "صرّح", "صرح",
 ]);
 
 // Very common Sudanese/Arabic given names. A party's first name is a weak,
@@ -252,6 +260,12 @@ function isContentWord(w: string): boolean {
   if (WEAK_TERMS.has(w)) return false;
   if (COMMON_GIVEN_NAMES.has(w)) return false;
   if (/^[0-9٠-٩]+$/.test(w)) return false;
+  // "ولم" = و+لم (لم ∈ STOPWORDS), "وأقر" = و+أقر (أقر ∈ WEAK_TERMS):
+  // a conjunction glued onto a stopword or weak term is itself noise.
+  if (/^[وفبكل]/.test(w)) {
+    const rest = w.slice(1);
+    if (STOPWORDS.has(rest) || WEAK_TERMS.has(rest) || rest.length < 3) return false;
+  }
   return true;
 }
 
@@ -482,6 +496,40 @@ const CRIMINAL_VOCABULARY_EXPANSIONS: CriminalExpansionRule[] = [
   },
 ];
 
+/**
+ * Compound criminal expansions: require at least one word from EACH group in
+ * `allOf` to appear anywhere in the full text. Unlike `CriminalExpansionRule`,
+ * there is no proximity window — the borrowing and selling events in a
+ * breach-of-trust narrative are commonly in different sentences.
+ *
+ * Matching uses `tokenMatchesTriggerOrPrefix` so inflected forms ("باعها",
+ * "تصرّف فيها") match their root triggers ("باع", "تصرّف").
+ */
+type CompoundCriminalExpansionRule = { allOf: string[][]; add: string[] };
+
+const COMPOUND_CRIMINAL_EXPANSIONS: CompoundCriminalExpansionRule[] = [
+  // ── Breach of trust (خيانة الأمانة, Criminal Act Arts. 161–165) ──────────
+  // Pattern: property legitimately received then unlawfully disposed of.
+  // "استعار سيارة … ثم باعها" is the canonical car-case narrative.
+  {
+    allOf: [
+      // entrustment / legitimate receipt
+      ["استعار", "تسلّم", "تسلم", "استلم", "أودع", "وكّل", "وكل", "سلّمه", "سلمه", "عهد"],
+      // unlawful disposal
+      ["باع", "تصرّف", "تصرف", "رهن", "نقل", "فرّط", "فرط", "أتلف", "اختلس"],
+    ],
+    add: ["خيانة الأمانة"],
+  },
+  // ── Custodian / fiduciary misappropriation (also خيانة الأمانة) ───────────
+  {
+    allOf: [
+      ["أمين", "وديعة", "مستأمن", "وكيل", "أمانة"],
+      ["اختلس", "استغل", "حوّل", "حول", "أنفق"],
+    ],
+    add: ["خيانة الأمانة"],
+  },
+];
+
 /** Tokens within this many positions of each other are considered "near". */
 const EXPANSION_PROXIMITY_WINDOW = 6;
 
@@ -514,6 +562,21 @@ function getBareFormsNormalized(rawToken: string): Set<string> {
  * of `triggerWord`. Handles prefix attachments on both sides. */
 function tokenMatchesTrigger(textToken: string, triggerWord: string): boolean {
   return getBareFormsNormalized(textToken).has(arabicNormalize(triggerWord));
+}
+
+/** Like `tokenMatchesTrigger` but also accepts a text token that *starts with*
+ * the trigger (up to 3 trailing characters of tolerance for Arabic pronominal
+ * suffixes: ه، ها، هم، هن، ك، كم، نا). Used only in compound rules where the
+ * verb "باع" may appear as "باعها" (sold it) — getBareFormsNormalized strips
+ * prefixes but not suffix pronouns, so exact matching would miss inflected forms. */
+function tokenMatchesTriggerOrPrefix(textToken: string, triggerWord: string): boolean {
+  const normTrigger = arabicNormalize(triggerWord);
+  if (normTrigger.length < 3) return false;
+  for (const bare of getBareFormsNormalized(textToken)) {
+    if (bare === normTrigger) return true;
+    if (bare.startsWith(normTrigger) && bare.length <= normTrigger.length + 3) return true;
+  }
+  return false;
 }
 
 /** True when every word in `triggerWords` appears at least once inside at
@@ -588,6 +651,21 @@ function applyCriminalExpansions(
       for (const t of ["تعدٍّ", "اقتحام"]) {
         if (!added.has(t)) { added.add(t); out.push({ term: t, origin: "expanded" }); }
       }
+    }
+  }
+
+  // Compound rules: all groups must fire somewhere in the text (no proximity
+  // window — the two events may be in different sentences).
+  for (const rule of COMPOUND_CRIMINAL_EXPANSIONS) {
+    const fires = rule.allOf.every((group) =>
+      group.some((trigger) =>
+        tokens.some((t) => tokenMatchesTriggerOrPrefix(t, trigger))
+      )
+    );
+    if (!fires) continue;
+    anyFired = true;
+    for (const t of rule.add) {
+      if (!added.has(t)) { added.add(t); out.push({ term: t, origin: "expanded" }); }
     }
   }
 
@@ -1200,10 +1278,27 @@ export async function analyzeCase(
       : null,
     inferredCaseType: caseTypeFull?.inferred ? (caseTypeFull.categoryNameAr ?? "جنائي") : null,
     issues,
-    laws: finalLawList.slice(0, DISPLAY_CAP),
-    cases: finalCaseList.slice(0, DISPLAY_CAP),
-    principles: principleList.slice(0, DISPLAY_CAP),
-    outOfScopeCount,
-    hasAnyResults: lawList.length > 0 || caseList.length > 0 || principleList.length > 0,
+    // noConfidentMatch: case type was resolved but every retrieved article/case
+    // is outside that category. Suppress the noise and let the UI say so plainly.
+    ...((): Pick<CaseMapResult, "laws" | "cases" | "principles" | "outOfScopeCount" | "noConfidentMatch" | "hasAnyResults"> => {
+      const noConfidentMatch =
+        caseTypeFull !== null &&
+        inScopeLaws.length === 0 &&
+        (lawList.length > 0 || caseList.length > 0);
+      if (noConfidentMatch) {
+        return {
+          laws: [], cases: [], principles: [],
+          outOfScopeCount: 0, noConfidentMatch: true, hasAnyResults: false,
+        };
+      }
+      return {
+        laws: finalLawList.slice(0, DISPLAY_CAP),
+        cases: finalCaseList.slice(0, DISPLAY_CAP),
+        principles: principleList.slice(0, DISPLAY_CAP),
+        outOfScopeCount,
+        noConfidentMatch: false,
+        hasAnyResults: lawList.length > 0 || caseList.length > 0 || principleList.length > 0,
+      };
+    })(),
   };
 }
