@@ -6,6 +6,7 @@ import { AuthorityBadge } from "@/components/case-mapper/AuthorityBadge";
 import { Highlight } from "@/components/case-mapper/Highlight";
 import { sourceNameAr } from "@/lib/site";
 import { AbuRannatSeal } from "@/components/case-mapper/AbuRannatSeal";
+import AbuRannatStamp from "@/components/AbuRannatStamp";
 import { analyzeCase } from "@/lib/case-mapper/analyze";
 import type {
   CaseMapResult,
@@ -657,7 +658,20 @@ export async function AdvisorPage({
           </p>
         )}
 
-        {result && !result.hasAnyResults && (
+        {result?.noConfidentMatch && (
+          <p
+            className="mt-6 rounded-xl border px-4 py-3 text-sm leading-relaxed"
+            style={{
+              borderColor: "rgba(228,193,67,0.50)",
+              background: "rgba(228,193,67,0.09)",
+              color: "var(--cm-text-2)",
+            }}
+          >
+            {t(locale, "cmNoConfidentMatch")}
+          </p>
+        )}
+
+        {result && !result.hasAnyResults && !result.noConfidentMatch && (
           <p
             className="mt-6 rounded-xl border px-4 py-3 text-sm leading-relaxed"
             style={{ borderColor: "var(--cm-line)", background: "var(--cm-surface)", color: "var(--cm-text-2)" }}
@@ -749,6 +763,8 @@ export async function AdvisorPage({
             </Card>
           </div>
         </div>
+
+        {result && !errored && result.hasAnyResults && <AbuRannatStamp />}
 
         <p
           className="mt-10 rounded-xl border px-4 py-3 text-xs leading-relaxed"
