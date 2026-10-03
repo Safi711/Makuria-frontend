@@ -248,8 +248,14 @@ function arabicNormalize(text: string): string {
   return stripTashkeel(text).replace(/[أإآٱ]/g, "ا");
 }
 
+/** Replaces Arabic in-word punctuation (،؛؟) and ASCII period with a space
+ * so they act as token delimiters. Without this, "السيارة،" is one token. */
+function stripArabicPunct(text: string): string {
+  return text.replace(/[،؛؟.]/g, " ");
+}
+
 function tokenize(text: string): string[] {
-  return stripTashkeel(text)
+  return stripArabicPunct(stripTashkeel(text))
     .split(/[^؀-ۿA-Za-z0-9]+/)
     .filter(Boolean);
 }
@@ -262,9 +268,17 @@ function isContentWord(w: string): boolean {
   if (/^[0-9٠-٩]+$/.test(w)) return false;
   // "ولم" = و+لم (لم ∈ STOPWORDS), "وأقر" = و+أقر (أقر ∈ WEAK_TERMS):
   // a conjunction glued onto a stopword or weak term is itself noise.
+  // The `rest.length < 3` guard was removed: it wrongly blocked 3-char root
+  // verbs like "باع" (ب+اع, rest="اع" len=2) that are valid content words.
   if (/^[وفبكل]/.test(w)) {
     const rest = w.slice(1);
-    if (STOPWORDS.has(rest) || WEAK_TERMS.has(rest) || rest.length < 3) return false;
+    if (STOPWORDS.has(rest) || WEAK_TERMS.has(rest)) return false;
+  }
+  // "الشرطة" → rest "شرطة" ∈ WEAK_TERMS — the definite-article form leaks
+  // through the checks above and is no more useful than the bare form.
+  if (w.startsWith("ال") && w.length > 3) {
+    const rest = w.slice(2);
+    if (WEAK_TERMS.has(rest)) return false;
   }
   return true;
 }
@@ -326,7 +340,7 @@ export function extractTerms(
     // Same weight as the word it came from: ranked lower, the bare forms
     // were falling off the end of the candidate list — «حضانة» and «نفقة»
     // were cut from their own case that way.
-    if (bare && !freq.has(bare)) freq.set(bare, freq.get(w) ?? 1);
+    if (bare && !freq.has(bare) && isContentWord(bare)) freq.set(bare, freq.get(w) ?? 1);
   }
 
   const ranked = [...freq.entries()]
@@ -617,7 +631,7 @@ function applyCriminalExpansions(
   // Work from arabicNormalize'd tokens. Splitting after normalize (rather than
   // calling tokenize which uses stripTashkeel only) ensures alef variants are
   // folded before getBareFormsNormalized compares them to triggers.
-  const tokens = arabicNormalize(text)
+  const tokens = arabicNormalize(stripArabicPunct(text))
     .split(/[^؀-ۿA-Za-z0-9]+/)
     .filter(Boolean);
   const out: { term: string; origin: "expanded" }[] = [];
@@ -697,22 +711,30 @@ function isOffenceDefiningFor(
   expandedTerms: ReadonlySet<string>
 ): boolean {
   if (entry.type !== "article" || expandedTerms.size === 0) return false;
-  const titleTokens = arabicNormalize(entry.title ?? "")
+  const titleTokens = arabicNormalize(stripArabicPunct(entry.title ?? ""))
     .split(/[^؀-ۿA-Za-z0-9]+/)
     .filter(Boolean);
-  const excerptTokens = arabicNormalize(stripHtmlTags(entry.excerptHtml))
+  const excerptTokens = arabicNormalize(stripArabicPunct(stripHtmlTags(entry.excerptHtml)))
     .split(/[^؀-ۿA-Za-z0-9]+/)
     .filter(Boolean);
   for (const term of expandedTerms) {
     const termN = arabicNormalize(term);
-    if (
-      // "جريمة [term]" as article heading
-      windowContainsAll(titleTokens, ["جريمة", termN], 5) ||
-      // article title IS the offence name (e.g. "السرقة")
-      titleTokens.some((t) => tokenMatchesTrigger(t, term)) ||
-      // definitional sentence in excerpt: "يعد مرتكباً لجريمة [term]"
-      windowContainsAll(excerptTokens, ["جريمة", termN], 5)
-    ) return true;
+    const termWords = termN.split(/\s+/).filter(Boolean);
+    if (termWords.length === 1) {
+      if (
+        // "جريمة [term]" as article heading
+        windowContainsAll(titleTokens, ["جريمة", termN], 5) ||
+        // article title IS the offence name (e.g. "السرقة")
+        titleTokens.some((t) => tokenMatchesTrigger(t, term)) ||
+        // definitional sentence in excerpt: "يعد مرتكباً لجريمة [term]"
+        windowContainsAll(excerptTokens, ["جريمة", termN], 5)
+      ) return true;
+    } else {
+      // Multi-word expanded term (e.g. "خيانة الأمانة"): all words must
+      // appear together in the title, or near "جريمة" in the excerpt.
+      if (windowContainsAll(titleTokens, termWords, termWords.length + 2)) return true;
+      if (windowContainsAll(excerptTokens, ["جريمة", ...termWords], termWords.length + 4)) return true;
+    }
   }
   return false;
 }
@@ -738,9 +760,14 @@ function caseMatchesExpandedTerms(
 ): boolean {
   if (expandedTerms.size === 0) return false;
   const rawText = stripHtmlTags(c.excerptHtml) + " " + (c.principle ?? "");
-  const tokens = arabicNormalize(rawText).split(/[^؀-ۿA-Za-z0-9]+/).filter(Boolean);
+  const tokens = arabicNormalize(stripArabicPunct(rawText)).split(/[^؀-ۿA-Za-z0-9]+/).filter(Boolean);
   for (const term of expandedTerms) {
-    if (tokens.some((t) => tokenMatchesTrigger(t, term))) return true;
+    const termWords = arabicNormalize(term).split(/\s+/).filter(Boolean);
+    if (termWords.length === 1) {
+      if (tokens.some((t) => tokenMatchesTrigger(t, term))) return true;
+    } else {
+      if (termWords.every((w) => tokens.some((t) => tokenMatchesTrigger(t, w)))) return true;
+    }
   }
   return false;
 }
@@ -1278,12 +1305,29 @@ export async function analyzeCase(
       : null,
     inferredCaseType: caseTypeFull?.inferred ? (caseTypeFull.categoryNameAr ?? "جنائي") : null,
     issues,
-    // noConfidentMatch: case type was resolved but every retrieved article/case
-    // is outside that category. Suppress the noise and let the UI say so plainly.
+    // noConfidentMatch: case type was resolved but no result from the primary
+    // category was found. Companion-law results (criminal-procedure, evidence)
+    // count toward confidence only when matched by a non-extracted term — an
+    // expansion or keyword — because extracted words like "الشرطة" that happen
+    // to match procedural articles do not confirm the right question was asked.
     ...((): Pick<CaseMapResult, "laws" | "cases" | "principles" | "outOfScopeCount" | "noConfidentMatch" | "hasAnyResults"> => {
+      const isConceptTerm = (t: string) =>
+        terms.some((te) => te.term === t && te.origin !== "extracted");
+      const confidentInScopeLaws = inScopeLaws.filter((l) => {
+        const inPrimary =
+          l.type === "law"
+            ? lawDetailById.get(l.id)?.category_id === caseTypeFull?.categoryId
+            : (() => {
+                const d = articleDetailById.get(l.id);
+                const parent = d ? parentById.get(d.law_id) : undefined;
+                return parent?.category_id === caseTypeFull?.categoryId;
+              })();
+        if (inPrimary) return true;
+        return l.matchedTerms.some(isConceptTerm);
+      });
       const noConfidentMatch =
         caseTypeFull !== null &&
-        inScopeLaws.length === 0 &&
+        confidentInScopeLaws.length === 0 &&
         (lawList.length > 0 || caseList.length > 0);
       if (noConfidentMatch) {
         return {
