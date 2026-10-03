@@ -1251,27 +1251,18 @@ export async function analyzeCase(
   const { excerpt, truncated } = buildFactsExcerpt(input.facts);
 
   // ── Phase 0.5: criminal expansion probe ───────────────────────────────
-  // Run before the DB round-trip so the result can inform the case-type
-  // resolution. Criminal rules are gated: only fire when the user supplied
-  // a criminal case type OR left caseType empty. A civil/personal-status
-  // case that happens to contain "أخذ" (took delivery of goods) must not
-  // accidentally trigger theft vocabulary.
-  const userSlug = getCaseTypeSlug(input.caseType);
-  const applyCriminalGate = !userSlug || userSlug === "criminal";
-  let criminalTerms: { term: string; origin: "expanded" }[] = [];
-  let inferredCriminal = false;
-  if (applyCriminalGate) {
-    const { terms, anyFired } = applyCriminalExpansions(input.facts);
-    criminalTerms = terms;
-    // Infer "criminal" only when the user left caseType blank AND at least
-    // one expansion rule fired — not merely because the text is ambiguous.
-    if (anyFired && !userSlug) inferredCriminal = true;
-  }
-
-  // The case type is a lens over the corpus, not a search term — see note 2
-  // at the top of this file. Multi-branch: each case type maps to a primary
-  // category plus companion laws that the same case invariably needs.
-  const caseTypeFull = await resolveCaseTypeFull(supabase, input.caseType, inferredCriminal);
+  // Runs BEFORE case-type resolution so that fired concepts override any
+  // non-criminal label the user supplied (money words, "مالية", "مدني", etc.
+  // are secondary to a live criminal concept like خيانة الأمانة). When
+  // anyFired, we pass undefined caseType to resolveCaseTypeFull so it
+  // derives "criminal" from inferCriminal rather than the user-supplied text.
+  const { terms: criminalTerms, anyFired } = applyCriminalExpansions(input.facts);
+  const inferredCriminal = anyFired;
+  const caseTypeFull = await resolveCaseTypeFull(
+    supabase,
+    anyFired ? undefined : input.caseType,
+    inferredCriminal,
+  );
 
   // Criminal cases use a deterministic concept-map path — no text search for laws.
   if (caseTypeFull?.slug === "criminal") {
@@ -1365,6 +1356,40 @@ export async function analyzeCase(
     .slice(0, MAX_TERMS);
 
   const terms = kept.map(({ term, origin }) => ({ term, origin }));
+
+  // Non-criminal path safety gate: if every surviving term is a plain
+  // extracted word (no concept or keyword) and none achieves a concentration
+  // ≥ 0.5 (i.e. results are scattered across many laws), the retrieval has no
+  // legal anchor — return noConfidentMatch rather than unrelated financial/civil
+  // results driven by generic words like دفع.
+  if (
+    caseTypeFull !== null &&
+    terms.length > 0 &&
+    terms.every((t) => t.origin === "extracted") &&
+    !input.keywords?.trim()
+  ) {
+    const keptScores = scored.filter((s) => terms.some((t) => t.term === s.term));
+    const maxConc = keptScores.length ? Math.max(...keptScores.map((s) => s.concentration)) : 0;
+    if (maxConc < 0.5) {
+      const showLensG = Boolean(input.caseType?.trim() || caseTypeFull.inferred);
+      return {
+        factsExcerpt: excerpt,
+        factsIsTruncated: truncated,
+        caseTypeLens: showLensG
+          ? {
+              input: input.caseType?.trim() ||
+                (caseTypeFull.inferred ? `${caseTypeFull.categoryNameAr ?? ""} (مستنتج)` : ""),
+              categoryNameAr: caseTypeFull.categoryNameAr ?? null,
+              inferred: caseTypeFull.inferred,
+            }
+          : null,
+        inferredCaseType: caseTypeFull.inferred ? (caseTypeFull.categoryNameAr ?? null) : null,
+        issues: [],
+        laws: [], cases: [], principles: [],
+        outOfScopeCount: 0, noConfidentMatch: true, hasAnyResults: false,
+      };
+    }
+  }
 
   // ── Phase 3: laws and principles for the terms that survived ───────────
   // v4 returns neither, so those come from universal_search_v3 — and only for
