@@ -188,6 +188,10 @@ const WEAK_TERMS = new Set([
   // Assertion / denial verbs: appear in virtually every court record but
   // identify no legal issue — "أقر بأنه..." is a frame, not a subject.
   "أقر", "أنكر", "ادعى", "نفى", "زعم", "أشار", "وصف", "أوضح", "صرّح", "صرح",
+  // Completeness / quantity adverbs — no legal meaning as search terms.
+  // "كاملاً" → stripTashkeel → "كاملا"; without this entry the ك-prefix
+  // strip produces bare "اmlا" which drives spurious financial-law results.
+  "كاملا", "كاملة",
 ]);
 
 // Very common Sudanese/Arabic given names. A party's first name is a weak,
@@ -600,14 +604,35 @@ type CompoundCriminalExpansionRule = { allOf: string[][]; add: string[] };
 
 const COMPOUND_CRIMINAL_EXPANSIONS: CompoundCriminalExpansionRule[] = [
   // ── Breach of trust (خيانة الأمانة, Criminal Act Arts. 161–165) ──────────
-  // Pattern: property legitimately received then unlawfully disposed of.
-  // "استعار سيارة … ثم باعها" is the canonical car-case narrative.
+  // Pattern: property legitimately received/entrusted then unlawfully disposed of.
+  // Requires ANY one entrustment signal (group 1) AND ANY one disposal signal
+  // (group 2) anywhere in the text — the two events may be in different sentences.
+  //
+  // Group 1 covers: borrowed, rented, received, deposited, delegated, handed,
+  // entrusted (أمانة/وديعة as nouns), and condition-of-return phrasing —
+  // "يعيده"/"يعيدها" match "يعيدها" via the 3-char suffix tolerance so the
+  // truncated-text form "على أن يعيدها" fires even when "استعار" is cut off.
+  // Group 2 covers: sold, pledged, transferred, squandered, misappropriated,
+  // dissipated, refused.
   {
     allOf: [
-      // entrustment / legitimate receipt
-      ["استعار", "تسلّم", "تسلم", "استلم", "أودع", "وكّل", "وكل", "سلّمه", "سلمه", "عهد"],
-      // unlawful disposal
-      ["باع", "تصرّف", "تصرف", "رهن", "نقل", "فرّط", "فرط", "أتلف", "اختلس"],
+      // entrustment / legitimate receipt // REVIEW
+      [
+        "استعار", "استأجر",
+        "تسلّم", "تسلم", "استلم",
+        "أودع",
+        "وكّل", "وكل",
+        "سلّمه", "سلمه",
+        "عهد",
+        "أمانة", "وديعة",
+        "يعيده", "يعيدها", "يرده", "يردها",
+      ],
+      // unlawful disposal // REVIEW
+      [
+        "باع", "تصرّف", "تصرف", "رهن", "نقل",
+        "فرّط", "فرط", "أتلف", "اختلس",
+        "بدّد", "بدد", "امتنع",
+      ],
     ],
     add: ["خيانة الأمانة"],
   },
@@ -1357,38 +1382,33 @@ export async function analyzeCase(
 
   const terms = kept.map(({ term, origin }) => ({ term, origin }));
 
-  // Non-criminal path safety gate: if every surviving term is a plain
-  // extracted word (no concept or keyword) and none achieves a concentration
-  // ≥ 0.5 (i.e. results are scattered across many laws), the retrieval has no
-  // legal anchor — return noConfidentMatch rather than unrelated financial/civil
-  // results driven by generic words like دفع.
+  // Safety gate: if every surviving term is a plain extracted word (no concept
+  // or keyword), there is no legal anchor — return noConfidentMatch regardless
+  // of concentration and regardless of whether a case type was resolved.
+  // "اتصالات" here means phone calls, not the Telecom Act; "دفع" means payment,
+  // not a specific statutory provision. Concentration is not the test because a
+  // common word can score 1.0 in one law while meaning something completely
+  // different in the facts.
   if (
-    caseTypeFull !== null &&
     terms.length > 0 &&
     terms.every((t) => t.origin === "extracted") &&
     !input.keywords?.trim()
   ) {
-    const keptScores = scored.filter((s) => terms.some((t) => t.term === s.term));
-    const maxConc = keptScores.length ? Math.max(...keptScores.map((s) => s.concentration)) : 0;
-    if (maxConc < 0.5) {
-      const showLensG = Boolean(input.caseType?.trim() || caseTypeFull.inferred);
-      return {
-        factsExcerpt: excerpt,
-        factsIsTruncated: truncated,
-        caseTypeLens: showLensG
-          ? {
-              input: input.caseType?.trim() ||
-                (caseTypeFull.inferred ? `${caseTypeFull.categoryNameAr ?? ""} (مستنتج)` : ""),
-              categoryNameAr: caseTypeFull.categoryNameAr ?? null,
-              inferred: caseTypeFull.inferred,
-            }
-          : null,
-        inferredCaseType: caseTypeFull.inferred ? (caseTypeFull.categoryNameAr ?? null) : null,
-        issues: [],
-        laws: [], cases: [], principles: [],
-        outOfScopeCount: 0, noConfidentMatch: true, hasAnyResults: false,
-      };
-    }
+    return {
+      factsExcerpt: excerpt,
+      factsIsTruncated: truncated,
+      caseTypeLens: input.caseType?.trim()
+        ? {
+            input: input.caseType.trim(),
+            categoryNameAr: caseTypeFull?.categoryNameAr ?? null,
+            inferred: false,
+          }
+        : null,
+      inferredCaseType: null,
+      issues: [],
+      laws: [], cases: [], principles: [],
+      outOfScopeCount: 0, noConfidentMatch: true, hasAnyResults: false,
+    };
   }
 
   // ── Phase 3: laws and principles for the terms that survived ───────────
