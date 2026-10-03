@@ -236,6 +236,83 @@ const CASE_TYPE_COMPANIONS: Record<string, string[]> = {
   "personal-status": ["civil-procedure-1983", "evidence-law-1993"],
 };
 
+// ── Concept-to-article map ────────────────────────────────────────────────
+// When a criminal expansion concept fires, fetch these specific articles
+// directly by (lawSlug, articleNumber) — no text search for laws.
+// Every entry is marked REVIEW until verified against the live corpus.
+type ConceptArticleEntry = { lawSlug: string; articleNumber: string };
+
+const CONCEPT_TO_ARTICLES: Record<string, ConceptArticleEntry[]> = {
+  "خيانة الأمانة": [
+    { lawSlug: "criminal-law-1991", articleNumber: "177" }, // REVIEW
+  ],
+  "سرقة": [
+    { lawSlug: "criminal-law-1991", articleNumber: "174" }, // REVIEW: جريمة السرقة
+    { lawSlug: "criminal-law-1991", articleNumber: "170" }, // REVIEW: السرقة الحدية
+    { lawSlug: "criminal-law-1991", articleNumber: "172" }, // REVIEW: مسقطات عقوبة الحد
+    { lawSlug: "criminal-law-1991", articleNumber: "173" }, // REVIEW: عقوبة السرقة عند سقوط الحد
+    { lawSlug: "criminal-law-1991", articleNumber: "171" }, // REVIEW: عقوبة السرقة الحدية
+  ],
+  "سطو": [
+    { lawSlug: "criminal-law-1991", articleNumber: "175" }, // REVIEW: النهب
+  ],
+  "تعدٍّ": [
+    { lawSlug: "criminal-law-1991", articleNumber: "183" }, // REVIEW: التعدي الجنائي
+  ],
+  "اقتحام": [
+    { lawSlug: "criminal-law-1991", articleNumber: "183" }, // REVIEW: التعدي الجنائي
+  ],
+  "احتيال": [
+    { lawSlug: "criminal-law-1991", articleNumber: "178" }, // REVIEW: الاحتيال
+  ],
+  "تزوير": [
+    { lawSlug: "criminal-law-1991", articleNumber: "122" }, // REVIEW
+    { lawSlug: "criminal-law-1991", articleNumber: "123" }, // REVIEW
+  ],
+  "انتحال": [
+    { lawSlug: "criminal-law-1991", articleNumber: "113" }, // REVIEW: انتحال شخصية الغير
+    { lawSlug: "criminal-law-1991", articleNumber: "93" },  // REVIEW: انتحال صفة الموظف العام
+  ],
+  "إيذاء جسيم": [
+    { lawSlug: "criminal-law-1991", articleNumber: "138" }, // REVIEW: الجراح وأنواعها
+    { lawSlug: "criminal-law-1991", articleNumber: "139" }, // REVIEW: عقوبة الجراح العمد
+    { lawSlug: "criminal-law-1991", articleNumber: "142" }, // REVIEW: الأذى
+    { lawSlug: "criminal-law-1991", articleNumber: "143" }, // REVIEW: القوة الجنائية
+  ],
+  "أذى": [
+    { lawSlug: "criminal-law-1991", articleNumber: "138" }, // REVIEW: الجراح وأنواعها
+    { lawSlug: "criminal-law-1991", articleNumber: "139" }, // REVIEW: عقوبة الجراح العمد
+    { lawSlug: "criminal-law-1991", articleNumber: "142" }, // REVIEW: الأذى
+    { lawSlug: "criminal-law-1991", articleNumber: "143" }, // REVIEW: القوة الجنائية
+  ],
+  "جرح": [
+    { lawSlug: "criminal-law-1991", articleNumber: "138" }, // REVIEW: الجراح وأنواعها
+    { lawSlug: "criminal-law-1991", articleNumber: "139" }, // REVIEW: عقوبة الجراح العمد
+    { lawSlug: "criminal-law-1991", articleNumber: "142" }, // REVIEW: الأذى
+    { lawSlug: "criminal-law-1991", articleNumber: "143" }, // REVIEW: القوة الجنائية
+  ],
+  "قتل": [
+    { lawSlug: "criminal-law-1991", articleNumber: "129" }, // REVIEW: القتل وأنواعه
+    { lawSlug: "criminal-law-1991", articleNumber: "130" }, // REVIEW: القتل العمد
+    { lawSlug: "criminal-law-1991", articleNumber: "131" }, // REVIEW: القتل شبه العمد
+    { lawSlug: "criminal-law-1991", articleNumber: "132" }, // REVIEW: القتل الخطأ
+  ],
+  "مخدرات": [
+    { lawSlug: "narcotics-psychotropic-substances-act-1994", articleNumber: "15" }, // REVIEW
+    { lawSlug: "narcotics-psychotropic-substances-act-1994", articleNumber: "16" }, // REVIEW
+    { lawSlug: "narcotics-psychotropic-substances-act-1994", articleNumber: "20" }, // REVIEW
+    { lawSlug: "narcotics-psychotropic-substances-act-1994", articleNumber: "12" }, // REVIEW: ranked last
+  ],
+  "مركبة": [
+    { lawSlug: "criminal-law-1991", articleNumber: "132" }, // REVIEW: القتل الخطأ
+    { lawSlug: "criminal-law-1991", articleNumber: "141" }, // REVIEW: عقوبة الجراح الخطأ
+  ],
+  "خطأ": [
+    { lawSlug: "criminal-law-1991", articleNumber: "132" }, // REVIEW: القتل الخطأ
+    { lawSlug: "criminal-law-1991", articleNumber: "141" }, // REVIEW: عقوبة الجراح الخطأ
+  ],
+};
+
 function stripTashkeel(text: string): string {
   return text.replace(/[ً-ْٰ]/g, "");
 }
@@ -860,6 +937,313 @@ async function resolveCaseTypeFull(
   };
 }
 
+// ── Criminal concept-map path ─────────────────────────────────────────────
+// Used whenever the resolved case type is "criminal". Replaces the text-search
+// law pipeline with a deterministic map lookup: each fired concept term
+// resolves to pre-reviewed (lawSlug, articleNumber) pairs. No text search is
+// ever sent for laws in this path. Cases still use quick_search_v4, but only
+// results inside the primary criminal category are kept.
+async function analyzeCriminalConceptMap(
+  supabase: SupabaseClient,
+  input: CaseMapperInput,
+  caseTypeFull: ResolvedCaseType,
+  criminalTerms: { term: string; origin: "expanded" }[],
+  excerpt: string,
+  truncated: boolean,
+): Promise<CaseMapResult> {
+  const addTerm = (arr: string[], term: string) => {
+    if (!arr.includes(term)) arr.push(term);
+  };
+
+  const conceptTermsFromExpansions = extractTerms(input.facts)
+    .filter((t) => t.origin === "expanded")
+    .map((t) => t.term);
+  const allConceptTerms = [
+    ...new Set([...criminalTerms.map((t) => t.term), ...conceptTermsFromExpansions]),
+  ];
+
+  const showLens = Boolean(input.caseType?.trim() || caseTypeFull.inferred);
+  const caseTypeLens = showLens
+    ? {
+        input: input.caseType?.trim() ||
+          (caseTypeFull.inferred ? `${caseTypeFull.categoryNameAr ?? "جنائي"} (مستنتج)` : ""),
+        categoryNameAr: caseTypeFull.categoryNameAr ?? null,
+        inferred: caseTypeFull.inferred,
+      }
+    : null;
+  const inferredCaseType = caseTypeFull.inferred ? (caseTypeFull.categoryNameAr ?? "جنائي") : null;
+
+  // No concept fired → immediate noConfidentMatch, skip all DB queries
+  if (allConceptTerms.length === 0) {
+    return {
+      factsExcerpt: excerpt, factsIsTruncated: truncated,
+      caseTypeLens, inferredCaseType,
+      issues: [], laws: [], cases: [], principles: [],
+      outOfScopeCount: 0, noConfidentMatch: true, hasAnyResults: false,
+    };
+  }
+
+  // Map concepts to (lawSlug, articleNumber) pairs — deduped, map-order preserved
+  const mappedEntries: Array<ConceptArticleEntry & { conceptTerm: string }> = [];
+  const seenPairs = new Set<string>();
+  for (const term of allConceptTerms) {
+    for (const entry of CONCEPT_TO_ARTICLES[term] ?? []) {
+      const key = `${entry.lawSlug}:${entry.articleNumber}`;
+      if (!seenPairs.has(key)) {
+        seenPairs.add(key);
+        mappedEntries.push({ ...entry, conceptTerm: term });
+      }
+    }
+  }
+
+  // Concept fired but no map entry yet → noConfidentMatch
+  if (mappedEntries.length === 0) {
+    return {
+      factsExcerpt: excerpt, factsIsTruncated: truncated,
+      caseTypeLens, inferredCaseType,
+      issues: [], laws: [], cases: [], principles: [],
+      outOfScopeCount: 0, noConfidentMatch: true, hasAnyResults: false,
+    };
+  }
+
+  // Query 1: resolve law slugs → law rows
+  const uniqueSlugs = [...new Set(mappedEntries.map((e) => e.lawSlug))];
+  const { data: lawsData } = await supabase
+    .from("laws")
+    .select("id, slug, title_ar, source_url, verified")
+    .in("slug", uniqueSlugs);
+
+  type LawRow = { id: string; slug: string; title_ar: string | null; source_url: string | null; verified: boolean | null };
+  const lawBySlug = new Map<string, LawRow>(
+    ((lawsData ?? []) as LawRow[]).map((l) => [l.slug, l])
+  );
+  const lawIds = [
+    ...new Set(uniqueSlugs.map((s) => lawBySlug.get(s)?.id).filter(Boolean) as string[]),
+  ];
+
+  // Query 2: fetch articles by (law_id, article_number)
+  type ArticleRow = {
+    id: string; law_id: string; article_number: string | null;
+    title_ar: string | null; content_ar: string | null;
+    verified: boolean | null; status_note_ar: string | null;
+  };
+  const { data: articlesData } = lawIds.length
+    ? await supabase
+        .from("articles")
+        .select("id, law_id, article_number, title_ar, content_ar, verified, status_note_ar")
+        .in("law_id", lawIds)
+    : { data: [] as ArticleRow[] };
+
+  const articleByPair = new Map<string, ArticleRow>(
+    ((articlesData ?? []) as ArticleRow[]).map((a) => [
+      `${a.law_id}:${(a.article_number ?? "").trim()}`,
+      a,
+    ])
+  );
+
+  // Build authority map in concept-map order
+  const authorityMap = new Map<string, RetrievedAuthority>();
+  for (const entry of mappedEntries) {
+    const parentLaw = lawBySlug.get(entry.lawSlug);
+    if (!parentLaw) continue;
+    const artKey = `${parentLaw.id}:${entry.articleNumber}`;
+    const article = articleByPair.get(artKey);
+    if (!article) continue;
+
+    const existing = authorityMap.get(article.id);
+    if (existing) {
+      addTerm(existing.matchedTerms, entry.conceptTerm);
+    } else {
+      authorityMap.set(article.id, {
+        id: article.id,
+        type: "article",
+        title: article.title_ar ?? "",
+        lawTitle: parentLaw.title_ar ?? null,
+        articleNumber: article.article_number,
+        excerptHtml: (article.content_ar ?? "").slice(0, 600),
+        verified: Boolean(article.verified),
+        slug: null,
+        lawSlug: entry.lawSlug,
+        sourceUrl: parentLaw.source_url ?? null,
+        force: "in_force",
+        statusNote: article.status_note_ar ?? null,
+        matchedTerms: [entry.conceptTerm],
+        rank: 100,
+        inScope: true,
+      });
+    }
+  }
+
+  const mappedLawList = [...authorityMap.values()];
+
+  // Case search: concept terms only, filter to primary criminal category
+  const caseCandidates = await Promise.all(
+    allConceptTerms.map(async (term) => {
+      const { data, error } = await supabase.rpc("quick_search_v4", {
+        q: term, limit_rows: PER_TERM_LIMIT, include_repealed: true,
+      });
+      return { term, rows: (error ? [] : (data ?? [])) as V4Row[] };
+    })
+  );
+
+  const caseMap = new Map<string, RetrievedCase>();
+  for (const { term, rows } of caseCandidates) {
+    for (const row of rows) {
+      if (row.result_type !== "case") continue;
+      const existing = caseMap.get(row.entity_id);
+      if (existing) {
+        addTerm(existing.matchedTerms, term);
+        existing.rank = Math.max(existing.rank, row.rank ?? 0);
+      } else {
+        caseMap.set(row.entity_id, {
+          id: row.entity_id,
+          title: row.title ?? "",
+          courtName: null,
+          year: row.year_val ?? null,
+          judgmentDate: null,
+          citation: row.subtitle ?? null,
+          caseNumber: row.identifier ?? null,
+          principle: null,
+          excerptHtml: row.snippet ?? "",
+          authority: "unverified",
+          slug: row.slug,
+          sourceUrl: null,
+          matchedTerms: [term],
+          inScope: false,
+          rank: row.rank ?? 0,
+        });
+      }
+    }
+  }
+
+  // Enrich case details: court name, authority level, category (for in-scope)
+  const caseIds = [...caseMap.keys()];
+  type CaseDetailRow = {
+    id: string; verified: boolean | null; authority_status: string | null;
+    court_id: string | null; year: number | null; judgment_date: string | null;
+    case_number: string | null; citation_ar: string | null;
+    principle_ar: string | null; source_url: string | null; category_id: string | null;
+  };
+  const { data: casesDetail } = caseIds.length
+    ? await supabase
+        .from("cases")
+        .select("id, verified, authority_status, court_id, year, judgment_date, case_number, citation_ar, principle_ar, source_url, category_id")
+        .in("id", caseIds)
+    : { data: [] as CaseDetailRow[] };
+
+  const courtIds = [
+    ...new Set(((casesDetail ?? []) as CaseDetailRow[]).map((c) => c.court_id).filter(Boolean)),
+  ] as string[];
+  const { data: courts } = courtIds.length
+    ? await supabase.from("courts").select("id, name_ar").in("id", courtIds)
+    : { data: [] as { id: string; name_ar: string | null }[] };
+  const courtNameById = new Map(
+    ((courts ?? []) as { id: string; name_ar: string | null }[]).map((c) => [c.id, c.name_ar])
+  );
+  const caseDetailById = new Map(
+    ((casesDetail ?? []) as CaseDetailRow[]).map((c) => [c.id, c])
+  );
+
+  for (const c of caseMap.values()) {
+    const d = caseDetailById.get(c.id);
+    if (!d) continue;
+    c.courtName = d.court_id ? courtNameById.get(d.court_id) ?? null : null;
+    c.year = d.year ?? c.year;
+    c.judgmentDate = d.judgment_date ?? null;
+    c.citation = d.citation_ar ?? c.citation;
+    c.caseNumber = d.case_number ?? c.caseNumber;
+    c.principle = d.principle_ar ?? null;
+    c.sourceUrl = d.source_url ?? null;
+    c.authority = caseAuthority(d);
+    c.inScope = Boolean(caseTypeFull.categoryId && d.category_id === caseTypeFull.categoryId);
+  }
+
+  // Only include in-scope cases (primary criminal category)
+  const expandedTermSet = new Set(allConceptTerms);
+  const caseExpandedMatchIds = new Set(
+    [...caseMap.values()]
+      .filter((c) => c.inScope && caseMatchesExpandedTerms(c, expandedTermSet))
+      .map((c) => c.id)
+  );
+  const authorityOrder: Record<AuthorityLevel, number> = {
+    verified: 0, unverified: 1, needs_review: 2, overruled: 3,
+  };
+  const caseList = [...caseMap.values()]
+    .filter((c) => c.inScope)
+    .sort((a, b) => {
+      const aEM = caseExpandedMatchIds.has(a.id);
+      const bEM = caseExpandedMatchIds.has(b.id);
+      if (aEM !== bEM) return aEM ? -1 : 1;
+      if (authorityOrder[a.authority] !== authorityOrder[b.authority]) {
+        return authorityOrder[a.authority] - authorityOrder[b.authority];
+      }
+      return b.rank - a.rank;
+    });
+
+  // Principles: concept terms only, no laws (replaced by map above)
+  const v3Results = await Promise.all(
+    allConceptTerms.map(async (term) => {
+      const { data, error } = await supabase.rpc("universal_search_v3", {
+        q: term,
+        result_types: ["principle"],
+        filter_category_id: caseTypeFull.categoryId ?? null,
+        limit_per_type: V3_PER_TYPE,
+        overall_limit: V3_OVERALL,
+      });
+      return { term, rows: (error ? [] : (data ?? [])) as V3Row[] };
+    })
+  );
+
+  const principleMap = new Map<string, RetrievedPrinciple>();
+  for (const { term, rows } of v3Results) {
+    for (const row of rows) {
+      if (row.result_type !== "principle") continue;
+      const existing = principleMap.get(row.entity_id);
+      if (existing) { addTerm(existing.matchedTerms, term); }
+      else {
+        principleMap.set(row.entity_id, {
+          id: row.entity_id,
+          title: row.title ?? "",
+          category: row.subtitle ?? null,
+          summary: row.snippet ?? null,
+          slug: row.slug,
+          matchedTerms: [term],
+          rank: row.rank ?? 0,
+        });
+      }
+    }
+  }
+  const principleList = [...principleMap.values()].sort((a, b) => b.rank - a.rank);
+
+  // Issues: one per concept term that produced at least a law or case result
+  const issues: IssueLens[] = allConceptTerms
+    .filter(
+      (term) =>
+        mappedLawList.some((l) => l.matchedTerms.includes(term)) ||
+        caseList.some((c) => c.matchedTerms.includes(term)) ||
+        principleList.some((p) => p.matchedTerms.includes(term))
+    )
+    .map((term) => ({
+      term,
+      origin: "expanded" as const,
+      topLaw: mappedLawList.find((l) => l.matchedTerms.includes(term)) ?? null,
+      topCase: caseList.find((c) => c.matchedTerms.includes(term)) ?? null,
+      topPrinciple: principleList.find((p) => p.matchedTerms.includes(term)) ?? null,
+      searchedAndEmpty: false,
+    }));
+
+  return {
+    factsExcerpt: excerpt, factsIsTruncated: truncated,
+    caseTypeLens, inferredCaseType, issues,
+    laws: mappedLawList.slice(0, DISPLAY_CAP),
+    cases: caseList.slice(0, DISPLAY_CAP),
+    principles: principleList.slice(0, DISPLAY_CAP),
+    outOfScopeCount: 0,
+    noConfidentMatch: false,
+    hasAnyResults: mappedLawList.length > 0 || caseList.length > 0 || principleList.length > 0,
+  };
+}
+
 export async function analyzeCase(
   supabase: SupabaseClient,
   input: CaseMapperInput
@@ -888,6 +1272,11 @@ export async function analyzeCase(
   // at the top of this file. Multi-branch: each case type maps to a primary
   // category plus companion laws that the same case invariably needs.
   const caseTypeFull = await resolveCaseTypeFull(supabase, input.caseType, inferredCriminal);
+
+  // Criminal cases use a deterministic concept-map path — no text search for laws.
+  if (caseTypeFull?.slug === "criminal") {
+    return analyzeCriminalConceptMap(supabase, input, caseTypeFull, criminalTerms, excerpt, truncated);
+  }
 
   // ── Phase 1: candidates ────────────────────────────────────────────────
   // A wider pool than will be shown. Which terms survive is decided by what
