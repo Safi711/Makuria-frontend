@@ -15,8 +15,8 @@
  *   UNSCORED    — expected_articles=[] AND must_discuss present: print, skip
  */
 import { createClient } from "@supabase/supabase-js";
-import { analyzeCase } from "../analyze.ts";
-import type { CaseMapResult } from "../analyze.ts";
+import { analyzeCase } from "../analyze";
+import type { CaseMapResult } from "../analyze";
 import { readFileSync } from "fs";
 
 // Load .env.local so keys never appear on the command line.

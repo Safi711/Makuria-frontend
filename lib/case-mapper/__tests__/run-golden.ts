@@ -4,8 +4,8 @@
  * Never commit; the anon key must stay out of source.
  */
 import { createClient } from "@supabase/supabase-js";
-import { analyzeCase } from "../analyze.ts";
-import type { CaseMapResult } from "../analyze.ts";
+import { analyzeCase } from "../analyze";
+import type { CaseMapResult } from "../analyze";
 import { readFileSync } from "fs";
 import { fileURLToPath } from "url";
 import { dirname, join } from "path";

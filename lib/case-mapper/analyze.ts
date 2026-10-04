@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { classifyWithLLM } from "./llm-classifier.ts";
+import { classifyWithLLM } from "./llm-classifier";
 
 /**
  * Case Mapper — deterministic retrieval over the Makuria corpus. No
