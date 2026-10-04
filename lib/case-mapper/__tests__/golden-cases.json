@@ -1,0 +1,737 @@
+{
+  "schema_version": "1.0",
+  "title": "أبو رنات تحت الاختبار",
+  "created_date": "2026-10-03",
+  "language": "ar",
+  "jurisdiction": "Sudan",
+  "status": "draft_not_executed",
+  "total_tests": 30,
+  "distribution": {
+    "criminal": 15,
+    "civil": 5,
+    "administrative_or_constitutional": 3,
+    "nonlegal_or_ambiguous": 4,
+    "malformed_text": 3
+  },
+  "notes": [
+    "التكييف المتوقع مرجع للاختبار وليس حكم إدانة.",
+    "يلزم تثبيت نسخة القوانين وتعديلاتها المعتمدة قبل اعتماد المجموعة نهائيًا.",
+    "لم تتم مقارنة الحالات بخريطة المفاهيم الفعلية لعدم إرفاقها.",
+    "ترسل قيمة input وحدها إلى النظام؛ تبقى expected خارج مدخلاته.",
+    "نجاح المجموعة اختبار أولي ويليه اختبار مستقل لم يستخدم في الإصلاح."
+  ],
+  "sources": [
+    {
+      "law": "القانون الجنائي لسنة 1991",
+      "url": "https://natlex.ilo.org/dyn/natlex2/natlex2/files/download/80450/SDN80450%20ara.pdf"
+    },
+    {
+      "law": "قانون المخدرات والمؤثرات العقلية لسنة 1994",
+      "url": "https://sherloc.unodc.org/cld/ar/legislation/sdn/_1994_/_/_15-20/law_on_drug_offences_of_1994.html"
+    }
+  ],
+  "acceptance_criteria": {
+    "overall": {
+      "minimum_passed": 27,
+      "total": 30
+    },
+    "primary_article_rank": {
+      "rank": 1,
+      "minimum_passed": 16,
+      "total": 17,
+      "test_ids": [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9,
+        10,
+        11,
+        12,
+        13,
+        14,
+        15,
+        29,
+        30
+      ]
+    },
+    "maximum_irrelevant_results": 0,
+    "no_criminal_articles": {
+      "test_ids": [
+        16,
+        17,
+        18,
+        19,
+        20,
+        21,
+        22,
+        23
+      ],
+      "maximum_violations": 0
+    },
+    "abstention": {
+      "test_ids": [
+        24,
+        25,
+        26,
+        27,
+        28
+      ],
+      "required_passed": 5,
+      "total": 5
+    },
+    "phone_typing": {
+      "test_ids": [
+        29,
+        30
+      ],
+      "required_passed": 2,
+      "total": 2
+    },
+    "citation_required_fields": [
+      "law_name",
+      "law_year",
+      "article_number",
+      "article_text",
+      "source"
+    ],
+    "blocking_failures": [
+      "مادة مختلقة",
+      "تجريم نزاع مدني خالص",
+      "مطابقة جازمة لنص مبتور"
+    ],
+    "related_supplementary_articles_allowed": true,
+    "supplementary_articles_require_explanation": true
+  },
+  "tests": [
+    {
+      "id": 1,
+      "category": "criminal",
+      "input": "أخذ شخص هاتفًا مملوكًا لغيره من فوق طاولة صاحبه دون رضاه، وأخفاه بقصد الاحتفاظ به.",
+      "expected": {
+        "classification": "السرقة",
+        "action": "match",
+        "primary_article": {
+          "law_name": "القانون الجنائي",
+          "law_year": 1991,
+          "article_number": 174,
+          "subsection": null
+        },
+        "criminal_articles_forbidden": false,
+        "all_articles_forbidden": false,
+        "message": null,
+        "clarification_required": false,
+        "notes": "لا يُفترض توافر شروط السرقة الحدية."
+      },
+      "actual_result": null,
+      "passed": null,
+      "failure_reason": null
+    },
+    {
+      "id": 2,
+      "category": "criminal",
+      "input": "سلّم صاحب متجر حصيلة المبيعات لموظف لإيداعها في البنك، فحوّلها الموظف إلى حسابه الشخصي وأنكر استلامها.",
+      "expected": {
+        "classification": "خيانة الأمانة",
+        "action": "match",
+        "primary_article": {
+          "law_name": "القانون الجنائي",
+          "law_year": 1991,
+          "article_number": 177,
+          "subsection": null
+        },
+        "criminal_articles_forbidden": false,
+        "all_articles_forbidden": false,
+        "message": null,
+        "clarification_required": false,
+        "notes": null
+      },
+      "actual_result": null,
+      "passed": null,
+      "failure_reason": null
+    },
+    {
+      "id": 3,
+      "category": "criminal",
+      "input": "أوهم شخص مشتريًا بأنه يملك سيارة معروضة للبيع، مع علمه بأنها ليست ملكه، وتسلم الثمن ثم اختفى.",
+      "expected": {
+        "classification": "الاحتيال",
+        "action": "match",
+        "primary_article": {
+          "law_name": "القانون الجنائي",
+          "law_year": 1991,
+          "article_number": 178,
+          "subsection": null
+        },
+        "criminal_articles_forbidden": false,
+        "all_articles_forbidden": false,
+        "message": null,
+        "clarification_required": false,
+        "notes": null
+      },
+      "actual_result": null,
+      "passed": null,
+      "failure_reason": null
+    },
+    {
+      "id": 4,
+      "category": "criminal",
+      "input": "عثر شخص على محفظة، وعرف صاحبها من مستنداتها، لكنه أنكر العثور عليها واحتفظ بالمال لنفسه.",
+      "expected": {
+        "classification": "التملك الجنائي",
+        "action": "match",
+        "primary_article": {
+          "law_name": "القانون الجنائي",
+          "law_year": 1991,
+          "article_number": 180,
+          "subsection": null
+        },
+        "criminal_articles_forbidden": false,
+        "all_articles_forbidden": false,
+        "message": null,
+        "clarification_required": false,
+        "notes": null
+      },
+      "actual_result": null,
+      "passed": null,
+      "failure_reason": null
+    },
+    {
+      "id": 5,
+      "category": "criminal",
+      "input": "حطم شخص زجاج سيارة جاره عمدًا بقصد إلحاق خسارة به.",
+      "expected": {
+        "classification": "الإتلاف الجنائي",
+        "action": "match",
+        "primary_article": {
+          "law_name": "القانون الجنائي",
+          "law_year": 1991,
+          "article_number": 182,
+          "subsection": null
+        },
+        "criminal_articles_forbidden": false,
+        "all_articles_forbidden": false,
+        "message": null,
+        "clarification_required": false,
+        "notes": null
+      },
+      "actual_result": null,
+      "passed": null,
+      "failure_reason": null
+    },
+    {
+      "id": 6,
+      "category": "criminal",
+      "input": "انتزع شخص حقيبة من حاملها بالقوة بعد دفعه أرضًا، وفر بها.",
+      "expected": {
+        "classification": "النهب",
+        "action": "match",
+        "primary_article": {
+          "law_name": "القانون الجنائي",
+          "law_year": 1991,
+          "article_number": 175,
+          "subsection": null
+        },
+        "criminal_articles_forbidden": false,
+        "all_articles_forbidden": false,
+        "message": null,
+        "clarification_required": false,
+        "notes": null
+      },
+      "actual_result": null,
+      "passed": null,
+      "failure_reason": null
+    },
+    {
+      "id": 7,
+      "category": "criminal",
+      "input": "هدد شخص آخر بنشر صوره الخاصة ما لم يدفع له مبلغًا، فدفع المجني عليه المال نتيجة التهديد.",
+      "expected": {
+        "classification": "الابتزاز",
+        "action": "match",
+        "primary_article": {
+          "law_name": "القانون الجنائي",
+          "law_year": 1991,
+          "article_number": 176,
+          "subsection": null
+        },
+        "criminal_articles_forbidden": false,
+        "all_articles_forbidden": false,
+        "message": null,
+        "clarification_required": false,
+        "notes": null
+      },
+      "actual_result": null,
+      "passed": null,
+      "failure_reason": null
+    },
+    {
+      "id": 8,
+      "category": "criminal",
+      "input": "أطلق شخص النار عمدًا على صدر آخر بقصد قتله، فمات بسبب الإصابة، دون وقائع دفاع شرعي أو استفزاز شديد.",
+      "expected": {
+        "classification": "القتل العمد",
+        "action": "match",
+        "primary_article": {
+          "law_name": "القانون الجنائي",
+          "law_year": 1991,
+          "article_number": 130,
+          "subsection": null
+        },
+        "criminal_articles_forbidden": false,
+        "all_articles_forbidden": false,
+        "message": null,
+        "clarification_required": false,
+        "notes": null
+      },
+      "actual_result": null,
+      "passed": null,
+      "failure_reason": null
+    },
+    {
+      "id": 9,
+      "category": "criminal",
+      "input": "انشغل سائق بهاتفه ولم ينتبه للطريق، فصدم أحد المشاة وتسبب في وفاته، دون قصد الاعتداء عليه.",
+      "expected": {
+        "classification": "القتل الخطأ",
+        "action": "match",
+        "primary_article": {
+          "law_name": "القانون الجنائي",
+          "law_year": 1991,
+          "article_number": 132,
+          "subsection": null
+        },
+        "criminal_articles_forbidden": false,
+        "all_articles_forbidden": false,
+        "message": null,
+        "clarification_required": false,
+        "notes": "تقبل مادة مرورية إضافية إذا بُيّنت صلتها."
+      },
+      "actual_result": null,
+      "passed": null,
+      "failure_reason": null
+    },
+    {
+      "id": 10,
+      "category": "criminal",
+      "input": "ضرب شخص آخر بسكين عمدًا، فأحدث جرحًا قطعيًا مثبتًا طبيًا، دون وفاته.",
+      "expected": {
+        "classification": "تسبيب الجراح العمد",
+        "action": "match",
+        "primary_article": {
+          "law_name": "القانون الجنائي",
+          "law_year": 1991,
+          "article_number": 139,
+          "subsection": null
+        },
+        "criminal_articles_forbidden": false,
+        "all_articles_forbidden": false,
+        "message": null,
+        "clarification_required": false,
+        "notes": "المادة 138 ذات صلة بتعريف الجراح."
+      },
+      "actual_result": null,
+      "passed": null,
+      "failure_reason": null
+    },
+    {
+      "id": 11,
+      "category": "criminal",
+      "input": "صفع شخص آخر عمدًا، فأحدث له ألمًا دون جرح أو كسر أو إصابة تندرج ضمن الجراح.",
+      "expected": {
+        "classification": "الأذى",
+        "action": "match",
+        "primary_article": {
+          "law_name": "القانون الجنائي",
+          "law_year": 1991,
+          "article_number": 142,
+          "subsection": null
+        },
+        "criminal_articles_forbidden": false,
+        "all_articles_forbidden": false,
+        "message": null,
+        "clarification_required": false,
+        "notes": null
+      },
+      "actual_result": null,
+      "passed": null,
+      "failure_reason": null
+    },
+    {
+      "id": 12,
+      "category": "criminal",
+      "input": "أغلق صاحب متجر غرفة على زبون ومنعه من الخروج ساعتين، دون سند قانوني.",
+      "expected": {
+        "classification": "الحجز غير المشروع",
+        "action": "match",
+        "primary_article": {
+          "law_name": "القانون الجنائي",
+          "law_year": 1991,
+          "article_number": 164,
+          "subsection": null
+        },
+        "criminal_articles_forbidden": false,
+        "all_articles_forbidden": false,
+        "message": null,
+        "clarification_required": false,
+        "notes": null
+      },
+      "actual_result": null,
+      "passed": null,
+      "failure_reason": null
+    },
+    {
+      "id": 13,
+      "category": "criminal",
+      "input": "غيّر شخص مبلغ إيصال موقع من صاحبه، دون موافقته، بقصد استخدامه لإثبات دين أكبر.",
+      "expected": {
+        "classification": "التزوير في المستندات",
+        "action": "match",
+        "primary_article": {
+          "law_name": "القانون الجنائي",
+          "law_year": 1991,
+          "article_number": 122,
+          "subsection": null
+        },
+        "criminal_articles_forbidden": false,
+        "all_articles_forbidden": false,
+        "message": null,
+        "clarification_required": false,
+        "notes": "المادة 123 ذات صلة بالعقوبة والاستخدام بحسب الوقائع."
+      },
+      "actual_result": null,
+      "passed": null,
+      "failure_reason": null
+    },
+    {
+      "id": 14,
+      "category": "criminal",
+      "input": "اشترى شخص هاتفًا وهو يعلم أنه مسروق، وقبله واحتفظ به.",
+      "expected": {
+        "classification": "استلام المال المسروق",
+        "action": "match",
+        "primary_article": {
+          "law_name": "القانون الجنائي",
+          "law_year": 1991,
+          "article_number": 181,
+          "subsection": null
+        },
+        "criminal_articles_forbidden": false,
+        "all_articles_forbidden": false,
+        "message": null,
+        "clarification_required": false,
+        "notes": null
+      },
+      "actual_result": null,
+      "passed": null,
+      "failure_reason": null
+    },
+    {
+      "id": 15,
+      "category": "criminal",
+      "input": "ضبط شخص يبيع البنقو للزبائن، وبحوزته عبوات معدة للبيع، دون ترخيص قانوني.",
+      "expected": {
+        "classification": "الاتجار بالمخدرات",
+        "action": "match",
+        "primary_article": {
+          "law_name": "قانون المخدرات والمؤثرات العقلية",
+          "law_year": 1994,
+          "article_number": 15,
+          "subsection": "1(b)"
+        },
+        "criminal_articles_forbidden": false,
+        "all_articles_forbidden": false,
+        "message": null,
+        "clarification_required": false,
+        "notes": null
+      },
+      "actual_result": null,
+      "passed": null,
+      "failure_reason": null
+    },
+    {
+      "id": 16,
+      "category": "civil",
+      "input": "اتفقت مع نجار على صنع أثاث خلال شهر، لكنه تأخر أسبوعين بسبب تعطل أدواته، وأقر بالعقد واستعد لإكمال العمل.",
+      "expected": {
+        "classification": "إخلال بعقد",
+        "action": "classify_civil",
+        "primary_article": null,
+        "criminal_articles_forbidden": true,
+        "all_articles_forbidden": false,
+        "message": null,
+        "clarification_required": false,
+        "notes": null
+      },
+      "actual_result": null,
+      "passed": null,
+      "failure_reason": null
+    },
+    {
+      "id": 17,
+      "category": "civil",
+      "input": "أقرضت صديقي مبلغًا، وحل موعد السداد، لكنه عجز عن الدفع ويقر بالدين.",
+      "expected": {
+        "classification": "مطالبة بدين",
+        "action": "classify_civil",
+        "primary_article": null,
+        "criminal_articles_forbidden": true,
+        "all_articles_forbidden": false,
+        "message": null,
+        "clarification_required": false,
+        "notes": "العجز عن السداد وحده لا يثبت الاحتيال أو خيانة الأمانة."
+      },
+      "actual_result": null,
+      "passed": null,
+      "failure_reason": null
+    },
+    {
+      "id": 18,
+      "category": "civil",
+      "input": "انتهى عقد إيجار المنزل، واختلف المالك والمستأجر حول مدة التجديد وقيمة الأجرة.",
+      "expected": {
+        "classification": "نزاع إيجاري",
+        "action": "classify_civil",
+        "primary_article": null,
+        "criminal_articles_forbidden": true,
+        "all_articles_forbidden": false,
+        "message": null,
+        "clarification_required": false,
+        "notes": null
+      },
+      "actual_result": null,
+      "passed": null,
+      "failure_reason": null
+    },
+    {
+      "id": 19,
+      "category": "civil",
+      "input": "تسلمت بضاعة وفق عقد بيع، واكتشفت عيبًا في تصنيعها، ولا توجد وقائع تدل على علم البائع بالعيب أو تعمد إخفائه.",
+      "expected": {
+        "classification": "نزاع بيع وعيب",
+        "action": "classify_civil",
+        "primary_article": null,
+        "criminal_articles_forbidden": true,
+        "all_articles_forbidden": false,
+        "message": null,
+        "clarification_required": false,
+        "notes": null
+      },
+      "actual_result": null,
+      "passed": null,
+      "failure_reason": null
+    },
+    {
+      "id": 20,
+      "category": "civil",
+      "input": "دفعت عربونًا لشراء أرض، ثم اختلفنا حول شرط في العقد، والبائع يقر بالمبلغ ويعرض رده.",
+      "expected": {
+        "classification": "نزاع تعاقدي",
+        "action": "classify_civil",
+        "primary_article": null,
+        "criminal_articles_forbidden": true,
+        "all_articles_forbidden": false,
+        "message": null,
+        "clarification_required": false,
+        "notes": null
+      },
+      "actual_result": null,
+      "passed": null,
+      "failure_reason": null
+    },
+    {
+      "id": 21,
+      "category": "administrative_or_constitutional",
+      "input": "أنا موظف بالخدمة المدنية، وصدر قرار بفصلي من جهة حكومية، وأريد الطعن عليه لعدم اتباع إجراءات الفصل المطلوبة.",
+      "expected": {
+        "classification": "نزاع خدمة عامة وطعن إداري",
+        "action": "classify_and_clarify",
+        "primary_article": null,
+        "criminal_articles_forbidden": true,
+        "all_articles_forbidden": false,
+        "message": null,
+        "clarification_required": true,
+        "notes": "طلب القرار والتاريخ والنظام الوظيفي."
+      },
+      "actual_result": null,
+      "passed": null,
+      "failure_reason": null
+    },
+    {
+      "id": 22,
+      "category": "administrative_or_constitutional",
+      "input": "رفضت جهة إدارية تجديد ترخيص نشاطي، وأريد معرفة طريق الطعن في قرارها وأساس الرفض.",
+      "expected": {
+        "classification": "نزاع إداري",
+        "action": "classify_and_clarify",
+        "primary_article": null,
+        "criminal_articles_forbidden": true,
+        "all_articles_forbidden": false,
+        "message": null,
+        "clarification_required": true,
+        "notes": "طلب نوع الترخيص والقرار وتاريخه."
+      },
+      "actual_result": null,
+      "passed": null,
+      "failure_reason": null
+    },
+    {
+      "id": 23,
+      "category": "administrative_or_constitutional",
+      "input": "أريد الطعن في نص تشريعي لأنه يميز بين مواطنين في حق واحد بسبب أصلهم، وأحتاج معرفة المسار الدستوري المتاح.",
+      "expected": {
+        "classification": "مسألة دستورية",
+        "action": "classify_and_clarify",
+        "primary_article": null,
+        "criminal_articles_forbidden": true,
+        "all_articles_forbidden": false,
+        "message": null,
+        "clarification_required": true,
+        "notes": "طلب النص المطعون فيه والإطار الدستوري والزمني المنطبق."
+      },
+      "actual_result": null,
+      "passed": null,
+      "failure_reason": null
+    },
+    {
+      "id": 24,
+      "category": "nonlegal_or_ambiguous",
+      "input": "اشتريت قميصًا.",
+      "expected": {
+        "classification": "غير قانوني",
+        "action": "no_reliable_match",
+        "primary_article": null,
+        "criminal_articles_forbidden": true,
+        "all_articles_forbidden": true,
+        "message": "لم يُعثر على مطابقة موثوقة",
+        "clarification_required": false,
+        "notes": null
+      },
+      "actual_result": null,
+      "passed": null,
+      "failure_reason": null
+    },
+    {
+      "id": 25,
+      "category": "nonlegal_or_ambiguous",
+      "input": "الجو جميل اليوم وأريد الذهاب إلى النيل.",
+      "expected": {
+        "classification": "غير قانوني",
+        "action": "no_reliable_match",
+        "primary_article": null,
+        "criminal_articles_forbidden": true,
+        "all_articles_forbidden": true,
+        "message": "لم يُعثر على مطابقة موثوقة",
+        "clarification_required": false,
+        "notes": null
+      },
+      "actual_result": null,
+      "passed": null,
+      "failure_reason": null
+    },
+    {
+      "id": 26,
+      "category": "nonlegal_or_ambiguous",
+      "input": "عندي مشكلة مع شخص.",
+      "expected": {
+        "classification": "غامض",
+        "action": "no_reliable_match_and_clarify",
+        "primary_article": null,
+        "criminal_articles_forbidden": true,
+        "all_articles_forbidden": true,
+        "message": "لم يُعثر على مطابقة موثوقة",
+        "clarification_required": true,
+        "notes": null
+      },
+      "actual_result": null,
+      "passed": null,
+      "failure_reason": null
+    },
+    {
+      "id": 27,
+      "category": "nonlegal_or_ambiguous",
+      "input": "حقي ضاع.",
+      "expected": {
+        "classification": "غامض",
+        "action": "no_reliable_match_and_clarify",
+        "primary_article": null,
+        "criminal_articles_forbidden": true,
+        "all_articles_forbidden": true,
+        "message": "لم يُعثر على مطابقة موثوقة",
+        "clarification_required": true,
+        "notes": null
+      },
+      "actual_result": null,
+      "passed": null,
+      "failure_reason": null
+    },
+    {
+      "id": 28,
+      "category": "malformed_text",
+      "input": "واحد سر…",
+      "expected": {
+        "classification": "كلمة مبتورة",
+        "action": "no_reliable_match_and_clarify",
+        "primary_article": null,
+        "criminal_articles_forbidden": true,
+        "all_articles_forbidden": true,
+        "message": "لم يُعثر على مطابقة موثوقة",
+        "clarification_required": true,
+        "notes": "لا تُكمل الكلمة ولا تفترض واقعة سرقة."
+      },
+      "actual_result": null,
+      "passed": null,
+      "failure_reason": null
+    },
+    {
+      "id": 29,
+      "category": "malformed_text",
+      "input": "واحد اخد تلفوني من الشنطه من غير ازني وخباه عشان يخليه لنفسو",
+      "expected": {
+        "classification": "السرقة",
+        "action": "match",
+        "primary_article": {
+          "law_name": "القانون الجنائي",
+          "law_year": 1991,
+          "article_number": 174,
+          "subsection": null
+        },
+        "criminal_articles_forbidden": false,
+        "all_articles_forbidden": false,
+        "message": null,
+        "clarification_required": false,
+        "notes": "يجب فهم الوقائع رغم أخطاء الكتابة."
+      },
+      "actual_result": null,
+      "passed": null,
+      "failure_reason": null
+    },
+    {
+      "id": 30,
+      "category": "malformed_text",
+      "input": "سلمت زول قروش امانة يودعها في البنك لكنه اخدها لنفسه وانكر استلامها",
+      "expected": {
+        "classification": "خيانة الأمانة",
+        "action": "match",
+        "primary_article": {
+          "law_name": "القانون الجنائي",
+          "law_year": 1991,
+          "article_number": 177,
+          "subsection": null
+        },
+        "criminal_articles_forbidden": false,
+        "all_articles_forbidden": false,
+        "message": null,
+        "clarification_required": false,
+        "notes": "يجب فهم الوقائع رغم أخطاء الكتابة."
+      },
+      "actual_result": null,
+      "passed": null,
+      "failure_reason": null
+    }
+  ]
+}
