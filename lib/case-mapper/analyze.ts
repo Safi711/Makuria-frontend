@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { classifyWithLLM } from "./llm-classifier.ts";
 
 /**
  * Case Mapper — deterministic retrieval over the Makuria corpus. No
@@ -1370,7 +1371,35 @@ export async function analyzeCase(
   // are secondary to a live criminal concept like خيانة الأمانة). When
   // anyFired, we pass undefined caseType to resolveCaseTypeFull so it
   // derives "criminal" from inferCriminal rather than the user-supplied text.
-  const { terms: criminalTerms, anyFired } = applyCriminalExpansions(input.facts);
+  let { terms: criminalTerms, anyFired } = applyCriminalExpansions(input.facts);
+
+  // ── LLM post-deterministic veto ────────────────────────────────────────
+  // Runs even when word lists fired (anyFired=true) so it can correct a wrong
+  // concept or abstain when a required offence element is missing from the facts.
+  // Required for B2-018 (correction) and B2-020 (abstention despite theft trigger).
+  // Article numbers never come from the LLM — only CONCEPT_TO_ARTICLES is used.
+  const llmResult = await classifyWithLLM(
+    input.facts,
+    process.env.ANTHROPIC_API_KEY ?? "",
+  );
+  if (llmResult.type === "abstain") {
+    return {
+      factsExcerpt: excerpt, factsIsTruncated: truncated,
+      caseTypeLens: null, inferredCaseType: null,
+      issues: [], laws: [], cases: [], principles: [],
+      outOfScopeCount: 0, noConfidentMatch: true, hasAnyResults: false,
+    };
+  }
+  if (llmResult.type === "civil") {
+    // Suppress criminal path — civil text search runs below
+    anyFired = false;
+    criminalTerms = [];
+  } else {
+    // LLM is authoritative: replace word-list concepts with the LLM concept
+    criminalTerms = [{ term: llmResult.concept, origin: "expanded" as const }];
+    anyFired = true;
+  }
+
   const inferredCriminal = anyFired;
   const caseTypeFull = await resolveCaseTypeFull(
     supabase,
