@@ -132,6 +132,12 @@ export type IssueLens = {
   searchedAndEmpty: boolean;
 };
 
+export type DiscussItem = {
+  concept: string;
+  label: string;
+  articles: RetrievedAuthority[];
+};
+
 export type CaseMapResult = {
   factsExcerpt: string;
   factsIsTruncated: boolean;
@@ -154,6 +160,9 @@ export type CaseMapResult = {
    * a "no confident match" message rather than the unrelated results. */
   noConfidentMatch: boolean;
   hasAnyResults: boolean;
+  /** Open points for the lawyer — fetched from DISCUSS_CONCEPT_TO_ARTICLES,
+   *  never mixed into the ranked `laws` array. */
+  discuss?: DiscussItem[];
 };
 
 const MAX_TERMS = 6;
@@ -580,6 +589,20 @@ const CONCEPT_TO_ARTICLES: Record<string, ConceptArticleEntry[]> = {
     { lawSlug: "criminal-law-1991", articleNumber: "191" }, // جرائم الحرب بأساليب القتال المحظورة
     { lawSlug: "criminal-law-1991", articleNumber: "192" }, // جرائم الحرب باستخدام أسلحة محظورة
   ],
+};
+
+// Articles surfaced as open points for the lawyer when the LLM signals a
+// discuss concept. These are fetched separately and never appear in `laws`.
+const DISCUSS_CONCEPT_TO_ARTICLES: Record<string, ConceptArticleEntry[]> = {
+  "قتل عمد": [
+    { lawSlug: "criminal-law-1991", articleNumber: "19" },  // تعريف الشروع
+    { lawSlug: "criminal-law-1991", articleNumber: "20" },  // العقوبة على الشروع
+    { lawSlug: "criminal-law-1991", articleNumber: "130" }, // القتل العمد
+  ],
+};
+
+const DISCUSS_CONCEPT_LABEL: Record<string, string> = {
+  "قتل عمد": "الشروع في القتل العمد — نقطة مفتوحة للمحامي",
 };
 
 function stripTashkeel(text: string): string {
@@ -1314,6 +1337,7 @@ async function analyzeCriminalConceptMap(
   criminalTerms: { term: string; origin: "expanded" }[],
   excerpt: string,
   truncated: boolean,
+  discussConcepts?: string[],
 ): Promise<CaseMapResult> {
   const addTerm = (arr: string[], term: string) => {
     if (!arr.includes(term)) arr.push(term);
@@ -1439,6 +1463,85 @@ async function analyzeCriminalConceptMap(
   }
 
   const mappedLawList = [...authorityMap.values()];
+
+  // Discuss articles — separate from ranked results, never in `laws`.
+  // The main DB query already fetched all articles for the laws in lawIds,
+  // so criminal-law-1991 articles (19/20/130) are already in articleByPair.
+  // For any discuss law not yet in lawBySlug we do a supplementary fetch.
+  let discussItems: DiscussItem[] | undefined;
+  if (discussConcepts?.length) {
+    const discussEntries: Array<ConceptArticleEntry & { concept: string }> = [];
+    for (const concept of discussConcepts) {
+      for (const entry of DISCUSS_CONCEPT_TO_ARTICLES[concept] ?? []) {
+        discussEntries.push({ ...entry, concept });
+      }
+    }
+    if (discussEntries.length) {
+      // Supplement lawBySlug / articleByPair if discuss laws are not yet loaded.
+      const extraSlugs = [
+        ...new Set(discussEntries.map((e) => e.lawSlug).filter((s) => !lawBySlug.has(s))),
+      ];
+      if (extraSlugs.length) {
+        const { data: extraLaws } = await supabase
+          .from("laws")
+          .select("id, slug, title_ar, source_url, verified")
+          .in("slug", extraSlugs);
+        const extraLawRows = (extraLaws ?? []) as Array<{
+          id: string; slug: string; title_ar: string | null;
+          source_url: string | null; verified: boolean | null;
+        }>;
+        const extraLawIds = extraLawRows.map((l) => l.id);
+        extraLawRows.forEach((l) => lawBySlug.set(l.slug, l));
+        if (extraLawIds.length) {
+          const { data: extraArts } = await supabase
+            .from("articles")
+            .select("id, law_id, article_number, title_ar, content_ar, verified, status_note_ar")
+            .in("law_id", extraLawIds);
+          for (const a of (extraArts ?? []) as Array<{
+            id: string; law_id: string; article_number: string | null;
+            title_ar: string | null; content_ar: string | null;
+            verified: boolean | null; status_note_ar: string | null;
+          }>) {
+            articleByPair.set(`${a.law_id}:${(a.article_number ?? "").trim()}`, a);
+          }
+        }
+      }
+
+      const byConceptMap = new Map<string, RetrievedAuthority[]>();
+      for (const entry of discussEntries) {
+        const parentLaw = lawBySlug.get(entry.lawSlug);
+        if (!parentLaw) continue;
+        const artKey = `${parentLaw.id}:${entry.articleNumber}`;
+        const article = articleByPair.get(artKey);
+        if (!article) continue;
+        const art: RetrievedAuthority = {
+          id: article.id,
+          type: "article",
+          title: article.title_ar ?? "",
+          lawTitle: parentLaw.title_ar ?? null,
+          articleNumber: article.article_number,
+          excerptHtml: (article.content_ar ?? "").slice(0, 600),
+          verified: Boolean(article.verified),
+          slug: null,
+          lawSlug: entry.lawSlug,
+          sourceUrl: parentLaw.source_url ?? null,
+          force: "in_force",
+          statusNote: article.status_note_ar ?? null,
+          matchedTerms: [entry.concept],
+          rank: 100,
+          inScope: true,
+        };
+        const arr = byConceptMap.get(entry.concept) ?? [];
+        arr.push(art);
+        byConceptMap.set(entry.concept, arr);
+      }
+      discussItems = [...byConceptMap.entries()].map(([concept, articles]) => ({
+        concept,
+        label: DISCUSS_CONCEPT_LABEL[concept] ?? concept,
+        articles,
+      }));
+    }
+  }
 
   // Case search: concept terms only, filter to primary criminal category
   const caseCandidates = await Promise.all(
@@ -1605,6 +1708,7 @@ async function analyzeCriminalConceptMap(
     outOfScopeCount: 0,
     noConfidentMatch: false,
     hasAnyResults: mappedLawList.length > 0 || caseList.length > 0 || principleList.length > 0,
+    ...(discussItems?.length ? { discuss: discussItems } : {}),
   };
 }
 
@@ -1658,7 +1762,10 @@ export async function analyzeCase(
 
   // Criminal cases use a deterministic concept-map path — no text search for laws.
   if (caseTypeFull?.slug === "criminal") {
-    return analyzeCriminalConceptMap(supabase, input, caseTypeFull, criminalTerms, excerpt, truncated);
+    return analyzeCriminalConceptMap(
+      supabase, input, caseTypeFull, criminalTerms, excerpt, truncated,
+      llmResult.type === "criminal" ? llmResult.discuss : undefined,
+    );
   }
 
   // ── Phase 1: candidates ────────────────────────────────────────────────

@@ -6,7 +6,7 @@
  */
 
 export type LLMClassification =
-  | { type: "criminal"; concept: string }
+  | { type: "criminal"; concept: string; discuss?: string[] }
   | { type: "civil" }
   | { type: "abstain" };
 
@@ -65,6 +65,7 @@ const SYSTEM_PROMPT = `أنت محلل قانوني سوداني. مهمتك: ت
 3. أعد abstain فقط في إحدى حالتين:
    أ) الغموض الجوهري: لا يمكن تحديد ما إذا كان الفعل جنائياً أصلاً (مثال: الأخذ قد يكون مشروعاً أو غير مشروع، والقصد الجنائي مستحيل الاستنتاج من الوقائع)
    ب) التعارض: الوقائع تحتمل جريمتين مختلفتين اختلافاً جوهرياً في العقوبة ولا مرجّح
+   ج) لا يُعدّ من حالات الامتناع في جرائم الأذى الجسدي تحديداً (الجرح / القتل العمد): إذا كانت وقائع الأذى الجسدي مكتملة وثابتة (وجود إصابة موصوفة = جرح عمد أو أذى) وإنما الشك في قصد القتل فحسب — فصنّف إلى جريمة الجسد الأدنى الثابتة (جرح عمد أو أذى) وأضف "قتل عمد" في حقل discuss؛ هذه القاعدة خاصة بجرائم الجسد ولا تُطبَّق على جرائم المال أو غيرها
 4. لا تعد abstain لأن الوقائع مختصرة — الاختصار ليس غموضاً
 5. لا تعد abstain لأن عنصراً لم يُذكر صراحةً إذا كان مستنتجاً بوضوح من السياق
 6. تمييزات قانونية واجبة التطبيق:
@@ -89,10 +90,11 @@ const SYSTEM_PROMPT = `أنت محلل قانوني سوداني. مهمتك: ت
    ف) منظمة إجرامية: إنشاء أو إدارة أو المشاركة في منظمة أو جماعة تدبر لارتكاب جرائم — يختلف عن تهديد (144) الذي هو فعل فردي
 7. لا تذكر أرقام مواد أو أسماء قوانين
 8. إذا وصفت الوقائع جريمة لا يطابقها أي مفهوم في القائمة المغلقة، أعد abstain — لا تختر أقرب مفهوم ولو بدا مشابهاً
-9. أخرج JSON صالحاً فقط لا نص آخر — اختر إحدى هذه الصيغ الثلاث وأخرج واحدة منها فقط:
-   إذا جريمة جنائية:  {"type":"criminal","concept":"سرقة"}   ← ضع اسم المفهوم من القائمة
-   إذا نزاع مدني:     {"type":"civil"}
-   إذا غموض أو امتناع: {"type":"abstain"}`;
+9. أخرج JSON صالحاً فقط لا نص آخر — اختر إحدى الصيغ التالية وأخرج واحدة فقط:
+   إذا جريمة جنائية:               {"type":"criminal","concept":"سرقة"}
+   إذا جريمة جنائية مع نقطة بحث:  {"type":"criminal","concept":"جرح عمد","discuss":["قتل عمد"]}   ← discuss: مفاهيم من القائمة المغلقة للمحامي، لا للتصنيف
+   إذا نزاع مدني:                  {"type":"civil"}
+   إذا غموض أو امتناع:             {"type":"abstain"}`;
 
 export async function classifyWithLLM(
   facts: string,
@@ -153,7 +155,11 @@ export async function classifyWithLLM(
     typeof p.concept === "string" &&
     CONCEPT_SET.has(p.concept)
   ) {
-    return { type: "criminal", concept: p.concept };
+    const rawDiscuss = Array.isArray(p.discuss) ? (p.discuss as unknown[]) : [];
+    const discuss = rawDiscuss.filter(
+      (d): d is string => typeof d === "string" && CONCEPT_SET.has(d),
+    );
+    return { type: "criminal", concept: p.concept, ...(discuss.length ? { discuss } : {}) };
   }
 
   // Unknown type or concept not in closed list → safe default
