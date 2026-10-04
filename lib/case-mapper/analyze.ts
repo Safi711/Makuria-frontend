@@ -258,8 +258,8 @@ const CONCEPT_TO_ARTICLES: Record<string, ConceptArticleEntry[]> = {
     { lawSlug: "criminal-law-1991", articleNumber: "173" }, // REVIEW: عقوبة السرقة عند سقوط الحد
     { lawSlug: "criminal-law-1991", articleNumber: "171" }, // REVIEW: عقوبة السرقة الحدية
   ],
-  "سطو": [
-    { lawSlug: "criminal-law-1991", articleNumber: "175" }, // REVIEW: النهب
+  "نهب": [
+    { lawSlug: "criminal-law-1991", articleNumber: "175" }, // النهب
   ],
   "تعدٍّ": [
     { lawSlug: "criminal-law-1991", articleNumber: "183" }, // REVIEW: التعدي الجنائي
@@ -803,8 +803,8 @@ const CRIMINAL_VOCABULARY_EXPANSIONS: CriminalExpansionRule[] = [
   },
   // ── Robbery with force or threat (سطو مسلح) ───────────────────────────
   {
-    when: ["سطو", "أرغمه", "بتهديد السلاح", "تهديد بسلاح", "بالقوة والتهديد"],
-    add: ["سطو", "سرقة"],
+    when: ["سطو", "نهب", "أرغمه", "بتهديد السلاح", "تهديد بسلاح", "بالقوة والتهديد"],
+    add: ["نهب", "سرقة"],
   },
   // ── Breaking and entering / criminal trespass ──────────────────────────
   // "دخل" is in WEAK_TERMS so it will not appear as a standalone search
