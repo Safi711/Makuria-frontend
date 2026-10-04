@@ -81,6 +81,9 @@ export async function classifyWithLLM(
   try {
     parsed = JSON.parse(firstObj);
   } catch {
+    // Write to stderr so callers can count parse failures separately from
+    // genuine LLM-returned abstains — no facts text is ever written here.
+    process.stderr.write("[llm_parse_error]\n");
     return { type: "abstain" };
   }
 
