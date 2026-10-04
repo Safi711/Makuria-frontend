@@ -288,17 +288,32 @@ const CONCEPT_TO_ARTICLES: Record<string, ConceptArticleEntry[]> = {
     { lawSlug: "criminal-law-1991", articleNumber: "143" }, // القوة الجنائية
   ],
   "أذى": [
-    { lawSlug: "criminal-law-1991", articleNumber: "142" }, // الأذى — penalty first
-    { lawSlug: "criminal-law-1991", articleNumber: "138" }, // الجراح وأنواعها
-    { lawSlug: "criminal-law-1991", articleNumber: "139" }, // عقوبة الجراح العمد
-    { lawSlug: "criminal-law-1991", articleNumber: "143" }, // القوة الجنائية
+    { lawSlug: "criminal-law-1991", articleNumber: "142" }, // الأذى
   ],
   "جرح": [
-    { lawSlug: "criminal-law-1991", articleNumber: "139" }, // عقوبة الجراح العمد — penalty first
-    { lawSlug: "criminal-law-1991", articleNumber: "138" }, // الجراح وأنواعها
+    { lawSlug: "criminal-law-1991", articleNumber: "139" }, // عقوبة الجراح العمد — word-list catch-all, rank-1
+    { lawSlug: "criminal-law-1991", articleNumber: "138" }, // الجراح وأنواعها — definition
+    { lawSlug: "criminal-law-1991", articleNumber: "140" }, // عقوبة الجراح شبه العمد
+    { lawSlug: "criminal-law-1991", articleNumber: "141" }, // عقوبة الجراح الخطأ
     { lawSlug: "criminal-law-1991", articleNumber: "142" }, // الأذى
     { lawSlug: "criminal-law-1991", articleNumber: "143" }, // القوة الجنائية
-    { lawSlug: "criminal-law-1991", articleNumber: "140" }, // عقوبة تسبيب الجراح شبه العمد
+  ],
+  "جرح عمد": [
+    { lawSlug: "criminal-law-1991", articleNumber: "139" }, // عقوبة الجراح العمد
+    { lawSlug: "criminal-law-1991", articleNumber: "138" }, // الجراح وأنواعها — definition
+  ],
+  "جرح شبه عمد": [
+    { lawSlug: "criminal-law-1991", articleNumber: "140" }, // عقوبة الجراح شبه العمد
+    { lawSlug: "criminal-law-1991", articleNumber: "138" }, // الجراح وأنواعها — definition
+  ],
+  "جرح خطأ": [
+    { lawSlug: "criminal-law-1991", articleNumber: "141" }, // عقوبة الجراح الخطأ
+    { lawSlug: "criminal-law-1991", articleNumber: "138" }, // الجراح وأنواعها — definition
+  ],
+  "قوة جنائية": [
+    { lawSlug: "criminal-law-1991", articleNumber: "143" }, // القوة الجنائية
+  ],
+  "تشويه": [
     { lawSlug: "criminal-law-1991", articleNumber: "141أ" }, // تشويه أعضاء الأنثى
   ],
   "قتل": [
@@ -309,7 +324,14 @@ const CONCEPT_TO_ARTICLES: Record<string, ConceptArticleEntry[]> = {
   ],
   "قتل خطأ": [
     { lawSlug: "criminal-law-1991", articleNumber: "132" }, // القتل الخطأ
-    { lawSlug: "criminal-law-1991", articleNumber: "141" }, // عقوبة الجراح الخطأ
+  ],
+  "قتل عمد": [
+    { lawSlug: "criminal-law-1991", articleNumber: "130" }, // القتل العمد — penalty
+    { lawSlug: "criminal-law-1991", articleNumber: "129" }, // القتل وأنواعه — definition
+  ],
+  "قتل شبه عمد": [
+    { lawSlug: "criminal-law-1991", articleNumber: "131" }, // القتل شبه العمد — penalty
+    { lawSlug: "criminal-law-1991", articleNumber: "129" }, // القتل وأنواعه — definition
   ],
   "مخدرات": [
     { lawSlug: "narcotics-psychotropic-substances-act-1994", articleNumber: "15" }, // REVIEW
@@ -318,12 +340,10 @@ const CONCEPT_TO_ARTICLES: Record<string, ConceptArticleEntry[]> = {
     { lawSlug: "narcotics-psychotropic-substances-act-1994", articleNumber: "12" }, // REVIEW: ranked last
   ],
   "مركبة": [
-    { lawSlug: "criminal-law-1991", articleNumber: "132" }, // REVIEW: القتل الخطأ
-    { lawSlug: "criminal-law-1991", articleNumber: "141" }, // REVIEW: عقوبة الجراح الخطأ
+    { lawSlug: "criminal-law-1991", articleNumber: "132" }, // القتل الخطأ
   ],
   "خطأ": [
-    { lawSlug: "criminal-law-1991", articleNumber: "132" }, // REVIEW: القتل الخطأ
-    { lawSlug: "criminal-law-1991", articleNumber: "141" }, // REVIEW: عقوبة الجراح الخطأ
+    { lawSlug: "criminal-law-1991", articleNumber: "132" }, // القتل الخطأ
   ],
   "إتلاف جنائي": [
     { lawSlug: "criminal-law-1991", articleNumber: "182" }, // REVIEW: الإتلاف الجنائي
@@ -370,7 +390,6 @@ const CONCEPT_TO_ARTICLES: Record<string, ConceptArticleEntry[]> = {
   // ── Corruption / official misconduct ────────────────────────────────────
   "رشوة": [
     { lawSlug: "criminal-law-1991", articleNumber: "88" },  // الرشوة
-    { lawSlug: "criminal-law-1991", articleNumber: "88أ" }, // إساءة استغلال الوظائف
   ],
   "شهادة زور": [
     { lawSlug: "criminal-law-1991", articleNumber: "104" }, // شهادة الزور
@@ -430,11 +449,15 @@ const CONCEPT_TO_ARTICLES: Record<string, ConceptArticleEntry[]> = {
   ],
   "إشانة سمعة": [
     { lawSlug: "criminal-law-1991", articleNumber: "159" }, // إشانة السمعة
+  ],
+  "إساءة وسباب": [
     { lawSlug: "criminal-law-1991", articleNumber: "160" }, // الإساءة والسباب
   ],
   // ── Liberty ──────────────────────────────────────────────────────────────
   "خطف": [
     { lawSlug: "criminal-law-1991", articleNumber: "162" }, // الخطف
+  ],
+  "استدراج": [
     { lawSlug: "criminal-law-1991", articleNumber: "161" }, // الاستدراج
   ],
   "انتهاك خصوصية": [
@@ -465,8 +488,9 @@ const CONCEPT_TO_ARTICLES: Record<string, ConceptArticleEntry[]> = {
     { lawSlug: "criminal-law-1991", articleNumber: "63" },  // الدعوة لمعارضة السلطة بالعنف
     { lawSlug: "criminal-law-1991", articleNumber: "64" },  // إثارة الكراهية ضد الطوائف
   ],
-  // ── Terrorism / criminal organizations ───────────────────────────────────
-  "إرهاب": [
+  // ── Criminal organizations ────────────────────────────────────────────────
+  // Renamed from "إرهاب" to avoid collision with Art. 144 (الإرهاب = تهديد).
+  "منظمة إجرامية": [
     { lawSlug: "criminal-law-1991", articleNumber: "65" },  // منظمات وجماعات الإجرام والإرهاب
   ],
   // ── Environmental pollution ───────────────────────────────────────────────
@@ -498,6 +522,7 @@ const CONCEPT_TO_ARTICLES: Record<string, ConceptArticleEntry[]> = {
   ],
   // ── Abuse of authority (official misconduct) ─────────────────────────────
   "إساءة استخدام السلطة": [
+    { lawSlug: "criminal-law-1991", articleNumber: "88أ" }, // إساءة استغلال الوظائف — rank-1 (moved from رشوة)
     { lawSlug: "criminal-law-1991", articleNumber: "89" },  // الموظف العام يخالف القانون بقصد الإضرار أو الحماية
     { lawSlug: "criminal-law-1991", articleNumber: "90" },  // إساءة استعمال سلطة الاتهام
     { lawSlug: "criminal-law-1991", articleNumber: "91" },  // الموظف العام يمتنع عن القبض أو يعين على الهرب

@@ -1,111 +1,148 @@
 # Concept Map — criminal-law-1991
 **Branch:** semantic-layer  
-**Date:** 2026-10-04
+**Last updated:** 2026-10-04 (split-concepts pass)
 
 ---
 
-## Table 1 — Every concept with its articles
+## Table 1 — Every concept with its articles (rank order)
 
-Concepts in `CONCEPT_TO_ARTICLES` ordered by category. Article numbers refer to `criminal-law-1991` unless otherwise noted.
+Rank order = the order articles are returned to the UI. Rank-1 is the first article shown.  
+All articles are from `criminal-law-1991` unless noted. Word-list-only concepts are not in the LLM list.
 
-| Concept | Articles (law, number) |
-|---------|----------------------|
-| **Property offences** | |
-| سرقة | 1991/170, 171, 172, 173, 174 |
-| سطو | 1991/175 |
-| ابتزاز | 1991/176 |
-| خيانة الأمانة | 1991/177 |
-| احتيال | 1991/178, 111 |
-| صك مردود | 1991/179 |
-| تملك جنائي | 1991/180 |
-| استلام مسروق | 1991/181 |
-| إتلاف جنائي | 1991/182 |
-| تعدٍّ | 1991/183 |
-| اقتحام | 1991/183 |
-| ترصد | 1991/184, 185 |
-| **Currency counterfeiting** | |
-| تزييف عملة | 1991/117, 118, 119, 120 |
-| **Forgery / impersonation** | |
-| تزوير | 1991/122, 123, 124 |
-| انتحال | 1991/93, 60, 113 |
-| **Homicide and bodily harm** | |
-| قتل | 1991/129, 130, 131, 132 |
-| قتل خطأ | 1991/132, 141 |
-| مركبة | 1991/132, 141 |
-| خطأ | 1991/132, 141 |
-| إيذاء جسيم | 1991/138, 139, 142, 143 |
-| جرح | 1991/138, 139, 140, 141أ, 142, 143 |
-| أذى | 1991/138, 139, 142, 143 |
-| إجهاض | 1991/135, 136, 137 |
-| **Personal liberty** | |
-| خطف | 1991/161, 162 |
-| حجز غير مشروع | 1991/164, 165 |
-| سخرة | 1991/163 |
-| انتهاك خصوصية | 1991/166 |
-| **Hiraba** | |
-| حرابة | 1991/167, 168 |
-| **Sexual and morality offences** | |
-| اغتصاب | 1991/149 |
-| زنا | 1991/145, 146 |
-| لواط | 1991/148 |
-| مواقعة المحارم | 1991/150 |
-| أفعال فاحشة | 1991/151, 152, 153 |
-| دعارة | 1991/154, 155, 156 |
-| **Honour and reputation** | |
-| قذف | 1991/157 |
-| إشانة سمعة | 1991/159, 160 |
-| **Threats and coercion** | |
-| تهديد | 1991/144 |
-| **Religion** | |
-| إهانة دين | 1991/125, 126, 127, 128 |
-| **Public order** | |
-| شغب | 1991/67, 68, 69 |
-| نشر أخبار كاذبة | 1991/66 |
-| **State security** | |
-| تقويض النظام الدستوري | 1991/50, 51 |
-| تجسس | 1991/53, 55, 56 |
-| خيانة الدولة | 1991/52, 54, 57, 57أ |
-| تحريض | 1991/58, 59, 61, 62, 63, 64 |
-| إرهاب | 1991/65 |
-| **Corruption and official misconduct** | |
-| رشوة | 1991/88, 88أ |
-| إساءة استخدام السلطة | 1991/89, 90, 91, 92 |
-| عرقلة موظف عام | 1991/94, 95, 96, 97, 98, 99, 100, 101, 102, 103 |
-| شهادة زور | 1991/104, 105 |
-| عرقلة العدالة | 1991/106, 107, 108, 109, 110, 112, 115, 116 |
-| اتهام كاذب | 1991/114 |
-| **Alcohol / gambling** | |
-| شرب خمر | 1991/78, 79 |
-| ميسر | 1991/80 |
-| **Drugs** | |
-| مخدرات | narcotics-1994/12, 15, 16, 20 |
-| **Life-related** | |
-| انتحار | 1991/133, 134 |
-| **Commercial fraud** | |
-| غش تجاري | 1991/82, 83, 84, 85, 86, 121 |
-| **Environment / public safety** | |
-| تلويث | 1991/70, 71 |
-| تعريض للخطر | 1991/72, 73, 74, 75, 76, 77 |
-| **Animal** | |
-| قسوة على حيوان | 1991/87 |
-| **War crimes** | |
-| جرائم حرب | 1991/186, 187, 188, 189, 190, 191, 192 |
+| Concept | LLM? | Rank-1 | Rank-2 | Rank-3 | Rank-4+ |
+|---------|------|--------|--------|--------|---------|
+| **Property** | | | | | |
+| سرقة | ✓ | 174 السرقة | 170 السرقة الحدية | 172 مسقطات الحد | 173, 171 |
+| سطو | ✓ | 175 النهب | — | — | — |
+| ابتزاز | ✓ | 176 الابتزاز | — | — | — |
+| خيانة الأمانة | ✓ | 177 خيانة الأمانة | — | — | — |
+| احتيال | ✓ | 178 الاحتيال | 111 التصرف بطريق الغش | — | — |
+| صك مردود | ✓ | 179 إعطاء صك مردود | — | — | — |
+| تملك جنائي | ✓ | 180 التملك الجنائي | — | — | — |
+| استلام مسروق | ✓ | 181 استلام المال المسروق | — | — | — |
+| إتلاف جنائي | ✓ | 182 الإتلاف الجنائي | — | — | — |
+| تعدٍّ | ✓ | 183 التعدي الجنائي | — | — | — |
+| اقتحام | word-list | 183 | — | — | — |
+| ترصد | ✓ | 184 الترصد | 185 صنع أداة إجرامية | — | — |
+| غش تجاري | ✓ | 82 بيع أطعمة ضارة | 83 غش الأطعمة | 84 غش الأدوية | 85, 86, 121 |
+| **Currency** | | | | | |
+| تزييف عملة | ✓ | 117 تزييف العملة | 118 تزييف طوابع | 119 صنع أدوات | 120 |
+| **Forgery / impersonation** | | | | | |
+| تزوير | ✓ | 122 التزوير | 123 عقوبة التزوير | 124 تحريف مستند | — |
+| انتحال | ✓ | 113 انتحال شخصية | 93 انتحال صفة موظف | 60 الزي العسكري | — |
+| **Homicide** | | | | | |
+| قتل | word-list | 130 | 129 | 131 | 132 |
+| قتل عمد | ✓ | 130 القتل العمد | 129 القتل وأنواعه | — | — |
+| قتل شبه عمد | ✓ | 131 القتل شبه العمد | 129 القتل وأنواعه | — | — |
+| قتل خطأ | ✓ | 132 القتل الخطأ | — | — | — |
+| مركبة | word-list | 132 | — | — | — |
+| خطأ | word-list | 132 | — | — | — |
+| إجهاض | ✓ | 135 الإجهاض | 136 الفعل المؤدي إليه | 137 موت الجنين | — |
+| انتحار | ✓ | 133 الشروع في الانتحار | 134 تحريض مجنون/صغير | — | — |
+| **Bodily harm** | | | | | |
+| إيذاء جسيم | word-list | 139 | 138 | 142 | 143 |
+| جرح | word-list | 139 | 138 | 140 | 141, 142, 143 |
+| جرح عمد | ✓ | 139 عقوبة الجراح العمد | 138 الجراح وأنواعها | — | — |
+| جرح شبه عمد | ✓ | 140 عقوبة الجراح شبه العمد | 138 الجراح وأنواعها | — | — |
+| جرح خطأ | ✓ | 141 عقوبة الجراح الخطأ | 138 الجراح وأنواعها | — | — |
+| أذى | ✓ | 142 الأذى | — | — | — |
+| قوة جنائية | ✓ | 143 القوة الجنائية | — | — | — |
+| تشويه | ✓ | 141أ تشويه أعضاء الأنثى | — | — | — |
+| **Personal liberty** | | | | | |
+| خطف | ✓ | 162 الخطف | — | — | — |
+| استدراج | ✓ | 161 الاستدراج | — | — | — |
+| حجز غير مشروع | ✓ | 164 الحجز غير المشروع | 165 الاعتقال غير المشروع | — | — |
+| سخرة | ✓ | 163 السخرة | — | — | — |
+| انتهاك خصوصية | ✓ | 166 انتهاك الخصوصية | — | — | — |
+| **Hiraba** | | | | | |
+| حرابة | ✓ | 167 الحرابة | 168 عقوبة الحرابة | — | — |
+| **Sexual and morality** | | | | | |
+| اغتصاب | ✓ | 149 الاغتصاب | — | — | — |
+| زنا | ✓ | 145 الزنا | 146 عقوبة الزنا | — | — |
+| لواط | ✓ | 148 اللواط | — | — | — |
+| مواقعة المحارم | ✓ | 150 مواقعة المحارم | — | — | — |
+| أفعال فاحشة | ✓ | 151 الأفعال الفاحشة | 152 الأفعال الفاضحة | 153 مواد مخلة | — |
+| دعارة | ✓ | 154 ممارسة الدعارة | 155 إدارة محل | 156 الإغواء | — |
+| **Honour and reputation** | | | | | |
+| قذف | ✓ | 157 القذف | — | — | — |
+| إشانة سمعة | ✓ | 159 إشانة السمعة | — | — | — |
+| إساءة وسباب | ✓ | 160 الإساءة والسباب | — | — | — |
+| **Threats and coercion** | | | | | |
+| تهديد | ✓ | 144 الإرهاب (تهديد/إكراه) | — | — | — |
+| **Religion** | | | | | |
+| إهانة دين | ✓ | 125 إهانة العقائد | 126 تكفير | 127 تدنيس | 128 |
+| **Public order** | | | | | |
+| شغب | ✓ | 67 الشغب | 68 عقوبة الشغب | 69 الإخلال بالسلام | — |
+| نشر أخبار كاذبة | ✓ | 66 نشر الأخبار الكاذبة | — | — | — |
+| **State security** | | | | | |
+| تقويض النظام الدستوري | ✓ | 50 تقويض النظام | 51 إثارة الحرب | — | — |
+| تجسس | ✓ | 53 التجسس | 55 إفشاء معلومات رسمية | 56 إفشاء عسكرية | — |
+| خيانة الدولة | ✓ | 52 التعامل مع دولة معادية | 54 هرب أسرى | 57 مناطق عسكرية | 57أ |
+| تحريض | ✓ | 58 التحريض على التمرد | 59 التحريض على الهرب | 61 تدريب غير مشروع | 62, 63, 64 |
+| منظمة إجرامية | ✓ | 65 منظمات الإجرام والإرهاب | — | — | — |
+| **Corruption and official misconduct** | | | | | |
+| رشوة | ✓ | 88 الرشوة | — | — | — |
+| إساءة استخدام السلطة | ✓ | 88أ إساءة استغلال الوظائف | 89 مخالفة القانون | 90 إساءة الاتهام | 91, 92 |
+| عرقلة موظف عام | ✓ | 94 التخلف عن الحضور | 95 منع التكليف | 96 الامتناع عن تسليم مستند | 97–103 |
+| شهادة زور | ✓ | 104 شهادة الزور | 105 استخدام بينة باطلة | — | — |
+| عرقلة العدالة | ✓ | 106 إتلاف البينة | 107 إيواء الجاني | 108 قبول جزاء | 109, 110, 112, 115, 116 |
+| اتهام كاذب | ✓ | 114 الاتهام الكاذب | — | — | — |
+| **Alcohol and gambling** | | | | | |
+| شرب خمر | ✓ | 78 شرب الخمر | 79 التعامل في الخمر | — | — |
+| ميسر | ✓ | 80 لعب الميسر | — | — | — |
+| **Drugs** | | | | | |
+| مخدرات | ✓ | narcotics-1994/15 | narcotics-1994/16 | narcotics-1994/20 | narcotics-1994/12 |
+| **Environment and public safety** | | | | | |
+| تلويث | ✓ | 70 تلويث موارد المياه | 71 تلويث البيئة | — | — |
+| تعريض للخطر | ✓ | 72 تعريض المواصلات للخطر | 73 التوقف عن الخدمة | 74 الإهمال | 75, 76, 77 |
+| **Animal** | | | | | |
+| قسوة على حيوان | ✓ | 87 القسوة على الحيوان | — | — | — |
+| **War crimes** | | | | | |
+| جرائم حرب | ✓ | 186 جرائم ضد الإنسانية | 187 الإبادة الجماعية | 188 جرائم الحرب ضد الأشخاص | 189–192 |
 
-**Total concepts:** 60 entries in `CONCEPT_TO_ARTICLES`  
-**LLM CONCEPTS list:** 38 (added `إرهاب` this session)
+**Totals:** 69 entries in CONCEPT_TO_ARTICLES (6 word-list-only aliases); 63 LLM concepts.
 
 ---
 
-## Table 2 — Articles left unmapped, with reason
+## Known limitations — bundled families left unchanged
 
-Articles of `criminal-law-1991` from Art. 48 onward that are not mapped to any concept.
+The following concepts bundle multiple articles that describe sub-types or penalty tiers of the same offence. Rank-1 is the primary offence article. No split was made because the sub-types are either procedural variants, consecutive penalty tiers, or too closely related to require separate LLM concepts.
 
-| Article | Title | Reason unmapped |
-|---------|-------|----------------|
+| Concept | Articles bundled | Why not split |
+|---------|-----------------|---------------|
+| تزوير | 122, 123, 124 | Offence (122), penalty (123), official-variant (124) — same act |
+| انتحال | 93, 60, 113 | Three modes of same offence (impersonation) |
+| إجهاض | 135, 136, 137 | Direct abortion, causing it by act, causing foetal death — same family |
+| زنا | 145, 146 | Definition (145) and penalty (146) |
+| أفعال فاحشة | 151, 152, 153 | Lewd acts (151), public indecency (152), obscene material (153) |
+| دعارة | 154, 155, 156 | Prostitution, running a house, enticement |
+| حجز غير مشروع | 164, 165 | Unlawful confinement (164), wrongful arrest (165) |
+| شغب | 67, 68, 69 | Riot offence (67), penalty (68), public peace (69) |
+| شرب خمر | 78, 79 | Consumption (78), dealing in alcohol (79) |
+| تزييف عملة | 117–120 | Currency, stamps, tools, seals — same counterfeiting family |
+| إهانة دين | 125–128 | Four modes of religious offence |
+| تجسس | 53, 55, 56 | Espionage and disclosure variants |
+| خيانة الدولة | 52, 54, 57, 57أ | State-security offences against national interest |
+| تحريض | 58, 59, 61–64 | Incitement and sedition variants |
+| شهادة زور | 104, 105 | Perjury (104), using false evidence (105) |
+| عرقلة موظف عام | 94–103 | Ten modes of obstructing public officers |
+| عرقلة العدالة | 106–110, 112, 115, 116 | Eight modes of obstructing justice |
+| إساءة استخدام السلطة | 88أ, 89–92 | Five modes of official misconduct |
+| غش تجاري | 82–86, 121 | Food, drug, and weights adulteration |
+| تعريض للخطر | 72–77 | Endangerment, negligence, and public nuisance |
+| جرائم حرب | 186–192 | Seven war-crime categories |
+| حرابة | 167, 168 | Offence (167) and penalty (168) |
+
+---
+
+## Table 2 — Articles left unmapped (definitional/procedural/penalty-lapse)
+
+| Article | Title | Reason |
+|---------|-------|--------|
 | 48 | التدابير المقررة للشيوخ | Sentencing measure for old-age offenders; not an offence |
 | 49 | التدابير المقررة للمصابين بأمراض عقلية | Sentencing measure for mental illness; not an offence |
 | 81 | اعتياد ارتكاب بعض الجرائم | Enhanced-penalty rule for repeat offenders (Arts. 78–80); not an independent offence |
 | 88ب | تفسير عبارات لأغراض المادتين 88 و88أ | Definitions provision; not an offence |
-| 147 | مسقطات عقوبة الزنا | Penalty-lapse provision (conditions under which زنا penalty falls) |
-| 158 | مسقطات عقوبة القذف | Penalty-lapse provision (conditions under which قذف penalty falls) |
-| 169 | سقوط عقوبة الحرابة | Penalty-lapse provision (conditions under which حرابة penalty falls) |
+| 147 | مسقطات عقوبة الزنا | Penalty-lapse provision |
+| 158 | مسقطات عقوبة القذف | Penalty-lapse provision |
+| 169 | سقوط عقوبة الحرابة | Penalty-lapse provision |
