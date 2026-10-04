@@ -268,15 +268,18 @@ const CONCEPT_TO_ARTICLES: Record<string, ConceptArticleEntry[]> = {
     { lawSlug: "criminal-law-1991", articleNumber: "183" }, // REVIEW: التعدي الجنائي
   ],
   "احتيال": [
-    { lawSlug: "criminal-law-1991", articleNumber: "178" }, // REVIEW: الاحتيال
+    { lawSlug: "criminal-law-1991", articleNumber: "178" }, // الاحتيال
+    { lawSlug: "criminal-law-1991", articleNumber: "111" }, // التصرف في الأموال بطريق الغش لتفادي الحجز
   ],
   "تزوير": [
-    { lawSlug: "criminal-law-1991", articleNumber: "122" }, // REVIEW
-    { lawSlug: "criminal-law-1991", articleNumber: "123" }, // REVIEW
+    { lawSlug: "criminal-law-1991", articleNumber: "122" }, // التزوير في المستندات
+    { lawSlug: "criminal-law-1991", articleNumber: "123" }, // عقوبة التزوير في المستندات
+    { lawSlug: "criminal-law-1991", articleNumber: "124" }, // تحريف مستند بواسطة موظف عام
   ],
   "انتحال": [
-    { lawSlug: "criminal-law-1991", articleNumber: "113" }, // REVIEW: انتحال شخصية الغير
-    { lawSlug: "criminal-law-1991", articleNumber: "93" },  // REVIEW: انتحال صفة الموظف العام
+    { lawSlug: "criminal-law-1991", articleNumber: "113" }, // انتحال شخصية الغير
+    { lawSlug: "criminal-law-1991", articleNumber: "93" },  // انتحال صفة الموظف العام
+    { lawSlug: "criminal-law-1991", articleNumber: "60" },  // استعمال الزي والشارات العسكرية
   ],
   "إيذاء جسيم": [
     { lawSlug: "criminal-law-1991", articleNumber: "139" }, // عقوبة الجراح العمد — penalty first
@@ -295,6 +298,8 @@ const CONCEPT_TO_ARTICLES: Record<string, ConceptArticleEntry[]> = {
     { lawSlug: "criminal-law-1991", articleNumber: "138" }, // الجراح وأنواعها
     { lawSlug: "criminal-law-1991", articleNumber: "142" }, // الأذى
     { lawSlug: "criminal-law-1991", articleNumber: "143" }, // القوة الجنائية
+    { lawSlug: "criminal-law-1991", articleNumber: "140" }, // عقوبة تسبيب الجراح شبه العمد
+    { lawSlug: "criminal-law-1991", articleNumber: "141أ" }, // تشويه أعضاء الأنثى
   ],
   "قتل": [
     { lawSlug: "criminal-law-1991", articleNumber: "130" }, // القتل العمد — penalty first
@@ -333,7 +338,222 @@ const CONCEPT_TO_ARTICLES: Record<string, ConceptArticleEntry[]> = {
     { lawSlug: "criminal-law-1991", articleNumber: "181" }, // REVIEW: استلام المال المسروق
   ],
   "حجز غير مشروع": [
-    { lawSlug: "criminal-law-1991", articleNumber: "164" }, // REVIEW: الحجز غير المشروع
+    { lawSlug: "criminal-law-1991", articleNumber: "164" }, // الحجز غير المشروع
+    { lawSlug: "criminal-law-1991", articleNumber: "165" }, // الاعتقال غير المشروع
+  ],
+  // ── State security ────────────────────────────────────────────────────────
+  "تجسس": [
+    { lawSlug: "criminal-law-1991", articleNumber: "53" },  // التجسس
+    { lawSlug: "criminal-law-1991", articleNumber: "55" },  // إفشاء معلومات رسمية
+    { lawSlug: "criminal-law-1991", articleNumber: "56" },  // إفشاء معلومات عسكرية
+  ],
+  "تقويض النظام الدستوري": [
+    { lawSlug: "criminal-law-1991", articleNumber: "50" },  // تقويض النظام الدستوري
+    { lawSlug: "criminal-law-1991", articleNumber: "51" },  // إثارة الحرب ضد الدولة
+  ],
+  "نشر أخبار كاذبة": [
+    { lawSlug: "criminal-law-1991", articleNumber: "66" },  // نشر الأخبار الكاذبة
+  ],
+  "شغب": [
+    { lawSlug: "criminal-law-1991", articleNumber: "67" },  // الشغب
+    { lawSlug: "criminal-law-1991", articleNumber: "68" },  // عقوبة الشغب
+    { lawSlug: "criminal-law-1991", articleNumber: "69" },  // الإخلال بالسلام العام
+  ],
+  // ── Alcohol / gambling ───────────────────────────────────────────────────
+  "شرب خمر": [
+    { lawSlug: "criminal-law-1991", articleNumber: "78" },  // شرب الخمر
+    { lawSlug: "criminal-law-1991", articleNumber: "79" },  // التعامل في الخمر
+  ],
+  "ميسر": [
+    { lawSlug: "criminal-law-1991", articleNumber: "80" },  // لعب الميسر
+  ],
+  // ── Corruption / official misconduct ────────────────────────────────────
+  "رشوة": [
+    { lawSlug: "criminal-law-1991", articleNumber: "88" },  // الرشوة
+    { lawSlug: "criminal-law-1991", articleNumber: "88أ" }, // إساءة استغلال الوظائف
+  ],
+  "شهادة زور": [
+    { lawSlug: "criminal-law-1991", articleNumber: "104" }, // شهادة الزور
+    { lawSlug: "criminal-law-1991", articleNumber: "105" }, // استخدام بينة باطلة
+  ],
+  "اتهام كاذب": [
+    { lawSlug: "criminal-law-1991", articleNumber: "114" }, // الاتهام الكاذب
+  ],
+  // ── Currency counterfeiting ──────────────────────────────────────────────
+  "تزييف عملة": [
+    { lawSlug: "criminal-law-1991", articleNumber: "117" }, // تزييف العملة
+    { lawSlug: "criminal-law-1991", articleNumber: "118" }, // تزييف طوابع الإيرادات
+    { lawSlug: "criminal-law-1991", articleNumber: "119" }, // صنع أدوات التزييف
+    { lawSlug: "criminal-law-1991", articleNumber: "120" }, // صنع وتزييف الأختام الرسمية
+  ],
+  // ── Religious offences ───────────────────────────────────────────────────
+  "إهانة دين": [
+    { lawSlug: "criminal-law-1991", articleNumber: "125" }, // إهانة العقائد الدينية
+    { lawSlug: "criminal-law-1991", articleNumber: "126" }, // تكفير الأشخاص
+    { lawSlug: "criminal-law-1991", articleNumber: "127" }, // تدنيس أماكن العبادة
+    { lawSlug: "criminal-law-1991", articleNumber: "128" }, // التعدي على الموتى والقبور
+  ],
+  // ── Homicide-related ─────────────────────────────────────────────────────
+  "إجهاض": [
+    { lawSlug: "criminal-law-1991", articleNumber: "135" }, // الإجهاض
+    { lawSlug: "criminal-law-1991", articleNumber: "136" }, // الفعل المؤدي إلى الإجهاض
+    { lawSlug: "criminal-law-1991", articleNumber: "137" }, // تسبيب موت الجنين
+  ],
+  // ── Threats / coercion ───────────────────────────────────────────────────
+  "تهديد": [
+    { lawSlug: "criminal-law-1991", articleNumber: "144" }, // الإرهاب (تهديد وإكراه)
+  ],
+  // ── Sexual offences ──────────────────────────────────────────────────────
+  "زنا": [
+    { lawSlug: "criminal-law-1991", articleNumber: "145" }, // الزنا
+    { lawSlug: "criminal-law-1991", articleNumber: "146" }, // عقوبة الزنا
+  ],
+  "لواط": [
+    { lawSlug: "criminal-law-1991", articleNumber: "148" }, // اللواط
+  ],
+  "اغتصاب": [
+    { lawSlug: "criminal-law-1991", articleNumber: "149" }, // الاغتصاب
+  ],
+  "أفعال فاحشة": [
+    { lawSlug: "criminal-law-1991", articleNumber: "151" }, // الأفعال الفاحشة والتحرش الجنسي
+    { lawSlug: "criminal-law-1991", articleNumber: "152" }, // الأفعال الفاضحة
+    { lawSlug: "criminal-law-1991", articleNumber: "153" }, // المواد والعروض المخلة بالآداب
+  ],
+  "دعارة": [
+    { lawSlug: "criminal-law-1991", articleNumber: "154" }, // ممارسة الدعارة
+    { lawSlug: "criminal-law-1991", articleNumber: "155" }, // إدارة محل للدعارة
+    { lawSlug: "criminal-law-1991", articleNumber: "156" }, // الإغواء
+  ],
+  // ── Honour / reputation ──────────────────────────────────────────────────
+  "قذف": [
+    { lawSlug: "criminal-law-1991", articleNumber: "157" }, // القذف
+  ],
+  "إشانة سمعة": [
+    { lawSlug: "criminal-law-1991", articleNumber: "159" }, // إشانة السمعة
+    { lawSlug: "criminal-law-1991", articleNumber: "160" }, // الإساءة والسباب
+  ],
+  // ── Liberty ──────────────────────────────────────────────────────────────
+  "خطف": [
+    { lawSlug: "criminal-law-1991", articleNumber: "162" }, // الخطف
+    { lawSlug: "criminal-law-1991", articleNumber: "161" }, // الاستدراج
+  ],
+  "انتهاك خصوصية": [
+    { lawSlug: "criminal-law-1991", articleNumber: "166" }, // انتهاك الخصوصية
+  ],
+  // ── Hiraba ───────────────────────────────────────────────────────────────
+  "حرابة": [
+    { lawSlug: "criminal-law-1991", articleNumber: "167" }, // الحرابة
+    { lawSlug: "criminal-law-1991", articleNumber: "168" }, // عقوبة الحرابة
+  ],
+  // ── Financial ────────────────────────────────────────────────────────────
+  "صك مردود": [
+    { lawSlug: "criminal-law-1991", articleNumber: "179" }, // إعطاء صك مردود
+  ],
+  // ── State security (treason / espionage-adjacent) ────────────────────────
+  "خيانة الدولة": [
+    { lawSlug: "criminal-law-1991", articleNumber: "52" },  // التعامل مع دولة معادية
+    { lawSlug: "criminal-law-1991", articleNumber: "54" },  // السماح بهرب أسرى الحرب أو مساعدتهم
+    { lawSlug: "criminal-law-1991", articleNumber: "57" },  // دخول وتصوير المناطق العسكرية
+    { lawSlug: "criminal-law-1991", articleNumber: "57أ" }, // الإضرار بالاقتصاد الوطني
+  ],
+  // ── Incitement / sedition ─────────────────────────────────────────────────
+  "تحريض": [
+    { lawSlug: "criminal-law-1991", articleNumber: "58" },  // التحريض على التمرد
+    { lawSlug: "criminal-law-1991", articleNumber: "59" },  // التحريض على الهرب من الخدمة العسكرية
+    { lawSlug: "criminal-law-1991", articleNumber: "61" },  // التدريب غير المشروع
+    { lawSlug: "criminal-law-1991", articleNumber: "62" },  // إثارة التذمر بين القوات
+    { lawSlug: "criminal-law-1991", articleNumber: "63" },  // الدعوة لمعارضة السلطة بالعنف
+    { lawSlug: "criminal-law-1991", articleNumber: "64" },  // إثارة الكراهية ضد الطوائف
+  ],
+  // ── Terrorism / criminal organizations ───────────────────────────────────
+  "إرهاب": [
+    { lawSlug: "criminal-law-1991", articleNumber: "65" },  // منظمات وجماعات الإجرام والإرهاب
+  ],
+  // ── Environmental pollution ───────────────────────────────────────────────
+  "تلويث": [
+    { lawSlug: "criminal-law-1991", articleNumber: "70" },  // تلويث موارد المياه
+    { lawSlug: "criminal-law-1991", articleNumber: "71" },  // تلويث البيئة
+  ],
+  // ── Endangerment / criminal negligence / public nuisance ─────────────────
+  "تعريض للخطر": [
+    { lawSlug: "criminal-law-1991", articleNumber: "72" },  // تعريض وسائل المواصلات للخطر
+    { lawSlug: "criminal-law-1991", articleNumber: "73" },  // التوقف عن الخدمة مما يسبب خطراً
+    { lawSlug: "criminal-law-1991", articleNumber: "74" },  // الإهمال الذي يسبب خطراً على الناس أو الأموال
+    { lawSlug: "criminal-law-1991", articleNumber: "75" },  // الامتناع عن المساعدة الضرورية
+    { lawSlug: "criminal-law-1991", articleNumber: "76" },  // الإخلال بالالتزام تجاه شخص عاجز
+    { lawSlug: "criminal-law-1991", articleNumber: "77" },  // الإزعاج العام
+  ],
+  // ── Commercial fraud / adulteration ─────────────────────────────────────
+  "غش تجاري": [
+    { lawSlug: "criminal-law-1991", articleNumber: "82" },  // بيع أطعمة ضارة
+    { lawSlug: "criminal-law-1991", articleNumber: "83" },  // غش الأطعمة
+    { lawSlug: "criminal-law-1991", articleNumber: "84" },  // غش الأدوية
+    { lawSlug: "criminal-law-1991", articleNumber: "85" },  // بيع الميتة
+    { lawSlug: "criminal-law-1991", articleNumber: "86" },  // عرض طعام أو شراب محرم
+    { lawSlug: "criminal-law-1991", articleNumber: "121" }, // التعامل بوحدات غير صحيحة للوزن أو الكيل
+  ],
+  // ── Animal cruelty ────────────────────────────────────────────────────────
+  "قسوة على حيوان": [
+    { lawSlug: "criminal-law-1991", articleNumber: "87" },  // القسوة على الحيوان
+  ],
+  // ── Abuse of authority (official misconduct) ─────────────────────────────
+  "إساءة استخدام السلطة": [
+    { lawSlug: "criminal-law-1991", articleNumber: "89" },  // الموظف العام يخالف القانون بقصد الإضرار أو الحماية
+    { lawSlug: "criminal-law-1991", articleNumber: "90" },  // إساءة استعمال سلطة الاتهام
+    { lawSlug: "criminal-law-1991", articleNumber: "91" },  // الموظف العام يمتنع عن القبض أو يعين على الهرب
+    { lawSlug: "criminal-law-1991", articleNumber: "92" },  // شراء الموظف العام في مال يشرف على بيعه
+  ],
+  // ── Obstructing public officers ──────────────────────────────────────────
+  "عرقلة موظف عام": [
+    { lawSlug: "criminal-law-1991", articleNumber: "94" },  // التخلف عن الحضور لأمر موظف عام
+    { lawSlug: "criminal-law-1991", articleNumber: "95" },  // منع تنفيذ التكليف بالحضور
+    { lawSlug: "criminal-law-1991", articleNumber: "96" },  // الامتناع عن تسليم مستند
+    { lawSlug: "criminal-law-1991", articleNumber: "97" },  // تقديم بيان كاذب لموظف عام
+    { lawSlug: "criminal-law-1991", articleNumber: "98" },  // الامتناع عن الإجابة على الأسئلة أو التوقيع
+    { lawSlug: "criminal-law-1991", articleNumber: "99" },  // اعتراض الموظف العام أو مقاومته
+    { lawSlug: "criminal-law-1991", articleNumber: "100" }, // الامتناع عن مساعدة الموظف العام
+    { lawSlug: "criminal-law-1991", articleNumber: "101" }, // مخالفة أمر الإقامة
+    { lawSlug: "criminal-law-1991", articleNumber: "102" }, // مخالفة أمر بشأن مال
+    { lawSlug: "criminal-law-1991", articleNumber: "103" }, // تهديد الموظف العام
+  ],
+  // ── Obstruction of justice ────────────────────────────────────────────────
+  "عرقلة العدالة": [
+    { lawSlug: "criminal-law-1991", articleNumber: "106" }, // إتلاف البينة أو إخفاؤها
+    { lawSlug: "criminal-law-1991", articleNumber: "107" }, // التستر على الجاني أو إيواؤه
+    { lawSlug: "criminal-law-1991", articleNumber: "108" }, // قبول جزاء لحماية الجاني من العقاب
+    { lawSlug: "criminal-law-1991", articleNumber: "109" }, // مقاومة القبض المشروع أو تحرير موقوف
+    { lawSlug: "criminal-law-1991", articleNumber: "110" }, // مقاومة الشخص عند القبض عليه أو هربه
+    { lawSlug: "criminal-law-1991", articleNumber: "112" }, // إقامة دعاوى لحماية مدين أو حرمان دائنين
+    { lawSlug: "criminal-law-1991", articleNumber: "115" }, // التأثير على سير العدالة
+    { lawSlug: "criminal-law-1991", articleNumber: "116" }, // إساءة الموظف العام في الإجراءات القضائية
+  ],
+  // ── Attempted suicide / incitement to suicide ────────────────────────────
+  "انتحار": [
+    { lawSlug: "criminal-law-1991", articleNumber: "133" }, // الشروع في الانتحار
+    { lawSlug: "criminal-law-1991", articleNumber: "134" }, // تحريض الصغير أو المجنون على الانتحار
+  ],
+  // ── Incest ────────────────────────────────────────────────────────────────
+  "مواقعة المحارم": [
+    { lawSlug: "criminal-law-1991", articleNumber: "150" }, // مواقعة المحارم
+  ],
+  // ── Forced labour ─────────────────────────────────────────────────────────
+  "سخرة": [
+    { lawSlug: "criminal-law-1991", articleNumber: "163" }, // السخرة
+  ],
+  // ── Lurking / preparation for crime ─────────────────────────────────────
+  "ترصد": [
+    { lawSlug: "criminal-law-1991", articleNumber: "184" }, // الترصد مع القصد الإجرامي
+    { lawSlug: "criminal-law-1991", articleNumber: "185" }, // صنع أداة أو الاستعداد لغرض إجرامي
+  ],
+  // ── War crimes / crimes against humanity ────────────────────────────────
+  "جرائم حرب": [
+    { lawSlug: "criminal-law-1991", articleNumber: "186" }, // الجرائم ضد الإنسانية
+    { lawSlug: "criminal-law-1991", articleNumber: "187" }, // جرائم الإبادة الجماعية
+    { lawSlug: "criminal-law-1991", articleNumber: "188" }, // جرائم الحرب ضد الأشخاص
+    { lawSlug: "criminal-law-1991", articleNumber: "189" }, // جرائم الحرب ضد الممتلكات
+    { lawSlug: "criminal-law-1991", articleNumber: "190" }, // جرائم الحرب ضد العمليات الإنسانية
+    { lawSlug: "criminal-law-1991", articleNumber: "191" }, // جرائم الحرب بأساليب القتال المحظورة
+    { lawSlug: "criminal-law-1991", articleNumber: "192" }, // جرائم الحرب باستخدام أسلحة محظورة
   ],
 };
 
