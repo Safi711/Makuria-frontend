@@ -1,8 +1,11 @@
 /**
  * Batch scorecard runner.
- * Usage: node lib/case-mapper/__tests__/run-batch1.ts <anon-key> [batch-number]
+ * Usage: npx tsx lib/case-mapper/__tests__/run-batch1.ts [batch-number]
  *   batch-number: 1-based index (default 1). Pass 2 to run batch 2, etc.
- * Never commit; anon key must stay out of source.
+ *
+ * Keys are loaded from .env.local (gitignored). Required variables:
+ *   NEXT_PUBLIC_SUPABASE_ANON_KEY  — Supabase anon JWT
+ *   ANTHROPIC_API_KEY              — read by analyzeCase via process.env
  *
  * Scoring per S1 spec:
  *   PASS (1.0)  — rank-1 article in expected_articles (same law)
@@ -16,13 +19,25 @@ import { analyzeCase } from "../analyze.ts";
 import type { CaseMapResult } from "../analyze.ts";
 import { readFileSync } from "fs";
 
+// Load .env.local so keys never appear on the command line.
+// process.loadEnvFile is available in Node ≥ 20.6.
+try {
+  (process as any).loadEnvFile(".env.local");
+} catch {
+  // .env.local is optional when env vars are already set (e.g. in CI).
+}
+
 const SUPABASE_URL      = "https://damzdxcutawghksuzoan.supabase.co";
-const SUPABASE_ANON_KEY = process.argv[2] ?? "";
+const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "";
 if (!SUPABASE_ANON_KEY) {
-  console.error("Usage: node lib/case-mapper/__tests__/run-batch1.ts <anon-key> [batch-number]");
+  console.error("NEXT_PUBLIC_SUPABASE_ANON_KEY is not set. Add it to .env.local.");
   process.exit(1);
 }
-const BATCH_NUMBER = parseInt(process.argv[3] ?? "1", 10);
+if (!process.env.ANTHROPIC_API_KEY) {
+  console.error("ANTHROPIC_API_KEY is not set. Add it to .env.local.");
+  process.exit(1);
+}
+const BATCH_NUMBER = parseInt(process.argv[2] ?? "1", 10);
 
 const raw = JSON.parse(
   readFileSync("/Users/maibadi/Downloads/Makuria Stage1 Batches01-09 APPROVED ALL.json", "utf8")
@@ -70,6 +85,7 @@ type Outcome = {
   note: string;
 };
 
+async function main() {
 const outcomes: Outcome[] = [];
 let totalScore = 0;
 let scoredCount = 0;
@@ -200,3 +216,6 @@ if (unscored.length) {
   }
 }
 console.log("");
+} // end main
+
+main().catch((err) => { console.error(err); process.exit(1); });
