@@ -34,8 +34,10 @@ const SYSTEM_PROMPT = `أنت محلل قانوني سوداني. مهمتك: ت
 4. لا تعد abstain لأن الوقائع مختصرة — الاختصار ليس غموضاً
 5. لا تعد abstain لأن عنصراً لم يُذكر صراحةً إذا كان مستنتجاً بوضوح من السياق
 6. لا تذكر أرقام مواد أو أسماء قوانين
-7. أخرج JSON صالحاً فقط:
-   {"type":"criminal","concept":"<من القائمة>"} أو {"type":"civil"} أو {"type":"abstain"}`;
+7. أخرج JSON صالحاً فقط لا نص آخر — اختر إحدى هذه الصيغ الثلاث وأخرج واحدة منها فقط:
+   إذا جريمة جنائية:  {"type":"criminal","concept":"سرقة"}   ← ضع اسم المفهوم من القائمة
+   إذا نزاع مدني:     {"type":"civil"}
+   إذا غموض أو امتناع: {"type":"abstain"}`;
 
 export async function classifyWithLLM(
   facts: string,
@@ -71,9 +73,13 @@ export async function classifyWithLLM(
   // Strip markdown fences if the model wraps the JSON
   const clean = raw.replace(/^```(?:json)?\n?/, "").replace(/\n?```$/, "").trim();
 
+  // Extract the first complete flat JSON object; the model sometimes appends
+  // extra text (e.g. example alternatives) after the intended output.
+  const firstObj = clean.match(/\{[^{}]+\}/)?.[0] ?? "";
+
   let parsed: unknown;
   try {
-    parsed = JSON.parse(clean);
+    parsed = JSON.parse(firstObj);
   } catch {
     return { type: "abstain" };
   }
