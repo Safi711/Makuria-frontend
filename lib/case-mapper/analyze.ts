@@ -279,28 +279,32 @@ const CONCEPT_TO_ARTICLES: Record<string, ConceptArticleEntry[]> = {
     { lawSlug: "criminal-law-1991", articleNumber: "93" },  // REVIEW: انتحال صفة الموظف العام
   ],
   "إيذاء جسيم": [
-    { lawSlug: "criminal-law-1991", articleNumber: "138" }, // REVIEW: الجراح وأنواعها
-    { lawSlug: "criminal-law-1991", articleNumber: "139" }, // REVIEW: عقوبة الجراح العمد
-    { lawSlug: "criminal-law-1991", articleNumber: "142" }, // REVIEW: الأذى
-    { lawSlug: "criminal-law-1991", articleNumber: "143" }, // REVIEW: القوة الجنائية
+    { lawSlug: "criminal-law-1991", articleNumber: "139" }, // عقوبة الجراح العمد — penalty first
+    { lawSlug: "criminal-law-1991", articleNumber: "138" }, // الجراح وأنواعها
+    { lawSlug: "criminal-law-1991", articleNumber: "142" }, // الأذى
+    { lawSlug: "criminal-law-1991", articleNumber: "143" }, // القوة الجنائية
   ],
   "أذى": [
-    { lawSlug: "criminal-law-1991", articleNumber: "138" }, // REVIEW: الجراح وأنواعها
-    { lawSlug: "criminal-law-1991", articleNumber: "139" }, // REVIEW: عقوبة الجراح العمد
-    { lawSlug: "criminal-law-1991", articleNumber: "142" }, // REVIEW: الأذى
-    { lawSlug: "criminal-law-1991", articleNumber: "143" }, // REVIEW: القوة الجنائية
+    { lawSlug: "criminal-law-1991", articleNumber: "142" }, // الأذى — penalty first
+    { lawSlug: "criminal-law-1991", articleNumber: "138" }, // الجراح وأنواعها
+    { lawSlug: "criminal-law-1991", articleNumber: "139" }, // عقوبة الجراح العمد
+    { lawSlug: "criminal-law-1991", articleNumber: "143" }, // القوة الجنائية
   ],
   "جرح": [
-    { lawSlug: "criminal-law-1991", articleNumber: "138" }, // REVIEW: الجراح وأنواعها
-    { lawSlug: "criminal-law-1991", articleNumber: "139" }, // REVIEW: عقوبة الجراح العمد
-    { lawSlug: "criminal-law-1991", articleNumber: "142" }, // REVIEW: الأذى
-    { lawSlug: "criminal-law-1991", articleNumber: "143" }, // REVIEW: القوة الجنائية
+    { lawSlug: "criminal-law-1991", articleNumber: "139" }, // عقوبة الجراح العمد — penalty first
+    { lawSlug: "criminal-law-1991", articleNumber: "138" }, // الجراح وأنواعها
+    { lawSlug: "criminal-law-1991", articleNumber: "142" }, // الأذى
+    { lawSlug: "criminal-law-1991", articleNumber: "143" }, // القوة الجنائية
   ],
   "قتل": [
-    { lawSlug: "criminal-law-1991", articleNumber: "129" }, // REVIEW: القتل وأنواعه
-    { lawSlug: "criminal-law-1991", articleNumber: "130" }, // REVIEW: القتل العمد
-    { lawSlug: "criminal-law-1991", articleNumber: "131" }, // REVIEW: القتل شبه العمد
-    { lawSlug: "criminal-law-1991", articleNumber: "132" }, // REVIEW: القتل الخطأ
+    { lawSlug: "criminal-law-1991", articleNumber: "130" }, // القتل العمد — penalty first
+    { lawSlug: "criminal-law-1991", articleNumber: "129" }, // القتل وأنواعه
+    { lawSlug: "criminal-law-1991", articleNumber: "131" }, // القتل شبه العمد
+    { lawSlug: "criminal-law-1991", articleNumber: "132" }, // القتل الخطأ
+  ],
+  "قتل خطأ": [
+    { lawSlug: "criminal-law-1991", articleNumber: "132" }, // القتل الخطأ
+    { lawSlug: "criminal-law-1991", articleNumber: "141" }, // عقوبة الجراح الخطأ
   ],
   "مخدرات": [
     { lawSlug: "narcotics-psychotropic-substances-act-1994", articleNumber: "15" }, // REVIEW
