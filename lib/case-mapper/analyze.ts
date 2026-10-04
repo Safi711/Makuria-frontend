@@ -315,6 +315,21 @@ const CONCEPT_TO_ARTICLES: Record<string, ConceptArticleEntry[]> = {
     { lawSlug: "criminal-law-1991", articleNumber: "132" }, // REVIEW: القتل الخطأ
     { lawSlug: "criminal-law-1991", articleNumber: "141" }, // REVIEW: عقوبة الجراح الخطأ
   ],
+  "إتلاف جنائي": [
+    { lawSlug: "criminal-law-1991", articleNumber: "182" }, // REVIEW: الإتلاف الجنائي
+  ],
+  "ابتزاز": [
+    { lawSlug: "criminal-law-1991", articleNumber: "176" }, // REVIEW: الابتزاز
+  ],
+  "تملك جنائي": [
+    { lawSlug: "criminal-law-1991", articleNumber: "180" }, // REVIEW: التملك الجنائي
+  ],
+  "استلام مسروق": [
+    { lawSlug: "criminal-law-1991", articleNumber: "181" }, // REVIEW: استلام المال المسروق
+  ],
+  "حجز غير مشروع": [
+    { lawSlug: "criminal-law-1991", articleNumber: "164" }, // REVIEW: الحجز غير المشروع
+  ],
 };
 
 function stripTashkeel(text: string): string {
@@ -580,10 +595,80 @@ const CRIMINAL_VOCABULARY_EXPANSIONS: CriminalExpansionRule[] = [
     ],
     add: ["إيذاء جسيم"],
   },
+  // ── Homicide (قتل, Arts. 129–132) ─────────────────────────────────────
+  // Physical-act verbs for death; CONCEPT_EXPANSIONS had these but they
+  // were only in the extractTerms path, which bypasses the criminal map.
+  {
+    when: [
+      "مات", "ماتت", "وفاة", "وفاته", "وفاتها", "توفي", "توفى", "توفيت", "مقتل",
+    ],
+    add: ["قتل"],
+  },
+  // ── Assault / hurt (أذى/جرح, Arts. 138–143) ────────────────────────────
+  // Physical-act verbs for hurt; same reason as homicide rule above.
+  {
+    when: [
+      "ضرب", "ضربه", "ضربها", "اعتدى", "اعتداء", "تشاجر", "شجار",
+      "لكم", "طعن", "صفع", "ركل", "لطم", "عضّ", "عض",
+    ],
+    add: ["أذى", "جرح"],
+  },
+  // ── Vehicular / negligent harm (مركبة/خطأ, Arts. 132, 141) ────────────
+  // Physical-act verbs for vehicle-related injury/death.
+  {
+    when: [
+      "صدم", "صدمت", "صدمه", "دهس", "دهسه", "دهست", "اصطدم", "حادث", "حادثة",
+    ],
+    add: ["مركبة", "خطأ"],
+  },
+  // ── Criminal damage (إتلاف جنائي, Art. 182) ────────────────────────────
+  {
+    when: [
+      "حطّم", "حطم", "حطّمه", "حطمه",
+      "تحطيم", "تحطيمه",
+      "أتلف", "أتلفه", "إتلاف",
+      "دمّر", "دمر", "دمّره", "دمره", "تدمير",
+      "خرّب", "خرب", "تخريب",
+      "هشّم", "هشم", "أضرم", "أحرق",
+    ],
+    add: ["إتلاف جنائي"],
+  },
+  // ── Extortion / blackmail (ابتزاز, Art. 176) ───────────────────────────
+  {
+    when: [
+      "هدّد", "هدد", "هدده", "هددها", "هدّده", "هدّدها",
+      "ابتزّ", "ابتز", "يبتز", "تهديد",
+    ],
+    add: ["ابتزاز"],
+  },
+  // ── Unlawful confinement (حجز غير مشروع, Art. 164) ─────────────────────
+  {
+    when: [
+      "احتجز", "يحتجز", "احتجزه", "احتجزها",
+      "قيّد", "قيد", "قيّده", "قيدها",
+      "أغلق عليه", "أغلق عليها", "حصره", "حبسه",
+      "منع الخروج", "منع من الخروج",
+    ],
+    add: ["حجز غير مشروع"],
+  },
+  // ── Receiving stolen property (استلام مسروق, Art. 181) ─────────────────
+  {
+    when: ["مسروق", "مسروقة", "مسروقات"],
+    add: ["استلام مسروق"],
+  },
+  // ── Criminal possession / conversion (تملك جنائي, Art. 180) ────────────
+  {
+    when: [
+      "عثر على", "عُثر على",
+      "استحوذ", "استحوذ على",
+      "تملّك", "تملك",
+    ],
+    add: ["تملك جنائي"],
+  },
   // ── Narcotic drugs ────────────────────────────────────────────────────
   {
     when: [
-      "مخدر", "مخدرات", "حشيش", "أفيون", "هيروين", "قات", "بانجو",
+      "مخدر", "مخدرات", "حشيش", "أفيون", "هيروين", "قات", "بنقو",
       "كوكايين", "مواد مخدرة", "حيازة مخدرات", "تجارة مخدرات",
       "ترويج مخدرات", "تهريب مخدرات",
     ],
@@ -632,6 +717,7 @@ const COMPOUND_CRIMINAL_EXPANSIONS: CompoundCriminalExpansionRule[] = [
         "باع", "تصرّف", "تصرف", "رهن", "نقل",
         "فرّط", "فرط", "أتلف", "اختلس",
         "بدّد", "بدد", "امتنع",
+        "حوّل", "حول",
       ],
     ],
     add: ["خيانة الأمانة"],
@@ -653,7 +739,7 @@ const EXPANSION_PROXIMITY_WINDOW = 6;
  * "دخل + dwelling" trespass trigger. */
 const DWELLING_WORDS = [
   "منزل", "بيت", "دار", "شقة", "محل", "مبنى", "مسكن", "غرفة",
-  "عمارة", "مخزن", "مستودع",
+  "عمارة", "مخزن", "مستودع", "عقار",
 ];
 
 /** All bare forms of a text token, after arabicNormalize: the token itself;
@@ -690,7 +776,10 @@ function tokenMatchesTriggerOrPrefix(textToken: string, triggerWord: string): bo
   if (normTrigger.length < 3) return false;
   for (const bare of getBareFormsNormalized(textToken)) {
     if (bare === normTrigger) return true;
+    // forward: text token is a suffixed form of the trigger ("باعها" matches "باع")
     if (bare.startsWith(normTrigger) && bare.length <= normTrigger.length + 3) return true;
+    // reverse: trigger is a suffixed form and text has the bare root ("سلم" matches "سلمه")
+    if (bare.length >= 3 && normTrigger.startsWith(bare) && normTrigger.length <= bare.length + 3) return true;
   }
   return false;
 }
@@ -708,7 +797,7 @@ function windowContainsAll(
   if (triggerWords.length === 0) return false;
   for (let i = 0; i < tokens.length; i++) {
     const win = tokens.slice(i, i + windowSize);
-    if (triggerWords.every((tw) => win.some((t) => tokenMatchesTrigger(t, tw)))) return true;
+    if (triggerWords.every((tw) => win.some((t) => tokenMatchesTriggerOrPrefix(t, tw)))) return true;
   }
   return false;
 }
@@ -1381,6 +1470,19 @@ export async function analyzeCase(
     .slice(0, MAX_TERMS);
 
   const terms = kept.map(({ term, origin }) => ({ term, origin }));
+
+  // Empty-terms gate: all candidates were filtered out (< 2 DB hits each) and
+  // no keywords were supplied — nothing to anchor a legal search on.
+  if (terms.length === 0 && !input.keywords?.trim()) {
+    return {
+      factsExcerpt: excerpt,
+      factsIsTruncated: truncated,
+      caseTypeLens: null,
+      inferredCaseType: null,
+      issues: [], laws: [], cases: [], principles: [],
+      outOfScopeCount: 0, noConfidentMatch: true, hasAnyResults: false,
+    };
+  }
 
   // Safety gate: if every surviving term is a plain extracted word (no concept
   // or keyword), there is no legal anchor — return noConfidentMatch regardless
