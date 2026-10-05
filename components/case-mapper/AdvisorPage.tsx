@@ -762,6 +762,31 @@ export async function AdvisorPage({
               )}
             </Card>
           </div>
+
+          {/* 4 — open point for the lawyer (discuss), never mixed into ranked laws */}
+          {result?.discuss?.map((item) => (
+            <section
+              key={item.concept}
+              className="mt-5 rounded-2xl border p-5 sm:p-6"
+              style={{
+                background: "var(--cm-surface)",
+                borderColor: "var(--cm-line)",
+                borderInlineStartColor: "var(--mk-gold-soft)",
+                borderInlineStartWidth: "3px",
+              }}
+            >
+              <CardTag>{"نقطة مفتوحة للمحامي"}</CardTag>
+              <CardTitle>{item.label}</CardTitle>
+              <Muted className="mb-4">
+                {"ليست هذه تصنيفاً. قد تُثار مسألة الشروع في القتل بحسب ما يثبت من قصد الجاني، والبتّ فيها للمحامي."}
+              </Muted>
+              <ul className="space-y-3">
+                {item.articles.map((law) => (
+                  <LawRow key={law.id} locale={locale} law={law} />
+                ))}
+              </ul>
+            </section>
+          ))}
         </div>
 
         {result && !errored && result.hasAnyResults && <AbuRannatStamp />}
