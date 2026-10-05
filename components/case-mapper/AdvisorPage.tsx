@@ -189,7 +189,15 @@ function FullTextLink({ href, label }: { href: string; label: string }) {
 
 /* ----------------------------------------------------------------- results */
 
-function LawRow({ locale, law }: { locale: Locale; law: RetrievedAuthority }) {
+function LawRow({
+  locale,
+  law,
+  matchedTermsOverride,
+}: {
+  locale: Locale;
+  law: RetrievedAuthority;
+  matchedTermsOverride?: string;
+}) {
   const href =
     law.type === "article"
       ? law.lawSlug
@@ -244,7 +252,7 @@ function LawRow({ locale, law }: { locale: Locale; law: RetrievedAuthority }) {
         {t(locale, "sourceLabel")}: {sourceNameAr(law.sourceUrl) ?? t(locale, "noSourceRecorded")}
       </MetaLine>
       <MetaLine>
-        {t(locale, "cmMatchedOn")}: {law.matchedTerms.join("، ")}
+        {t(locale, "cmMatchedOn")}: {matchedTermsOverride ?? law.matchedTerms.join("، ")}
       </MetaLine>
 
       {href && (
@@ -782,7 +790,12 @@ export async function AdvisorPage({
               </Muted>
               <ul className="space-y-3">
                 {item.articles.map((law) => (
-                  <LawRow key={law.id} locale={locale} law={law} />
+                  <LawRow
+                    key={law.id}
+                    locale={locale}
+                    law={law}
+                    matchedTermsOverride="معروضة للبحث، لا للتصنيف"
+                  />
                 ))}
               </ul>
             </section>
