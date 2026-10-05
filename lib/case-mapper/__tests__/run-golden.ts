@@ -7,11 +7,9 @@ import { createClient } from "@supabase/supabase-js";
 import { analyzeCase } from "../analyze";
 import type { CaseMapResult } from "../analyze";
 import { readFileSync } from "fs";
-import { fileURLToPath } from "url";
-import { dirname, join } from "path";
+import { join } from "path";
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname  = dirname(__filename);
+const TESTS_DIR = join(process.cwd(), "lib/case-mapper/__tests__");
 
 // ── Auth ──────────────────────────────────────────────────────────────────
 const SUPABASE_URL      = "https://damzdxcutawghksuzoan.supabase.co";
@@ -23,7 +21,7 @@ if (!SUPABASE_ANON_KEY) {
 
 // ── Golden cases ──────────────────────────────────────────────────────────
 const golden = JSON.parse(
-  readFileSync(join(__dirname, "golden-cases.json"), "utf8")
+  readFileSync(join(TESTS_DIR, "golden-cases.json"), "utf8")
 );
 const tests: any[] = golden.tests;
 
@@ -51,6 +49,7 @@ type Outcome = {
 };
 
 // ── Run ───────────────────────────────────────────────────────────────────
+async function main() {
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const outcomes: Outcome[] = [];
 const conceptMapGapIds: number[] = [];
@@ -211,3 +210,6 @@ console.log(`Retrieval bugs    (${retrievalBugIds.length}): ${retrievalBugIds.le
 console.log(`Source gaps       (${sourceGapIds.length}): ${sourceGapIds.length ? "T" + sourceGapIds.join(", T") : "none"} — articles found but sourceUrl=null (not counted as failures)`);
 console.log(`Future feature    (${futureFeatureIds.length}): T${futureFeatureIds.join(", T")} — clarification_required, not counted`);
 console.log("");
+} // end main
+
+main().catch((e) => { console.error(e); process.exit(1); });
