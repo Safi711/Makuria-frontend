@@ -252,7 +252,7 @@ function LawRow({
         {t(locale, "sourceLabel")}: {sourceNameAr(law.sourceUrl) ?? t(locale, "noSourceRecorded")}
       </MetaLine>
       <MetaLine>
-        {t(locale, "cmMatchedOn")}: {matchedTermsOverride ?? law.matchedTerms.join("، ")}
+        {matchedTermsOverride ?? `${t(locale, "cmMatchedOn")}: ${law.matchedTerms.join("، ")}`}
       </MetaLine>
 
       {href && (
