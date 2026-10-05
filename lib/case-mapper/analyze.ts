@@ -1003,6 +1003,27 @@ const COMPOUND_CRIMINAL_EXPANSIONS: CompoundCriminalExpansionRule[] = [
     ],
     add: ["خيانة الأمانة"],
   },
+  // ── Criminal conversion / loan-for-use (تملك جنائي, Art. 180) ─────────────
+  // Fires when the property was borrowed for the defendant's own use (عارية),
+  // not entrusted for the owner's benefit. Pure borrowing/use markers only —
+  // no return markers, which also appear in legitimate خيانة الأمانة facts.
+  {
+    allOf: [
+      [
+        "استعار", "استعاره", "استعارها",
+        "أعاره",
+        "عارية",
+        "لاستعماله", "لاستعمالها",
+      ],
+      [
+        "باع", "تصرّف", "تصرف", "رهن", "نقل",
+        "فرّط", "فرط", "اختلس",
+        "بدّد", "بدد",
+        "حوّل", "حول",
+      ],
+    ],
+    add: ["تملك جنائي"],
+  },
 ];
 
 /** Tokens within this many positions of each other are considered "near". */
