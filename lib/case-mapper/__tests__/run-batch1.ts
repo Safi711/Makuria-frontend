@@ -109,8 +109,19 @@ for (const t of batch1) {
   const alsoArts = (also_acceptable as any[]).map((a: any) => String(a.article));
   const mustNotArts = parseMustNotArts(must_not as string[]);
 
-  // Unscored: empty expected_articles + must_discuss present
-  const isUnscored = expArts.length === 0 && must_discuss != null && !must_abstain_or_clarify;
+  // Intent-gated: possession narcotics where Art. 15 / 20 must be discussed but
+  // neither is applicable without stated intent — always FAIL until intent-flag
+  // feature exists.
+  const isIntentGated = expArts.length === 0
+    && must_discuss != null
+    && (must_discuss as any[]).some((d: any) =>
+        Array.isArray(d.articles) &&
+        (d.articles.includes("15") || d.articles.includes("20"))
+      )
+    && !must_abstain_or_clarify;
+
+  // Unscored: empty expected_articles + must_discuss present (non-intent-gated only)
+  const isUnscored = expArts.length === 0 && must_discuss != null && !must_abstain_or_clarify && !isIntentGated;
 
   let result: CaseMapResult;
   try {
@@ -129,7 +140,41 @@ for (const t of batch1) {
   let score: number | null;
   let note = "";
 
-  if (must_abstain_or_clarify) {
+  if (isIntentGated) {
+    const NARCOTICS = "narcotics-psychotropic-substances-act-1994";
+    const art15inLaws = result.laws.some(
+      (l) => l.lawSlug === NARCOTICS && l.articleNumber === "15"
+    );
+    const art20inLaws = result.laws.some(
+      (l) => l.lawSlug === NARCOTICS && l.articleNumber === "20"
+    );
+    const art15inDisc = (result.discuss ?? []).some((d) =>
+      d.articles.some((a) => a.lawSlug === NARCOTICS && a.articleNumber === "15")
+    );
+    const art20inDisc = (result.discuss ?? []).some((d) =>
+      d.articles.some((a) => a.lawSlug === NARCOTICS && a.articleNumber === "20")
+    );
+    const intentFlagged = result.intentUnknown === true;
+    const passed = intentFlagged && !art15inLaws && !art20inLaws && art15inDisc && art20inDisc;
+
+    label = passed ? "PASS" : "FAIL";
+    score = passed ? 1 : 0;
+    if (passed) {
+      note = "intentUnknown=true; Art.15/20 in discuss, not in laws ✓";
+    } else {
+      const lawsBrief = result.laws.slice(0, 4)
+        .map((l) => `${l.lawSlug?.split("-").slice(-1)[0]}/${l.articleNumber}`)
+        .join(", ");
+      const problems: string[] = [];
+      if (!intentFlagged) problems.push("intentUnknown not set");
+      if (art15inLaws)    problems.push("Art.15 in laws");
+      if (art20inLaws)    problems.push("Art.20 in laws");
+      if (!art15inDisc)   problems.push("Art.15 missing from discuss");
+      if (!art20inDisc)   problems.push("Art.20 missing from discuss");
+      note = `${problems.join("; ")}  laws=[${lawsBrief || "—"}]`;
+    }
+
+  } else if (must_abstain_or_clarify) {
     if (result.noConfidentMatch) {
       label = "ABSTAIN_PASS"; score = 1; note = "noConfidentMatch=true ✓";
     } else {

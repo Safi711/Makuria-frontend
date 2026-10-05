@@ -135,6 +135,7 @@ export type IssueLens = {
 export type DiscussItem = {
   concept: string;
   label: string;
+  description?: string;
   articles: RetrievedAuthority[];
 };
 
@@ -163,6 +164,9 @@ export type CaseMapResult = {
   /** Open points for the lawyer — fetched from DISCUSS_CONCEPT_TO_ARTICLES,
    *  never mixed into the ranked `laws` array. */
   discuss?: DiscussItem[];
+  /** True when concept is مخدرات and intent (dealing vs. personal use) was not
+   *  stated in the facts. Art. 15 and 20 are in discuss, not in laws. */
+  intentUnknown?: boolean;
 };
 
 const MAX_TERMS = 6;
@@ -343,10 +347,15 @@ const CONCEPT_TO_ARTICLES: Record<string, ConceptArticleEntry[]> = {
     { lawSlug: "criminal-law-1991", articleNumber: "129" }, // القتل وأنواعه — definition
   ],
   "مخدرات": [
-    { lawSlug: "narcotics-psychotropic-substances-act-1994", articleNumber: "15" }, // REVIEW
+    { lawSlug: "narcotics-psychotropic-substances-act-1994", articleNumber: "15" }, // REVIEW: الاتجار
     { lawSlug: "narcotics-psychotropic-substances-act-1994", articleNumber: "16" }, // REVIEW
-    { lawSlug: "narcotics-psychotropic-substances-act-1994", articleNumber: "20" }, // REVIEW
+    { lawSlug: "narcotics-psychotropic-substances-act-1994", articleNumber: "20" }, // REVIEW: الحيازة للتعاطي
     { lawSlug: "narcotics-psychotropic-substances-act-1994", articleNumber: "12" }, // REVIEW: ranked last
+  ],
+  // Stated personal use — intent known; Art. 20 applicable, Art. 16/15 excluded
+  "مخدرات:قصد التعاطي": [
+    { lawSlug: "narcotics-psychotropic-substances-act-1994", articleNumber: "20" },
+    { lawSlug: "narcotics-psychotropic-substances-act-1994", articleNumber: "12" },
   ],
   "مركبة": [
     { lawSlug: "criminal-law-1991", articleNumber: "132" }, // القتل الخطأ
@@ -599,10 +608,25 @@ const DISCUSS_CONCEPT_TO_ARTICLES: Record<string, ConceptArticleEntry[]> = {
     { lawSlug: "criminal-law-1991", articleNumber: "20" },  // العقوبة على الشروع
     { lawSlug: "criminal-law-1991", articleNumber: "130" }, // القتل العمد
   ],
+  // Narcotics intent: shown when intentUnknown=true (bare possession, no stated intent)
+  "مخدرات:قصد الاتجار": [
+    { lawSlug: "narcotics-psychotropic-substances-act-1994", articleNumber: "15" },
+  ],
+  "مخدرات:قصد التعاطي": [
+    { lawSlug: "narcotics-psychotropic-substances-act-1994", articleNumber: "20" },
+  ],
 };
 
 const DISCUSS_CONCEPT_LABEL: Record<string, string> = {
   "قتل عمد": "الشروع في القتل العمد — نقطة مفتوحة للمحامي",
+  "مخدرات:قصد الاتجار": "المادة 15 — الاتجار في المواد المخدرة",
+  "مخدرات:قصد التعاطي": "المادة 20 — الحيازة بقصد التعاطي",
+};
+
+const DISCUSS_CONCEPT_DESC: Record<string, string> = {
+  "قتل عمد": "ليست هذه تصنيفاً. قد تُثار مسألة الشروع في القتل بحسب ما يثبت من قصد الجاني، والبتّ فيها للمحامي.",
+  "مخدرات:قصد الاتجار": "الوقائع تثبت الحيازة. تطبيق المادة 15 (الاتجار) رهنٌ بإثبات قصد الاتجار — والبتّ فيه للمحامي.",
+  "مخدرات:قصد التعاطي": "الوقائع تثبت الحيازة. تطبيق المادة 20 (التعاطي الشخصي) رهنٌ بإثبات القصد الشخصي — والبتّ فيه للمحامي.",
 };
 
 function stripTashkeel(text: string): string {
@@ -929,15 +953,6 @@ const CRIMINAL_VOCABULARY_EXPANSIONS: CriminalExpansionRule[] = [
     when: ["مسروق", "مسروقة", "مسروقات"],
     add: ["استلام مسروق"],
   },
-  // ── Criminal possession / conversion (تملك جنائي, Art. 180) ────────────
-  {
-    when: [
-      "عثر على", "عُثر على",
-      "استحوذ", "استحوذ على",
-      "تملّك", "تملك",
-    ],
-    add: ["تملك جنائي"],
-  },
   // ── Narcotic drugs ────────────────────────────────────────────────────
   {
     when: [
@@ -1002,27 +1017,6 @@ const COMPOUND_CRIMINAL_EXPANSIONS: CompoundCriminalExpansionRule[] = [
       ["اختلس", "استغل", "حوّل", "حول", "أنفق"],
     ],
     add: ["خيانة الأمانة"],
-  },
-  // ── Criminal conversion / loan-for-use (تملك جنائي, Art. 180) ─────────────
-  // Fires when the property was borrowed for the defendant's own use (عارية),
-  // not entrusted for the owner's benefit. Pure borrowing/use markers only —
-  // no return markers, which also appear in legitimate خيانة الأمانة facts.
-  {
-    allOf: [
-      [
-        "استعار", "استعاره", "استعارها",
-        "أعاره",
-        "عارية",
-        "لاستعماله", "لاستعمالها",
-      ],
-      [
-        "باع", "تصرّف", "تصرف", "رهن", "نقل",
-        "فرّط", "فرط", "اختلس",
-        "بدّد", "بدد",
-        "حوّل", "حول",
-      ],
-    ],
-    add: ["تملك جنائي"],
   },
 ];
 
@@ -1559,6 +1553,7 @@ async function analyzeCriminalConceptMap(
       discussItems = [...byConceptMap.entries()].map(([concept, articles]) => ({
         concept,
         label: DISCUSS_CONCEPT_LABEL[concept] ?? concept,
+        ...(DISCUSS_CONCEPT_DESC[concept] ? { description: DISCUSS_CONCEPT_DESC[concept] } : {}),
         articles,
       }));
     }
@@ -1783,10 +1778,40 @@ export async function analyzeCase(
 
   // Criminal cases use a deterministic concept-map path — no text search for laws.
   if (caseTypeFull?.slug === "criminal") {
-    return analyzeCriminalConceptMap(
+    // When intent is unknown (bare narcotics possession), inject the two intent-
+    // specific discuss concepts so they appear in the open-point cards; the main
+    // CONCEPT_TO_ARTICLES entry for "مخدرات" still fetches all four narcotics
+    // articles, but Art. 15, 16, and 20 are stripped from laws below — only
+    // Art. 12 remains applicable. Slug-qualified comparison prevents Criminal
+    // Act Art. 20 from ever being touched.
+    const discussConcepts =
+      llmResult.type === "criminal" && llmResult.intentUnknown
+        ? ["مخدرات:قصد الاتجار", "مخدرات:قصد التعاطي"]
+        : llmResult.type === "criminal"
+        ? llmResult.discuss
+        : undefined;
+
+    const cmResult = await analyzeCriminalConceptMap(
       supabase, input, caseTypeFull, criminalTerms, excerpt, truncated,
-      llmResult.type === "criminal" ? llmResult.discuss : undefined,
+      discussConcepts,
     );
+
+    if (llmResult.type === "criminal" && llmResult.intentUnknown) {
+      const NARCOTICS = "narcotics-psychotropic-substances-act-1994";
+      return {
+        ...cmResult,
+        laws: cmResult.laws.filter(
+          (l) =>
+            !(l.lawSlug === NARCOTICS &&
+              (l.articleNumber === "15" ||
+               l.articleNumber === "16" ||
+               l.articleNumber === "20")),
+        ),
+        intentUnknown: true,
+      };
+    }
+
+    return cmResult;
   }
 
   // ── Phase 1: candidates ────────────────────────────────────────────────

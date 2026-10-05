@@ -12,10 +12,13 @@ import { join } from "path";
 const TESTS_DIR = join(process.cwd(), "lib/case-mapper/__tests__");
 
 // ── Auth ──────────────────────────────────────────────────────────────────
+try { (process as any).loadEnvFile(".env.local"); } catch { /* not present */ }
+
 const SUPABASE_URL      = "https://damzdxcutawghksuzoan.supabase.co";
-const SUPABASE_ANON_KEY = process.argv[2] ?? "";
+const SUPABASE_ANON_KEY = process.argv[2] ?? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? "";
 if (!SUPABASE_ANON_KEY) {
   console.error("Usage: node lib/case-mapper/__tests__/run-golden.ts <anon-key>");
+  console.error("  or set NEXT_PUBLIC_SUPABASE_ANON_KEY in .env.local");
   process.exit(1);
 }
 
@@ -42,7 +45,7 @@ type Outcome = {
   category: string;
   action: string;
   passed: boolean | null;  // null = skipped (future feature)
-  label: "concept map gap" | "retrieval bug" | "future feature" | null;
+  label: "concept map gap" | "retrieval bug" | "future feature" | "missing feature: clarification" | null;
   note: string;
   sourceGap: boolean;
   laws0: string;           // rank-1 law slug + article for quick reading
@@ -52,20 +55,22 @@ type Outcome = {
 async function main() {
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const outcomes: Outcome[] = [];
-const conceptMapGapIds: number[] = [];
-const retrievalBugIds: number[]  = [];
-const sourceGapIds: number[]     = [];
-const futureFeatureIds: number[] = [];
+const conceptMapGapIds: number[]        = [];
+const retrievalBugIds: number[]         = [];
+const sourceGapIds: number[]            = [];
+const futureFeatureIds: number[]        = [];
+const missingFeatureClarifyIds: number[]= [];
 
-console.log("Running 30 golden cases…\n");
+console.log(`Running ${tests.length} golden cases…\n`);
 console.log("─".repeat(100));
 
 for (const t of tests) {
   const { id, category, input, expected } = t;
   const action: string = expected.action;
 
-  // ── Future feature: skip clarification_required ───────────────────────
-  if (expected.clarification_required) {
+  // ── Future feature: skip no_reliable_match_and_clarify only ─────────────
+  // classify_and_clarify (T21–T23) is now scored: passes if no criminal article returned.
+  if (expected.clarification_required && action === "no_reliable_match_and_clarify") {
     futureFeatureIds.push(id);
     outcomes.push({
       id, category, action,
@@ -88,7 +93,7 @@ for (const t of tests) {
   }
 
   let passed  = false;
-  let label:   "concept map gap" | "retrieval bug" | null = null;
+  let label:   "concept map gap" | "retrieval bug" | "missing feature: clarification" | null = null;
   let note     = "";
   let sourceGap = false;
   const laws0  = result.laws.length
@@ -136,8 +141,8 @@ for (const t of tests) {
     if (label === "concept map gap") conceptMapGapIds.push(id);
     if (label === "retrieval bug")   retrievalBugIds.push(id);
 
-  // ── action = "classify_civil" | "classify_and_clarify" ─────────────────
-  } else if (action === "classify_civil" || action === "classify_and_clarify") {
+  // ── action = "classify_civil" ────────────────────────────────────────────
+  } else if (action === "classify_civil") {
     const criminalHit = result.laws.find((l) => l.lawSlug && CRIMINAL_SLUGS.has(l.lawSlug));
     passed = !criminalHit;
     if (!passed) {
@@ -145,6 +150,21 @@ for (const t of tests) {
       note  = `criminal article at rank ${result.laws.indexOf(criminalHit!) + 1}: ${criminalHit!.lawSlug}/${criminalHit!.articleNumber}`;
       conceptMapGapIds.push(id);
     }
+
+  // ── action = "classify_and_clarify" ──────────────────────────────────────
+  // Requires correct classification AND a clarification prompt. The prompt is
+  // not yet implemented, so this always fails until the clarification feature
+  // exists — even when classification is correct.
+  } else if (action === "classify_and_clarify") {
+    passed = false;
+    label = "missing feature: clarification";
+    const lawsBrief = result.laws.slice(0, 3)
+      .map((l) => `${l.lawTitle ?? l.lawSlug}/${l.articleNumber}`)
+      .join(", ");
+    note = result.noConfidentMatch
+      ? `abstained (no match); clarification prompt missing`
+      : `laws=[${lawsBrief || "—"}]; clarification prompt missing`;
+    missingFeatureClarifyIds.push(id);
 
   // ── action = "no_reliable_match" | "no_reliable_match_and_clarify" ─────
   } else if (
@@ -180,9 +200,9 @@ console.log("═".repeat(100));
 
 const scored   = outcomes.filter((o) => o.passed !== null);
 const passedN  = scored.filter((o) => o.passed === true).length;
-const totalN   = scored.length;  // 27 (30 minus 3 future features)
+const totalN   = scored.length;  // 27 (30 minus 3 future features T26–T28)
 
-console.log(`\nOverall:                ${passedN}/${totalN}  (counted; 3 future features excluded)  target ≥ 27/30`);
+console.log(`\nOverall:                ${passedN}/${tests.length}  (${totalN} scored; ${futureFeatureIds.length} skipped = not passed)  target ≥ 27/${tests.length}`);
 
 const rankTests  = outcomes.filter((o) =>
   o.action === "match" && o.label !== "future feature"
@@ -205,10 +225,11 @@ const phonePassed = outcomes.filter((o) => phoneIds.includes(o.id) && o.passed =
 console.log(`Phone typing:           ${phonePassed}/2  T29–T30  target = 2/2`);
 
 console.log("");
-console.log(`Concept map gaps  (${conceptMapGapIds.length}): T${conceptMapGapIds.join(", T")}`);
+console.log(`Concept map gaps  (${conceptMapGapIds.length}): ${conceptMapGapIds.length ? "T" + conceptMapGapIds.join(", T") : "none"}`);
+console.log(`Missing feature   (${missingFeatureClarifyIds.length}): ${missingFeatureClarifyIds.length ? "T" + missingFeatureClarifyIds.join(", T") : "none"} — clarification prompt not implemented`);
 console.log(`Retrieval bugs    (${retrievalBugIds.length}): ${retrievalBugIds.length ? "T" + retrievalBugIds.join(", T") : "none"}`);
 console.log(`Source gaps       (${sourceGapIds.length}): ${sourceGapIds.length ? "T" + sourceGapIds.join(", T") : "none"} — articles found but sourceUrl=null (not counted as failures)`);
-console.log(`Future feature    (${futureFeatureIds.length}): T${futureFeatureIds.join(", T")} — clarification_required, not counted`);
+console.log(`Future feature    (${futureFeatureIds.length}): ${futureFeatureIds.length ? "T" + futureFeatureIds.join(", T") : "none"} — clarification_required, not counted`);
 console.log("");
 } // end main
 

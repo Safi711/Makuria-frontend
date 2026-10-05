@@ -5,9 +5,9 @@
   "language": "ar",
   "jurisdiction": "Sudan",
   "status": "draft_not_executed",
-  "total_tests": 30,
+  "total_tests": 31,
   "distribution": {
-    "criminal": 15,
+    "criminal": 16,
     "civil": 5,
     "administrative_or_constitutional": 3,
     "nonlegal_or_ambiguous": 4,
@@ -728,6 +728,29 @@
         "message": null,
         "clarification_required": false,
         "notes": "يجب فهم الوقائع رغم أخطاء الكتابة."
+      },
+      "actual_result": null,
+      "passed": null,
+      "failure_reason": null
+    },
+    {
+      "id": 31,
+      "category": "criminal",
+      "input": "أقرّ المتهم بأنه يتعاطى البنقو لنفسه منذ أشهر، وضُبط بحوزته كمية يسيرة منه",
+      "expected": {
+        "classification": "مخدرات:قصد التعاطي",
+        "action": "match",
+        "primary_article": {
+          "law_name": "قانون المخدرات والمؤثرات العقلية لسنة 1994",
+          "law_year": 1994,
+          "article_number": 20,
+          "subsection": null
+        },
+        "criminal_articles_forbidden": false,
+        "all_articles_forbidden": false,
+        "message": null,
+        "clarification_required": false,
+        "notes": "القصد صريح في الوقائع (يتعاطى لنفسه) — المادة 20 تطبَّق مباشرةً دون غموض في النية."
       },
       "actual_result": null,
       "passed": null,
