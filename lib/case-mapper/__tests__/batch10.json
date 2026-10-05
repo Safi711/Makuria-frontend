@@ -1,0 +1,119 @@
+{
+  "batch": "B10",
+  "description": "Live run 2026-10-05 — 10/10 against lawyer's rulings, single run, no fixes",
+  "tests": [
+    {
+      "id": "S1-B10-091",
+      "difficulty": "medium",
+      "facts": "عثر المتهم على محفظة في موقف المواصلات فيها مبلغ نقدي وبطاقة باسم صاحبها، فأخذ المبلغ ورمى المحفظة.",
+      "expected_concept": "تملك جنائي",
+      "expected_law": { "slug": "criminal-law-1991", "name_ar": "القانون الجنائي لسنة 1991" },
+      "expected_articles": ["180"],
+      "also_acceptable": [],
+      "must_not": [],
+      "must_abstain_or_clarify": false
+    },
+    {
+      "id": "S1-B10-092",
+      "difficulty": "easy",
+      "facts": "سلّم التاجر عامله مبلغاً ليودعه في البنك، فأودع نصفه وصرف الباقي على نفسه.",
+      "expected_concept": "خيانة الأمانة",
+      "expected_law": { "slug": "criminal-law-1991", "name_ar": "القانون الجنائي لسنة 1991" },
+      "expected_articles": ["177"],
+      "also_acceptable": [],
+      "must_not": [],
+      "must_abstain_or_clarify": false
+    },
+    {
+      "id": "S1-B10-093",
+      "difficulty": "medium",
+      "facts": "ضُبط المتهم وبحوزته مادة مخدرة مقسّمة في لفافات صغيرة، ومعه ميزان ومبالغ نقدية من فئات صغيرة، وشهد شخصان بأنهما اشتريا منه.",
+      "expected_concept": "مخدرات (اتجار)",
+      "expected_law": { "slug": "narcotics-psychotropic-substances-act-1994", "name_ar": "قانون المخدرات والمؤثرات العقلية لسنة 1994" },
+      "expected_articles": ["15"],
+      "also_acceptable": [],
+      "must_not": [],
+      "must_abstain_or_clarify": false,
+      "notes": "Dealing confirmed by scales + small denominations + two buyer witnesses. intentUnknown must be false. Art.15 applicable at rank 1."
+    },
+    {
+      "id": "S1-B10-094",
+      "difficulty": "easy",
+      "facts": "دفع المتهم امرأة في الشارع فسقطت، ثم خطف حقيبتها وهرب.",
+      "expected_concept": "نهب",
+      "expected_law": { "slug": "criminal-law-1991", "name_ar": "القانون الجنائي لسنة 1991" },
+      "expected_articles": ["175"],
+      "also_acceptable": [],
+      "must_not": [],
+      "must_abstain_or_clarify": false
+    },
+    {
+      "id": "S1-B10-095",
+      "difficulty": "easy",
+      "facts": "هدّد المتهم المجني عليه بنشر صور خاصة به إن لم يدفع له مبلغاً، فدفع له.",
+      "expected_concept": "ابتزاز",
+      "expected_law": { "slug": "criminal-law-1991", "name_ar": "القانون الجنائي لسنة 1991" },
+      "expected_articles": ["176"],
+      "also_acceptable": [],
+      "must_not": [],
+      "must_abstain_or_clarify": false
+    },
+    {
+      "id": "S1-B10-096",
+      "difficulty": "medium",
+      "facts": "ضرب المتهم جاره بعصا على رأسه أثناء مشاجرة، فأحدث به جرحاً مفتوحاً سال منه الدم واستلزم خياطته بالمستشفى.",
+      "expected_concept": "جراح عمد",
+      "expected_law": { "slug": "criminal-law-1991", "name_ar": "القانون الجنائي لسنة 1991" },
+      "expected_articles": ["139"],
+      "also_acceptable": [],
+      "must_not": [],
+      "must_abstain_or_clarify": false
+    },
+    {
+      "id": "S1-B10-097",
+      "difficulty": "medium",
+      "facts": "أوهم المتهم المجني عليه بأنه موظف في مكتب الأراضي، وقبض منه مبلغاً لاستخراج شهادة بحث، ثم اختفى.",
+      "expected_concept": "احتيال",
+      "expected_law": { "slug": "criminal-law-1991", "name_ar": "القانون الجنائي لسنة 1991" },
+      "expected_articles": ["178"],
+      "also_acceptable": [],
+      "must_not": [],
+      "must_abstain_or_clarify": false
+    },
+    {
+      "id": "S1-B10-098",
+      "difficulty": "easy",
+      "facts": "حرّر المتهم شيكاً لتاجر مقابل بضاعة استلمها، وهو يعلم عند تحريره أن حسابه لا يحتوي على رصيد كافٍ، وعند تقديم الشيك للبنك ارتد لعدم كفاية الرصيد.",
+      "expected_concept": "صك مردود",
+      "expected_law": { "slug": "criminal-law-1991", "name_ar": "القانون الجنائي لسنة 1991" },
+      "expected_articles": ["179"],
+      "also_acceptable": [],
+      "must_not": [],
+      "must_abstain_or_clarify": false
+    },
+    {
+      "id": "S1-B10-099",
+      "difficulty": "medium",
+      "facts": "أجّر المالك شقته لمدة سنة، وبعد انتهاء المدة رفض المستأجر الإخلاء وتوقف عن دفع الأجرة.",
+      "expected_concept": "نزاع إيجاري (مدني)",
+      "expected_law": null,
+      "expected_articles": [],
+      "also_acceptable": [],
+      "must_not": [],
+      "must_abstain_or_clarify": true,
+      "notes": "Civil tenancy dispute. No criminal article. System must abstain (noConfidentMatch=true)."
+    },
+    {
+      "id": "S1-B10-100",
+      "difficulty": "easy",
+      "facts": "صاحبي خدعني وما عارف أعمل شنو",
+      "expected_concept": "وقائع مبهمة",
+      "expected_law": null,
+      "expected_articles": [],
+      "also_acceptable": [],
+      "must_not": [],
+      "must_abstain_or_clarify": true,
+      "notes": "Vague colloquial Sudanese Arabic. No actionable facts. System must abstain."
+    }
+  ]
+}

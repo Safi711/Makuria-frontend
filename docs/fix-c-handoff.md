@@ -27,6 +27,29 @@ The approved lawyer batches cover B1–B9 (90 cases). B10 has not been written o
 
 The narcotics intent-gate feature adds two discuss cards (Art. 15 and Art. 20) when `intentUnknown=true`. The `description` field per card is wired up in code and renders via `item.description`. The card has not been opened in a browser to verify layout, RTL alignment, or that the gold left-border renders correctly for both cards.
 
+## Batch 10 — live run 2026-10-05 (10/10, single run, no fixes)
+
+| ID | Facts (short) | Expected | Rank-1 returned | Result |
+|---|---|---|---|---|
+| S1-B10-091 | محفظة ضائعة — أخذ المبلغ | Art. 180 | criminal-law-1991 / 180 | PASS |
+| S1-B10-092 | عامل أودع نصف المبلغ فقط | Art. 177 | criminal-law-1991 / 177 | PASS |
+| S1-B10-093 | مخدرات + ميزان + شهود بيع | Art. 15 (narcotics) | narcotics-1994 / 15 | PASS |
+| S1-B10-094 | دفع امرأة وخطف حقيبتها | Art. 175 | criminal-law-1991 / 175 | PASS |
+| S1-B10-095 | تهديد بنشر صور مقابل مال | Art. 176 | criminal-law-1991 / 176 | PASS |
+| S1-B10-096 | ضرب بعصا → جرح مفتوح | Art. 139 | criminal-law-1991 / 139 | PASS |
+| S1-B10-097 | انتحل موظف أراضي وأخذ مال | Art. 178 | criminal-law-1991 / 178 | PASS |
+| S1-B10-098 | شيك بلا رصيد مع العلم | Art. 179 | criminal-law-1991 / 179 | PASS |
+| S1-B10-099 | مستأجر رفض الإخلاء | abstain (civil) | noConfidentMatch=true | PASS |
+| S1-B10-100 | صاحبي خدعني (عامية مبهمة) | abstain (vague) | noConfidentMatch=true | PASS |
+
+### Open items from batch 10 (tail, not rank-1)
+
+- **093**: Art. 20 and Art. 16 returned as applicable alongside Art. 15 in a clear dealing case — both are incorrect here (no personal use, no supply-to-minor facts).
+- **096**: Art. 142, 140, 141 returned as applicable beside Art. 139; also raised attempted murder (Art. 130 + 19 + 20) as an open discuss point — the attempted-murder flag may be over-eager for a single blow with injury.
+- **097**: Art. 111 (التصرف في الأموال بطريق الغش) returned alongside Art. 178; impersonating a public official (Art. 110 or similar) not mentioned despite the facts naming a government office.
+- **099**: abstained with caseType=none, although rent-of-premises-act-1991 and civil-transactions-1984 are in the library — the civil path is not surfaced at all.
+- **General**: the scoring metric checks rank-1 only; the tail of returned articles is unmeasured. B10 is the first batch to surface tail noise as a distinct concern.
+
 ## Rule ق regression note (resolved)
 
 Commit 178e961 introduced rule ق (narcotics intent-gate) and caused a deterministic regression on S1-B4-031 (سرقة — bicycle taken from owner). Rule ر (commit a0b1aaf) fixed it by making the سرقة/تملك جنائي criterion explicit. See section 5 of the previous handoff snapshot in git history for the full test table.
