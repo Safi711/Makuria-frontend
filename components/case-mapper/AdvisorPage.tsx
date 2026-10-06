@@ -798,7 +798,7 @@ export async function AdvisorPage({
               <CardTag>{"نقطة مفتوحة للمحامي"}</CardTag>
               <CardTitle>{item.label}</CardTitle>
               <Muted className="mb-4">
-                {item.description ?? "ليست هذه تصنيفاً، والبتّ في هذه المسألة للمحامي."}
+                {item.description ?? "ليست هذه تصنيفاً — وإثبات هذه المسألة أو نفيها مهمة المحامي، والفصل فيها للمحكمة."}
               </Muted>
               <ul className="space-y-3">
                 {item.articles.map((law) => (

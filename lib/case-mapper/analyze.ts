@@ -280,7 +280,7 @@ const CONCEPT_TO_ARTICLES: Record<string, ConceptArticleEntry[]> = {
   ],
   "احتيال": [
     { lawSlug: "criminal-law-1991", articleNumber: "178" }, // الاحتيال
-    { lawSlug: "criminal-law-1991", articleNumber: "111" }, // التصرف في الأموال بطريق الغش لتفادي الحجز
+    // Art. 111 (التصرف في الأموال لتفادي الحجز) removed: evasion of creditors, unrelated to fraud
   ],
   "تزوير": [
     { lawSlug: "criminal-law-1991", articleNumber: "122" }, // التزوير في المستندات
@@ -304,10 +304,7 @@ const CONCEPT_TO_ARTICLES: Record<string, ConceptArticleEntry[]> = {
   "جرح": [
     { lawSlug: "criminal-law-1991", articleNumber: "139" }, // عقوبة الجراح العمد — word-list catch-all, rank-1
     { lawSlug: "criminal-law-1991", articleNumber: "138" }, // الجراح وأنواعها — definition
-    { lawSlug: "criminal-law-1991", articleNumber: "140" }, // عقوبة الجراح شبه العمد
-    { lawSlug: "criminal-law-1991", articleNumber: "141" }, // عقوبة الجراح الخطأ
-    { lawSlug: "criminal-law-1991", articleNumber: "142" }, // الأذى
-    { lawSlug: "criminal-law-1991", articleNumber: "143" }, // القوة الجنائية
+    // 140/141 belong to شبه عمد/خطأ only; 142 (الأذى) conflicts with wound; 143 (قوة جنائية) separate offence
   ],
   "جرح عمد": [
     { lawSlug: "criminal-law-1991", articleNumber: "139" }, // عقوبة الجراح العمد
@@ -630,10 +627,10 @@ const DISCUSS_CONCEPT_LABEL: Record<string, string> = {
 };
 
 const DISCUSS_CONCEPT_DESC: Record<string, string> = {
-  "قتل عمد": "ليست هذه تصنيفاً. قد تُثار مسألة الشروع في القتل بحسب ما يثبت من قصد الجاني، والبتّ فيها للمحامي.",
-  "مخدرات:قصد الاتجار": "الوقائع تثبت الحيازة. تطبيق المادة 15 (الاتجار) رهنٌ بإثبات قصد الاتجار — والبتّ فيه للمحامي.",
-  "مخدرات:قصد التعاطي": "الوقائع تثبت الحيازة. تطبيق المادة 20 (التعاطي الشخصي) رهنٌ بإثبات القصد الشخصي — والبتّ فيه للمحامي.",
-  "سرقة:حد": "الوقائع تثبت السرقة. تطبيق عقوبة الحد (المادة 170) مشروط بثبوت شروطه، ومنها أخذ المال خفية من حرزه وبلوغه النصاب — والبتّ في ذلك للمحامي.",
+  "قتل عمد": "ليست هذه تصنيفاً. قد تُثار مسألة الشروع في القتل بحسب ما يثبت من قصد الجاني — وإثباتها أو نفيها مهمة المحامي، والفصل فيها للمحكمة.",
+  "مخدرات:قصد الاتجار": "الوقائع تثبت الحيازة. تطبيق المادة 15 (الاتجار) رهنٌ بإثبات قصد الاتجار — وإثباته أو نفيه مهمة المحامي، والفصل فيه للمحكمة.",
+  "مخدرات:قصد التعاطي": "الوقائع تثبت الحيازة. تطبيق المادة 20 (التعاطي الشخصي) رهنٌ بإثبات القصد الشخصي — وإثباته أو نفيه مهمة المحامي، والفصل فيه للمحكمة.",
+  "سرقة:حد": "الوقائع تثبت السرقة. تطبيق عقوبة الحد (المادة 170) مشروط بثبوت شروطه، ومنها أخذ المال خفية من حرزه وبلوغه النصاب — وإثبات ذلك أو نفيه مهمة المحامي، والفصل فيه للمحكمة.",
 };
 
 function stripTashkeel(text: string): string {
@@ -1560,7 +1557,7 @@ async function analyzeCriminalConceptMap(
           title: article.title_ar ?? "",
           lawTitle: parentLaw.title_ar ?? null,
           articleNumber: article.article_number,
-          excerptHtml: wordTrunc(article.content_ar ?? "", 600),
+          excerptHtml: wordTrunc(article.content_ar ?? "", 2000), // discuss: full text for lawyer reference
           verified: Boolean(article.verified),
           slug: null,
           lawSlug: entry.lawSlug,
