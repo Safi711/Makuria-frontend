@@ -234,6 +234,26 @@ for (const t of batch1) {
     }
   }
 
+  // Hadd-theft check: for سرقة cases, Arts. 170/171/172/173 must never be in
+  // laws, and Art. 170 must appear in discuss. Overrides any PASS/HALF to FAIL.
+  if (concept === "سرقة" && label !== "UNSCORED") {
+    const CRIMINAL = "criminal-law-1991";
+    const HADD_ARTS = new Set(["170", "171", "172", "173"]);
+    const haddInLaws = result.laws.some(
+      (l) => l.lawSlug === CRIMINAL && HADD_ARTS.has(l.articleNumber ?? "")
+    );
+    const art170inDisc = (result.discuss ?? []).some((d) =>
+      d.articles.some((a) => a.lawSlug === CRIMINAL && a.articleNumber === "170")
+    );
+    if (haddInLaws || !art170inDisc) {
+      const problems: string[] = [];
+      if (haddInLaws)    problems.push("hadd art in laws");
+      if (!art170inDisc) problems.push("Art.170 missing from discuss");
+      label = "FAIL"; score = 0;
+      note = `[hadd-theft] ${problems.join("; ")}  ${note}`.trim();
+    }
+  }
+
   if (score !== null) {
     totalScore += score;
     scoredCount++;

@@ -60,6 +60,7 @@ const retrievalBugIds: number[]         = [];
 const sourceGapIds: number[]            = [];
 const futureFeatureIds: number[]        = [];
 const missingFeatureClarifyIds: number[]= [];
+const haddCheckFailIds: number[]        = [];
 
 console.log(`Running ${tests.length} golden cases…\n`);
 console.log("─".repeat(100));
@@ -181,6 +182,33 @@ for (const t of tests) {
     }
   }
 
+  // Hadd-theft check: for سرقة golden cases (primary Art.174/1991),
+  // Arts. 170-173 must never be in laws, and Art. 170 must be in discuss.
+  if (
+    action === "match" &&
+    String(expected.primary_article?.article_number) === "174" &&
+    expected.primary_article?.law_year === 1991 &&
+    passed !== null
+  ) {
+    const CRIMINAL = "criminal-law-1991";
+    const HADD_ARTS = new Set(["170", "171", "172", "173"]);
+    const haddInLaws = result.laws.some(
+      (l) => l.lawSlug === CRIMINAL && HADD_ARTS.has(l.articleNumber ?? "")
+    );
+    const art170inDisc = (result.discuss ?? []).some((d) =>
+      d.articles.some((a) => a.lawSlug === CRIMINAL && a.articleNumber === "170")
+    );
+    if (haddInLaws || !art170inDisc) {
+      const problems: string[] = [];
+      if (haddInLaws)    problems.push("hadd art in laws");
+      if (!art170inDisc) problems.push("Art.170 missing from discuss");
+      passed = false;
+      label  = "concept map gap";
+      note   = `[hadd-theft] ${problems.join("; ")}  ${note}`.trim();
+      haddCheckFailIds.push(id);
+    }
+  }
+
   const tag = passed ? "PASS " : "FAIL ";
   const lawsBrief = result.laws.slice(0, 3)
     .map((l) => `${l.lawSlug?.split("-").slice(-1)[0]}/${l.articleNumber}`)
@@ -230,6 +258,7 @@ console.log(`Missing feature   (${missingFeatureClarifyIds.length}): ${missingFe
 console.log(`Retrieval bugs    (${retrievalBugIds.length}): ${retrievalBugIds.length ? "T" + retrievalBugIds.join(", T") : "none"}`);
 console.log(`Source gaps       (${sourceGapIds.length}): ${sourceGapIds.length ? "T" + sourceGapIds.join(", T") : "none"} — articles found but sourceUrl=null (not counted as failures)`);
 console.log(`Future feature    (${futureFeatureIds.length}): ${futureFeatureIds.length ? "T" + futureFeatureIds.join(", T") : "none"} — clarification_required, not counted`);
+console.log(`Hadd-theft fails  (${haddCheckFailIds.length}): ${haddCheckFailIds.length ? "T" + haddCheckFailIds.join(", T") : "none"} — Art.170 in laws or missing from discuss`);
 console.log("");
 } // end main
 

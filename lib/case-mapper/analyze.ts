@@ -265,11 +265,9 @@ const CONCEPT_TO_ARTICLES: Record<string, ConceptArticleEntry[]> = {
     { lawSlug: "criminal-law-1991", articleNumber: "177" }, // REVIEW
   ],
   "سرقة": [
-    { lawSlug: "criminal-law-1991", articleNumber: "174" }, // REVIEW: جريمة السرقة
-    { lawSlug: "criminal-law-1991", articleNumber: "170" }, // REVIEW: السرقة الحدية
-    { lawSlug: "criminal-law-1991", articleNumber: "172" }, // REVIEW: مسقطات عقوبة الحد
-    { lawSlug: "criminal-law-1991", articleNumber: "173" }, // REVIEW: عقوبة السرقة عند سقوط الحد
-    { lawSlug: "criminal-law-1991", articleNumber: "171" }, // REVIEW: عقوبة السرقة الحدية
+    { lawSlug: "criminal-law-1991", articleNumber: "174" }, // جريمة السرقة — always applicable
+    // Arts. 170/171/172/173 (hadd theft) are conditional on hirz and nisab being
+    // established; they are always routed to discuss via "سرقة:حد", never to laws.
   ],
   "نهب": [
     { lawSlug: "criminal-law-1991", articleNumber: "175" }, // النهب
@@ -615,18 +613,27 @@ const DISCUSS_CONCEPT_TO_ARTICLES: Record<string, ConceptArticleEntry[]> = {
   "مخدرات:قصد التعاطي": [
     { lawSlug: "narcotics-psychotropic-substances-act-1994", articleNumber: "20" },
   ],
+  // Hadd theft: always an open point — hadd is never asserted by the tool
+  "سرقة:حد": [
+    { lawSlug: "criminal-law-1991", articleNumber: "170" }, // السرقة الحدية
+    { lawSlug: "criminal-law-1991", articleNumber: "171" }, // عقوبة السرقة الحدية
+    { lawSlug: "criminal-law-1991", articleNumber: "172" }, // مسقطات عقوبة الحد
+    { lawSlug: "criminal-law-1991", articleNumber: "173" }, // عقوبة السرقة عند سقوط الحد
+  ],
 };
 
 const DISCUSS_CONCEPT_LABEL: Record<string, string> = {
   "قتل عمد": "الشروع في القتل العمد — نقطة مفتوحة للمحامي",
   "مخدرات:قصد الاتجار": "المادة 15 — الاتجار في المواد المخدرة",
   "مخدرات:قصد التعاطي": "المادة 20 — الحيازة بقصد التعاطي",
+  "سرقة:حد": "السرقة الحدية — تطبيق المادة 170 رهنٌ بثبوت شروط الحد",
 };
 
 const DISCUSS_CONCEPT_DESC: Record<string, string> = {
   "قتل عمد": "ليست هذه تصنيفاً. قد تُثار مسألة الشروع في القتل بحسب ما يثبت من قصد الجاني، والبتّ فيها للمحامي.",
   "مخدرات:قصد الاتجار": "الوقائع تثبت الحيازة. تطبيق المادة 15 (الاتجار) رهنٌ بإثبات قصد الاتجار — والبتّ فيه للمحامي.",
   "مخدرات:قصد التعاطي": "الوقائع تثبت الحيازة. تطبيق المادة 20 (التعاطي الشخصي) رهنٌ بإثبات القصد الشخصي — والبتّ فيه للمحامي.",
+  "سرقة:حد": "الوقائع تثبت السرقة. تطبيق عقوبة الحد (المادة 170) مشروط بثبوت شروطه، ومنها أخذ المال خفية من حرزه وبلوغه النصاب — والبتّ في ذلك للمحامي.",
 };
 
 function stripTashkeel(text: string): string {
@@ -1805,6 +1812,8 @@ export async function analyzeCase(
     const discussConcepts =
       llmResult.type === "criminal" && llmResult.intentUnknown
         ? ["مخدرات:قصد الاتجار", "مخدرات:قصد التعاطي"]
+        : llmResult.type === "criminal" && llmResult.concept === "سرقة"
+        ? ["سرقة:حد", ...(llmResult.discuss ?? [])]
         : llmResult.type === "criminal"
         ? llmResult.discuss
         : undefined;
