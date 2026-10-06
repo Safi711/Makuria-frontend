@@ -2,7 +2,7 @@ import type { Locale } from "@/lib/i18n";
 import { lawStatusWordAr } from "@/lib/site";
 
 /**
- * A law's LEGAL FORCE — «ساري» / «ملغى» / «تحت المراجعة».
+ * A law's LEGAL FORCE — «ساري» / «ملغى» / «قيد المراجعة».
  *
  * This is deliberately a different component from `VerificationBadge`, which
  * answers a different question: whether *the record* has been checked against

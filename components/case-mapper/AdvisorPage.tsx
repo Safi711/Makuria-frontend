@@ -263,7 +263,7 @@ function LawRow({
         {t(locale, "sourceLabel")}: {sourceNameAr(law.sourceUrl) ?? t(locale, "noSourceRecorded")}
       </MetaLine>
       <MetaLine>
-        {matchedTermsOverride ?? `${t(locale, "cmMatchedOn")}: ${law.matchedTerms.join("، ")}`}
+        {matchedTermsOverride ?? `${t(locale, "cmMatchedOn")}: ${law.matchedTerms.map(termDisplayAr).join("، ")}`}
       </MetaLine>
 
       {href && (
@@ -305,7 +305,7 @@ function CaseRow({ locale, c }: { locale: Locale; c: RetrievedCase }) {
         {t(locale, "sourceLabel")}: {sourceNameAr(c.sourceUrl) ?? t(locale, "noSourceRecorded")}
       </MetaLine>
       <MetaLine>
-        {t(locale, "cmMatchedOn")}: {c.matchedTerms.join("، ")}
+        {t(locale, "cmMatchedOn")}: {c.matchedTerms.map(termDisplayAr).join("، ")}
       </MetaLine>
 
       {c.slug && (
@@ -329,7 +329,7 @@ function PrincipleRow({ locale, p }: { locale: Locale; p: RetrievedPrinciple }) 
         </p>
       )}
       <MetaLine>
-        {t(locale, "cmMatchedOn")}: {p.matchedTerms.join("، ")}
+        {t(locale, "cmMatchedOn")}: {p.matchedTerms.map(termDisplayAr).join("، ")}
       </MetaLine>
       {p.slug && (
         <FullTextLink

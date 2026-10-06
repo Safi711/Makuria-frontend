@@ -23,9 +23,9 @@ export function lawStatusWordAr(status?: string | null): string {
     case "amended":
       return "معدّل";
     case "reference":
-      return "تحت المراجعة";
+      return "قيد المراجعة";
     default:
-      return "تحت المراجعة";
+      return "قيد المراجعة";
   }
 }
 
