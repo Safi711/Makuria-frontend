@@ -1,11 +1,19 @@
-# Fix C Handoff — 2026-10-05
+# Fix C Handoff — 2026-10-06
 
-## Current scores (branch semantic-layer, commit a0b1aaf)
+## Current scores (branch semantic-layer, commit b7ef20b)
 
-- **Batches:** 90/90 (9 batches × 10 cases; all drug-possession cases PASS with intentUnknown)
+- **Batches:** 100/100 (10 batches × 10 cases)
 - **Golden:** 25/31 (28 scored; T21–T23 missing feature; T26–T28 skipped future feature)
 
-## What is still open before pushing
+## Display items closed (commits 4d45762, b7ef20b)
+
+- MethodCard no longer shows a stripped article (Art.15) as topLaw when intentUnknown=true
+- "ساري" badge reads actual law status from DB (no longer hardcoded in_force)
+- Article text truncates at word boundary with "…" (wordTrunc helper)
+- Internal concept keys ("مخدرات:قصد التعاطي") mapped to reader-facing labels in all three matchedTerms render sites and in MethodCard pills/headings
+- Badge wording changed from "تحت المراجعة" to "قيد المراجعة"; repealed badge changed to "ملغى — لا يُعمل به"
+
+## What is still open
 
 ### 1. Clarification feature — T21, T22, T23, T26, T27, T28
 
@@ -19,19 +27,11 @@ These 6 cases are the only gap between 25/31 and the 27/31 target.
 
 All 16 criminal-law-1991 golden cases return `sourceUrl=null`. The code is correct — it reads `laws.source_url` from the DB and passes it through. The data is missing: `criminal-law-1991` has no `source_url` row. Not a code fix; the URL must be added to the `laws` table directly.
 
-### 3. Batch 10 not yet written
-
-The approved lawyer batches cover B1–B9 (90 cases). B10 has not been written or scored.
-
-### 4. AdvisorPage discuss card not visually checked
-
-The narcotics intent-gate feature adds two discuss cards (Art. 15 and Art. 20) when `intentUnknown=true`. The `description` field per card is wired up in code and renders via `item.description`. The card has not been opened in a browser to verify layout, RTL alignment, or that the gold left-border renders correctly for both cards.
-
-### 5. Art. 170 (hadd theft) — conditional on hirz and nisab
+### 3. Art. 170 (hadd theft) — conditional on hirz and nisab
 
 Art. 170 (سرقة حدّية) appears in the related-articles list for plain theft (Art. 174) without any condition. The lawyer's ruling: Art. 170 applies only when both hirz (secure custody) and nisab (minimum threshold value) are established. Until those conditions are confirmed by the lawyer, Art. 170 must be an open point in the discuss section, not a related article shown unconditionally.
 
-### 6. Precedent cards predate the applicable law — no visible note
+### 4. Precedent cards predate the applicable law — no visible note
 
 The related precedents for plain theft include hadd-theft cases from 1985–1989, decided before the Criminal Act 1991 came into force. Any judgment whose year is earlier than the law applied should carry a visible note ("هذا الحكم سابق لصدور القانون المطبَّق") to alert the reader. Currently "سبب الصلة" repeats the principle text verbatim rather than explaining why the case is relevant to the current article.
 

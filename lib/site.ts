@@ -19,7 +19,7 @@ export function lawStatusWordAr(status?: string | null): string {
     case "published":
       return "ساري";
     case "repealed":
-      return "ملغى";
+      return "ملغى — لا يُعمل به";
     case "amended":
       return "معدّل";
     case "reference":
