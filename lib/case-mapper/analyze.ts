@@ -1260,6 +1260,24 @@ function forceOf(row: { status_rank: number | null; law_status: string | null })
   return "not_in_force";
 }
 
+/** Map a `laws.status` column value to a `ForceStatus` for concept-map articles. */
+function forceFromLawStatus(status?: string | null): ForceStatus {
+  switch (status) {
+    case "active":
+    case "published": return "in_force";
+    case "repealed":  return "not_in_force";
+    case "reference": return "under_review";
+    default:          return "unknown";
+  }
+}
+
+/** Truncate at the last word boundary before `limit` chars; append "…" if cut. */
+function wordTrunc(text: string, limit: number): string {
+  if (text.length <= limit) return text;
+  const cut = text.lastIndexOf(" ", limit);
+  return (cut > 0 ? text.slice(0, cut) : text.slice(0, limit)) + "…";
+}
+
 type V4Row = {
   result_type: string;
   entity_id: string;
@@ -1413,10 +1431,10 @@ async function analyzeCriminalConceptMap(
   const uniqueSlugs = [...new Set(mappedEntries.map((e) => e.lawSlug))];
   const { data: lawsData } = await supabase
     .from("laws")
-    .select("id, slug, title_ar, source_url, verified")
+    .select("id, slug, title_ar, source_url, verified, status")
     .in("slug", uniqueSlugs);
 
-  type LawRow = { id: string; slug: string; title_ar: string | null; source_url: string | null; verified: boolean | null };
+  type LawRow = { id: string; slug: string; title_ar: string | null; source_url: string | null; verified: boolean | null; status?: string | null };
   const lawBySlug = new Map<string, LawRow>(
     ((lawsData ?? []) as LawRow[]).map((l) => [l.slug, l])
   );
@@ -1463,12 +1481,12 @@ async function analyzeCriminalConceptMap(
         title: article.title_ar ?? "",
         lawTitle: parentLaw.title_ar ?? null,
         articleNumber: article.article_number,
-        excerptHtml: (article.content_ar ?? "").slice(0, 600),
+        excerptHtml: wordTrunc(article.content_ar ?? "", 600),
         verified: Boolean(article.verified),
         slug: null,
         lawSlug: entry.lawSlug,
         sourceUrl: parentLaw.source_url ?? null,
-        force: "in_force",
+        force: forceFromLawStatus(parentLaw.status),
         statusNote: article.status_note_ar ?? null,
         matchedTerms: [entry.conceptTerm],
         rank: 100,
@@ -1499,11 +1517,11 @@ async function analyzeCriminalConceptMap(
       if (extraSlugs.length) {
         const { data: extraLaws } = await supabase
           .from("laws")
-          .select("id, slug, title_ar, source_url, verified")
+          .select("id, slug, title_ar, source_url, verified, status")
           .in("slug", extraSlugs);
         const extraLawRows = (extraLaws ?? []) as Array<{
           id: string; slug: string; title_ar: string | null;
-          source_url: string | null; verified: boolean | null;
+          source_url: string | null; verified: boolean | null; status?: string | null;
         }>;
         const extraLawIds = extraLawRows.map((l) => l.id);
         extraLawRows.forEach((l) => lawBySlug.set(l.slug, l));
@@ -1535,12 +1553,12 @@ async function analyzeCriminalConceptMap(
           title: article.title_ar ?? "",
           lawTitle: parentLaw.title_ar ?? null,
           articleNumber: article.article_number,
-          excerptHtml: (article.content_ar ?? "").slice(0, 600),
+          excerptHtml: wordTrunc(article.content_ar ?? "", 600),
           verified: Boolean(article.verified),
           slug: null,
           lawSlug: entry.lawSlug,
           sourceUrl: parentLaw.source_url ?? null,
-          force: "in_force",
+          force: forceFromLawStatus(parentLaw.status),
           statusNote: article.status_note_ar ?? null,
           matchedTerms: [entry.concept],
           rank: 100,
@@ -1798,14 +1816,17 @@ export async function analyzeCase(
 
     if (llmResult.type === "criminal" && llmResult.intentUnknown) {
       const NARCOTICS = "narcotics-psychotropic-substances-act-1994";
+      const isStrippedArt = (l: { lawSlug?: string | null; articleNumber?: string | null }) =>
+        l.lawSlug === NARCOTICS &&
+        (l.articleNumber === "15" || l.articleNumber === "16" || l.articleNumber === "20");
+      const filteredLaws = cmResult.laws.filter((l) => !isStrippedArt(l));
       return {
         ...cmResult,
-        laws: cmResult.laws.filter(
-          (l) =>
-            !(l.lawSlug === NARCOTICS &&
-              (l.articleNumber === "15" ||
-               l.articleNumber === "16" ||
-               l.articleNumber === "20")),
+        laws: filteredLaws,
+        issues: cmResult.issues.map((issue) =>
+          issue.topLaw && isStrippedArt(issue.topLaw)
+            ? { ...issue, topLaw: filteredLaws[0] ?? null }
+            : issue,
         ),
         intentUnknown: true,
       };

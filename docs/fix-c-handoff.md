@@ -27,6 +27,14 @@ The approved lawyer batches cover B1–B9 (90 cases). B10 has not been written o
 
 The narcotics intent-gate feature adds two discuss cards (Art. 15 and Art. 20) when `intentUnknown=true`. The `description` field per card is wired up in code and renders via `item.description`. The card has not been opened in a browser to verify layout, RTL alignment, or that the gold left-border renders correctly for both cards.
 
+### 5. Art. 170 (hadd theft) — conditional on hirz and nisab
+
+Art. 170 (سرقة حدّية) appears in the related-articles list for plain theft (Art. 174) without any condition. The lawyer's ruling: Art. 170 applies only when both hirz (secure custody) and nisab (minimum threshold value) are established. Until those conditions are confirmed by the lawyer, Art. 170 must be an open point in the discuss section, not a related article shown unconditionally.
+
+### 6. Precedent cards predate the applicable law — no visible note
+
+The related precedents for plain theft include hadd-theft cases from 1985–1989, decided before the Criminal Act 1991 came into force. Any judgment whose year is earlier than the law applied should carry a visible note ("هذا الحكم سابق لصدور القانون المطبَّق") to alert the reader. Currently "سبب الصلة" repeats the principle text verbatim rather than explaining why the case is relevant to the current article.
+
 ## Batch 10 — live run 2026-10-05 (10/10, single run, no fixes)
 
 | ID | Facts (short) | Expected | Rank-1 returned | Result |

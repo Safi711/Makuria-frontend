@@ -73,6 +73,17 @@ function badgeStatus(force: ForceStatus): string | undefined {
   }
 }
 
+/** Map internal colon-key concept terms to reader-facing Arabic labels.
+ * These keys (e.g. "مخدرات:قصد التعاطي") are vocabulary identifiers in the
+ * classifier and must never appear verbatim in the UI. */
+const TERM_DISPLAY_AR: Record<string, string> = {
+  "مخدرات:قصد التعاطي":  "مخدرات — قصد التعاطي",
+  "مخدرات:قصد الاتجار":  "مخدرات — قصد الاتجار",
+};
+function termDisplayAr(term: string): string {
+  return TERM_DISPLAY_AR[term] ?? term;
+}
+
 function originLabel(locale: Locale, origin: IssueLens["origin"]): string {
   switch (origin) {
     case "keyword":
@@ -314,7 +325,7 @@ function PrincipleRow({ locale, p }: { locale: Locale; p: RetrievedPrinciple }) 
       {p.category && <MetaLine>{p.category}</MetaLine>}
       {p.summary && (
         <p className="mt-2 text-sm leading-relaxed" style={{ color: "var(--cm-text-2)" }}>
-          {p.summary.slice(0, 220)}
+          {(() => { const t = p.summary; if (t.length <= 220) return t; const cut = t.lastIndexOf(" ", 220); return (cut > 0 ? t.slice(0, cut) : t.slice(0, 220)) + "…"; })()}
         </p>
       )}
       <MetaLine>
@@ -350,7 +361,7 @@ function MethodCard({ locale, result }: { locale: Locale; result: CaseMapResult 
             }}
             title={originLabel(locale, issue.origin)}
           >
-            {issue.term}
+            {termDisplayAr(issue.term)}
           </li>
         ))}
       </ul>
@@ -372,7 +383,7 @@ function MethodCard({ locale, result }: { locale: Locale; result: CaseMapResult 
       <ul className="mt-4 space-y-3">
         {result.issues.map((issue) => (
           <Row key={`chain-${issue.term}`}>
-            <p className="mb-1 text-sm font-semibold">{issue.term}</p>
+            <p className="mb-1 text-sm font-semibold">{termDisplayAr(issue.term)}</p>
             <MetaLine>{originLabel(locale, issue.origin)}</MetaLine>
 
             {issue.searchedAndEmpty ? (
