@@ -1,7 +1,7 @@
 /**
  * Batch scorecard runner.
  * Usage: npx tsx lib/case-mapper/__tests__/run-batch1.ts [batch-number]
- *   batch-number: 1-based index (default 1). Pass 2 to run batch 2, etc.
+ *   batch-number: 1-9 load from the approved batches file; 10 loads batch10.json.
  *
  * Keys are loaded from .env.local (gitignored). Required variables:
  *   NEXT_PUBLIC_SUPABASE_ANON_KEY  — Supabase anon JWT
@@ -18,6 +18,7 @@ import { createClient } from "@supabase/supabase-js";
 import { analyzeCase } from "../analyze";
 import type { CaseMapResult } from "../analyze";
 import { readFileSync } from "fs";
+import { join } from "path";
 
 // Load .env.local so keys never appear on the command line.
 // process.loadEnvFile is available in Node ≥ 20.6.
@@ -39,16 +40,23 @@ if (!process.env.ANTHROPIC_API_KEY) {
 }
 const BATCH_NUMBER = parseInt(process.argv[2] ?? "1", 10);
 
-const raw = JSON.parse(
-  readFileSync("/Users/maibadi/Downloads/Makuria Stage1 Batches01-09 APPROVED ALL.json", "utf8")
-);
-
-const batchEntry = raw.batches[BATCH_NUMBER - 1];
-if (!batchEntry) {
-  console.error(`Batch ${BATCH_NUMBER} not found (file has ${raw.batches.length} batches)`);
-  process.exit(1);
+let batch1: any[];
+if (BATCH_NUMBER === 10) {
+  const b10 = JSON.parse(
+    readFileSync(join(process.cwd(), "lib/case-mapper/__tests__/batch10.json"), "utf8")
+  );
+  batch1 = b10.tests as any[];
+} else {
+  const raw = JSON.parse(
+    readFileSync("/Users/maibadi/Downloads/Makuria Stage1 Batches01-09 APPROVED ALL.json", "utf8")
+  );
+  const batchEntry = raw.batches[BATCH_NUMBER - 1];
+  if (!batchEntry) {
+    console.error(`Batch ${BATCH_NUMBER} not found (file has ${raw.batches.length} batches)`);
+    process.exit(1);
+  }
+  batch1 = batchEntry.tests as any[];
 }
-const batch1 = batchEntry.tests as any[];
 
 // ── helpers ────────────────────────────────────────────────────────────────
 
