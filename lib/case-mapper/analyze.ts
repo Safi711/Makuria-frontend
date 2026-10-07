@@ -7,7 +7,7 @@ import {
   factsMatchKeywords,
   factsMatchClaimMarker,
   factsMatchMoneyTake,
-  LETHAL_WEAPON_KW,
+  factsMatchLethalWeapon,
   SUPPLY_TO_PERSON_KW,
   PUBLIC_OFFICIAL_KW,
   LEGAL_PROCEEDING_KW,
@@ -1859,7 +1859,7 @@ export async function analyzeCase(
     // and shootings only. A stick blow in a fight should not trigger it.
     const rawDiscuss = llmResult.type === "criminal" ? (llmResult.discuss ?? []) : [];
     const filteredDiscuss = rawDiscuss.filter(
-      (c) => c !== "قتل عمد" || factsMatchKeywords(input.facts, LETHAL_WEAPON_KW),
+      (c) => c !== "قتل عمد" || factsMatchLethalWeapon(input.facts),
     );
 
     // Build discuss concept list for the open-point cards.
