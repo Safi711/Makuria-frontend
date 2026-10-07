@@ -1,5 +1,21 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { classifyWithLLM } from "./llm-classifier";
+import {
+  stripTashkeel,
+  normalizeForKwMatch,
+  tokenMatchesKw,
+  factsMatchKeywords,
+  factsMatchClaimMarker,
+  factsMatchMoneyTake,
+  LETHAL_WEAPON_KW,
+  SUPPLY_TO_PERSON_KW,
+  PUBLIC_OFFICIAL_KW,
+  LEGAL_PROCEEDING_KW,
+  UNIFORM_KW,
+  IMPOSTOR_VERB_KW,
+  TAKING_VERB_KW,
+  MONEY_NOUN_KW,
+} from "./kw-matcher.mjs";
 
 /**
  * Case Mapper — deterministic retrieval over the Makuria corpus. No
@@ -650,71 +666,12 @@ const DISCUSS_CONCEPT_DESC: Record<string, string> = {
   "سرقة:حد": "الوقائع تثبت السرقة. تطبيق عقوبة الحد (المادة 170) مشروط بثبوت شروطه، ومنها أخذ المال خفية من حرزه وبلوغه النصاب — وإثبات ذلك أو نفيه مهمة المحامي، والفصل فيه للمحكمة.",
 };
 
-function stripTashkeel(text: string): string {
-  return text.replace(/[ً-ْٰ]/g, "");
-}
-
 /** Strips tashkeel AND folds alef variants (أ إ آ ٱ) to bare alef.
  * quick_search_v4 does the same on the DB side; mirroring it here lets
  * trigger "أخذ" match a text token "اخذ" or vice-versa without special-casing
  * every alef spelling a lawyer might use. */
 function arabicNormalize(text: string): string {
   return stripTashkeel(text).replace(/[أإآٱ]/g, "ا");
-}
-
-/** Extends arabicNormalize with ة→ه and ى→ي for keyword gate matching.
- * Used only for the lethal-weapon, supply, and public-official gates. */
-function normalizeForKwMatch(text: string): string {
-  return stripTashkeel(text)
-    .replace(/[أإآٱ]/g, "ا")
-    .replace(/ة/g, "ه")
-    .replace(/ى/g, "ي");
-}
-
-/** Strips the definite-article prefix chain from a token before matching.
- * Handles وال/فال/بال/كال/لل/ال so "الضابط" and "للضابط" both match "ضابط". */
-// Multi-char prefixes first (longest-match), then single-char conjunctions و/ف/ب/ك.
-// ل is NOT stripped here: the claim-marker gate excludes ل-prefixed tokens explicitly.
-const KW_ARTICLE_PREFIXES = ["وال", "فال", "بال", "كال", "لل", "ال", "و", "ف", "ب", "ك"];
-function stripKwArticle(token: string): string {
-  for (const p of KW_ARTICLE_PREFIXES) {
-    if (token.startsWith(p) && token.length > p.length + 1) return token.slice(p.length);
-  }
-  return token;
-}
-
-/** True when textToken matches kwToken as:
- *  - exact match
- *  - article-stripped form equals kwToken ("الضابط" → "ضابط")
- *  - textToken starts with kwToken (handles pronoun suffixes: "وزعها" → "وزع") */
-function tokenMatchesKw(textToken: string, kwToken: string): boolean {
-  if (textToken === kwToken) return true;
-  const stripped = stripKwArticle(textToken);
-  if (stripped === kwToken) return true;
-  if (textToken.startsWith(kwToken) && textToken.length > kwToken.length) return true;
-  if (stripped !== textToken && stripped.startsWith(kwToken) && stripped.length > kwToken.length) return true;
-  return false;
-}
-
-/** Returns true when any keyword from `keywords` appears in `facts`.
- * Single-token keywords use tokenMatchesKw (handles suffixes and articles).
- * Multi-token phrases require all tokens to appear contiguously in order. */
-function factsMatchKeywords(facts: string, keywords: string[]): boolean {
-  const normFacts = normalizeForKwMatch(facts);
-  const factsTokens = normFacts.split(/[^؀-ۿA-Za-z0-9]+/).filter(Boolean);
-  for (const kw of keywords) {
-    const kwTokens = normalizeForKwMatch(kw).split(/[^؀-ۿA-Za-z0-9]+/).filter(Boolean);
-    if (kwTokens.length === 0) continue;
-    if (kwTokens.length === 1) {
-      if (factsTokens.some((t) => tokenMatchesKw(t, kwTokens[0]))) return true;
-    } else {
-      const n = kwTokens.length;
-      for (let i = 0; i <= factsTokens.length - n; i++) {
-        if (kwTokens.every((kt, j) => tokenMatchesKw(factsTokens[i + j], kt))) return true;
-      }
-    }
-  }
-  return false;
 }
 
 /** Replaces Arabic in-word punctuation (،؛؟) and ASCII period with a space
@@ -1822,131 +1779,7 @@ async function analyzeCriminalConceptMap(
   };
 }
 
-// ── Keyword gate lists ────────────────────────────────────────────────────
-// Matched via factsMatchKeywords (token-based, not substring).
-// Lawyer-supplied additions go here; these are the base lists only.
-
-/** Item 2: attempted-murder open point fires only for stabbings and shootings. */
-const LETHAL_WEAPON_KW = [
-  // stabbing
-  "طعن", "سكين", "خنجر", "حربة", "شفرة", "بسيف", "بالسيف", "بموس", "بالموس",
-  // shooting
-  "رصاص", "رصاصة", "مسدس", "بندقية", "سلاح ناري",
-];
-
-/** Item 3: Art. 16 (تقديم) discuss card fires only when supply-to-person verbs match. */
-const SUPPLY_TO_PERSON_KW = [
-  "قدم له",   // handed to him (phrase)
-  "سلم له",   // delivered to him (phrase)
-  "أعطاه",    // gave him
-  "أعطى",     // gave (general)
-  "يعطيه",    // gives him
-  "وزع",      // distributed
-  "يوزع",     // distributes
-  "ناول",     // handed over
-  "يناول",    // hands over
-  // bare "يسلم" dropped: fires on "يسلم نفسه للشرطة" even after token matching
-];
-
-/** Item 4: Art. 93 fires when facts mention a public-official role. */
-const PUBLIC_OFFICIAL_KW = [
-  "موظف", "موظفين", "موظفي", "ضابط", "ضباط", "مأمور", "وزارة", "حكومي", "مباحث",
-];
-
-/** Item 4: Art. 113 fires only when facts mention a legal proceeding. */
-const LEGAL_PROCEEDING_KW = [
-  "دعوى", "محكمة", "إقرار", "كفالة", "ضامن",
-];
-
-/** Item 4: Art. 60 fires only when facts mention a uniform or badge phrase.
- * Bare "زي" excluded: Sudanese colloquial "زي ما قال" = "just as ... said".
- * Bare "شارة" excluded: "شارة المرور" (traffic signal) would false-fire. */
-const UNIFORM_KW = [
-  "زي رسمي", "زي عسكري", "زي الشرطة", "زي الجيش", "زي الأمن",
-  "شارة الشرطة", "شارة رسمية", "شارة عسكرية",
-];
-
-/** Impersonation-gate: verbs used when posing as an official. */
-const IMPOSTOR_VERB_KW = [
-  "انتحل", "منتحل", "انتحال صفة",
-  "ادعى", "مدعي",
-  "زعم",
-  "أوهم",
-  "تظاهر", "متظاهر",
-  "قدم نفسه",
-];
-
-/** Impersonation-gate: verbs indicating receipt of money.
- * A verb followed by على/عليه/عليهم counts as "arrest", not receipt — see factsMatchMoneyTake. */
-const TAKING_VERB_KW = ["قبض", "استلم", "أخذ", "تسلم", "تحصل", "حصل على"];
-
-/** Impersonation-gate: nouns indicating money or property. */
-const MONEY_NOUN_KW = [
-  "مبلغ", "مال", "أموال", "مبالغ", "نقود", "فلوس", "ثمن", "رسوم", "دفعة",
-];
-
-/** Claim-marker gate: returns true when a claim marker (أنه/بأنه/صفة/شخصية) is
- * followed by a public-official keyword within at most 2 filler tokens, and the
- * official-keyword token does NOT start with ل (للموظف, لضابط do not count). */
-const CLAIM_MARKERS = new Set(
-  ["أنه", "بأنه", "صفة", "شخصية"].map(normalizeForKwMatch)
-);
-const FILLER_TOKENS = new Set(
-  ["من", "يعمل", "في", "أحد", "أفراد"].map(normalizeForKwMatch)
-);
-const ARREST_POSTFIX = new Set(
-  ["على", "عليه", "عليهم", "عليها", "عليهن"].map(normalizeForKwMatch)
-);
-
-function factsMatchClaimMarker(facts: string, officialKws: string[]): boolean {
-  const normFacts = normalizeForKwMatch(facts);
-  const tokens = normFacts.split(/[^؀-ۿA-Za-z0-9]+/).filter(Boolean);
-  const normOffKws = officialKws
-    .map((k) => normalizeForKwMatch(k).split(/[^؀-ۿA-Za-z0-9]+/).filter(Boolean)[0])
-    .filter(Boolean);
-
-  for (let i = 0; i < tokens.length; i++) {
-    if (!CLAIM_MARKERS.has(tokens[i])) continue;
-    for (let skip = 0; skip <= 2; skip++) {
-      const j = i + 1 + skip;
-      if (j >= tokens.length) break;
-      let allFillers = true;
-      for (let k = i + 1; k < j; k++) {
-        if (!FILLER_TOKENS.has(tokens[k])) { allFillers = false; break; }
-      }
-      if (!allFillers) break;
-      if (tokens[j].startsWith("ل")) continue;
-      if (normOffKws.some((ok) => tokenMatchesKw(tokens[j], ok))) return true;
-    }
-  }
-  return false;
-}
-
-/** Returns true when the facts contain a taking verb that is NOT followed by
- * على/عليه/عليهم (those indicate arrest, not receipt of money) AND a money noun. */
-function factsMatchMoneyTake(facts: string): boolean {
-  const normFacts = normalizeForKwMatch(facts);
-  const tokens = normFacts.split(/[^؀-ۿA-Za-z0-9]+/).filter(Boolean);
-  const normVerbKws = TAKING_VERB_KW
-    .map((k) => normalizeForKwMatch(k).split(/[^؀-ۿA-Za-z0-9]+/).filter(Boolean))
-    .filter((kts) => kts.length > 0);
-
-  let foundTakingVerb = false;
-  for (let i = 0; i < tokens.length; i++) {
-    const isVerb = normVerbKws.some((kts) =>
-      kts.length === 1
-        ? tokenMatchesKw(tokens[i], kts[0])
-        : kts.every((kt, j) => i + j < tokens.length && tokenMatchesKw(tokens[i + j], kt))
-    );
-    if (!isVerb) continue;
-    const nextTok = i + 1 < tokens.length ? tokens[i + 1] : null;
-    if (nextTok !== null && ARREST_POSTFIX.has(nextTok)) continue;
-    foundTakingVerb = true;
-    break;
-  }
-  if (!foundTakingVerb) return false;
-  return factsMatchKeywords(facts, MONEY_NOUN_KW);
-}
+// Keyword gate lists and matcher functions live in ./kw-matcher.mjs (imported above).
 
 export async function analyzeCase(
   supabase: SupabaseClient,
