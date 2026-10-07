@@ -619,6 +619,10 @@ const DISCUSS_CONCEPT_TO_ARTICLES: Record<string, ConceptArticleEntry[]> = {
   "مخدرات:تقديم": [
     { lawSlug: "narcotics-psychotropic-substances-act-1994", articleNumber: "16" },
   ],
+  // Art. 93: shown as open point when احتيال/انتحال impersonation-gate fires
+  "انتحال:موظف": [
+    { lawSlug: "criminal-law-1991", articleNumber: "93" },
+  ],
   // Hadd theft: always an open point — hadd is never asserted by the tool
   "سرقة:حد": [
     { lawSlug: "criminal-law-1991", articleNumber: "170" }, // السرقة الحدية
@@ -633,6 +637,7 @@ const DISCUSS_CONCEPT_LABEL: Record<string, string> = {
   "مخدرات:قصد الاتجار": "المادة 15 — الاتجار في المواد المخدرة",
   "مخدرات:قصد التعاطي": "المادة 20 — الحيازة بقصد التعاطي",
   "مخدرات:تقديم": "المادة 16 — تقديم المخدرات لشخص آخر",
+  "انتحال:موظف": "انتحال صفة الموظف العام (المادة ٩٣)",
   "سرقة:حد": "السرقة الحدية — تطبيق المادة 170 رهنٌ بثبوت شروط الحد",
 };
 
@@ -641,6 +646,7 @@ const DISCUSS_CONCEPT_DESC: Record<string, string> = {
   "مخدرات:قصد الاتجار": "الوقائع تثبت الحيازة. تطبيق المادة 15 (الاتجار) رهنٌ بإثبات قصد الاتجار — وإثباته أو نفيه مهمة المحامي، والفصل فيه للمحكمة.",
   "مخدرات:قصد التعاطي": "الوقائع تثبت الحيازة. تطبيق المادة 20 (التعاطي الشخصي) رهنٌ بإثبات القصد الشخصي — وإثباته أو نفيه مهمة المحامي، والفصل فيه للمحكمة.",
   "مخدرات:تقديم": "الوقائع تشير إلى تقديم مواد مخدرة لشخص آخر. تطبيق المادة 16 (تقديم المخدرات) رهنٌ بإثبات التسليم المباشر — وإثباته أو نفيه مهمة المحامي، والفصل فيه للمحكمة.",
+  "انتحال:موظف": "تفيد الوقائع أن المتهم ادّعى صفة موظف عام للحصول على المال. الوصف الأساسي هو الاحتيال (المادة ١٧٨). على المحامي أن يبحث: هل يقوم انتحال الصفة جريمةً مستقلة إلى جانب الاحتيال، أم هو مجرد وسيلة له؟ والمادة ٩٣ تشترط سوء القصد.",
   "سرقة:حد": "الوقائع تثبت السرقة. تطبيق عقوبة الحد (المادة 170) مشروط بثبوت شروطه، ومنها أخذ المال خفية من حرزه وبلوغه النصاب — وإثبات ذلك أو نفيه مهمة المحامي، والفصل فيه للمحكمة.",
 };
 
@@ -667,7 +673,9 @@ function normalizeForKwMatch(text: string): string {
 
 /** Strips the definite-article prefix chain from a token before matching.
  * Handles وال/فال/بال/كال/لل/ال so "الضابط" and "للضابط" both match "ضابط". */
-const KW_ARTICLE_PREFIXES = ["وال", "فال", "بال", "كال", "لل", "ال"];
+// Multi-char prefixes first (longest-match), then single-char conjunctions و/ف/ب/ك.
+// ل is NOT stripped here: the claim-marker gate excludes ل-prefixed tokens explicitly.
+const KW_ARTICLE_PREFIXES = ["وال", "فال", "بال", "كال", "لل", "ال", "و", "ف", "ب", "ك"];
 function stripKwArticle(token: string): string {
   for (const p of KW_ARTICLE_PREFIXES) {
     if (token.startsWith(p) && token.length > p.length + 1) return token.slice(p.length);
@@ -1842,7 +1850,7 @@ const SUPPLY_TO_PERSON_KW = [
 
 /** Item 4: Art. 93 fires when facts mention a public-official role. */
 const PUBLIC_OFFICIAL_KW = [
-  "موظف", "ضابط", "مأمور", "وزارة", "حكومي",
+  "موظف", "موظفين", "موظفي", "ضابط", "ضباط", "مأمور", "وزارة", "حكومي", "مباحث",
 ];
 
 /** Item 4: Art. 113 fires only when facts mention a legal proceeding. */
@@ -1858,6 +1866,88 @@ const UNIFORM_KW = [
   "شارة الشرطة", "شارة رسمية", "شارة عسكرية",
 ];
 
+/** Impersonation-gate: verbs used when posing as an official. */
+const IMPOSTOR_VERB_KW = [
+  "انتحل", "منتحل", "انتحال صفة",
+  "ادعى", "مدعي",
+  "زعم",
+  "أوهم",
+  "تظاهر", "متظاهر",
+  "قدم نفسه",
+];
+
+/** Impersonation-gate: verbs indicating receipt of money.
+ * A verb followed by على/عليه/عليهم counts as "arrest", not receipt — see factsMatchMoneyTake. */
+const TAKING_VERB_KW = ["قبض", "استلم", "أخذ", "تسلم", "تحصل", "حصل على"];
+
+/** Impersonation-gate: nouns indicating money or property. */
+const MONEY_NOUN_KW = [
+  "مبلغ", "مال", "أموال", "مبالغ", "نقود", "فلوس", "ثمن", "رسوم", "دفعة",
+];
+
+/** Claim-marker gate: returns true when a claim marker (أنه/بأنه/صفة/شخصية) is
+ * followed by a public-official keyword within at most 2 filler tokens, and the
+ * official-keyword token does NOT start with ل (للموظف, لضابط do not count). */
+const CLAIM_MARKERS = new Set(
+  ["أنه", "بأنه", "صفة", "شخصية"].map(normalizeForKwMatch)
+);
+const FILLER_TOKENS = new Set(
+  ["من", "يعمل", "في", "أحد", "أفراد"].map(normalizeForKwMatch)
+);
+const ARREST_POSTFIX = new Set(
+  ["على", "عليه", "عليهم", "عليها", "عليهن"].map(normalizeForKwMatch)
+);
+
+function factsMatchClaimMarker(facts: string, officialKws: string[]): boolean {
+  const normFacts = normalizeForKwMatch(facts);
+  const tokens = normFacts.split(/[^؀-ۿA-Za-z0-9]+/).filter(Boolean);
+  const normOffKws = officialKws
+    .map((k) => normalizeForKwMatch(k).split(/[^؀-ۿA-Za-z0-9]+/).filter(Boolean)[0])
+    .filter(Boolean);
+
+  for (let i = 0; i < tokens.length; i++) {
+    if (!CLAIM_MARKERS.has(tokens[i])) continue;
+    for (let skip = 0; skip <= 2; skip++) {
+      const j = i + 1 + skip;
+      if (j >= tokens.length) break;
+      let allFillers = true;
+      for (let k = i + 1; k < j; k++) {
+        if (!FILLER_TOKENS.has(tokens[k])) { allFillers = false; break; }
+      }
+      if (!allFillers) break;
+      if (tokens[j].startsWith("ل")) continue;
+      if (normOffKws.some((ok) => tokenMatchesKw(tokens[j], ok))) return true;
+    }
+  }
+  return false;
+}
+
+/** Returns true when the facts contain a taking verb that is NOT followed by
+ * على/عليه/عليهم (those indicate arrest, not receipt of money) AND a money noun. */
+function factsMatchMoneyTake(facts: string): boolean {
+  const normFacts = normalizeForKwMatch(facts);
+  const tokens = normFacts.split(/[^؀-ۿA-Za-z0-9]+/).filter(Boolean);
+  const normVerbKws = TAKING_VERB_KW
+    .map((k) => normalizeForKwMatch(k).split(/[^؀-ۿA-Za-z0-9]+/).filter(Boolean))
+    .filter((kts) => kts.length > 0);
+
+  let foundTakingVerb = false;
+  for (let i = 0; i < tokens.length; i++) {
+    const isVerb = normVerbKws.some((kts) =>
+      kts.length === 1
+        ? tokenMatchesKw(tokens[i], kts[0])
+        : kts.every((kt, j) => i + j < tokens.length && tokenMatchesKw(tokens[i + j], kt))
+    );
+    if (!isVerb) continue;
+    const nextTok = i + 1 < tokens.length ? tokens[i + 1] : null;
+    if (nextTok !== null && ARREST_POSTFIX.has(nextTok)) continue;
+    foundTakingVerb = true;
+    break;
+  }
+  if (!foundTakingVerb) return false;
+  return factsMatchKeywords(facts, MONEY_NOUN_KW);
+}
+
 export async function analyzeCase(
   supabase: SupabaseClient,
   input: CaseMapperInput
@@ -1871,6 +1961,7 @@ export async function analyzeCase(
   // anyFired, we pass undefined caseType to resolveCaseTypeFull so it
   // derives "criminal" from inferCriminal rather than the user-supplied text.
   let { terms: criminalTerms, anyFired } = applyCriminalExpansions(input.facts);
+  let officialImpersonatorGateFired = false;
 
   // ── LLM post-deterministic veto ────────────────────────────────────────
   // Runs even when word lists fired (anyFired=true) so it can correct a wrong
@@ -1898,14 +1989,24 @@ export async function analyzeCase(
     // Item 4: for انتحال, split into sub-concepts based on keyword gates so that
     // Art. 93/113/60 are shown only when the facts support their specific scope.
     if (llmResult.concept === "انتحال") {
-      const subTerms: string[] = [];
-      if (factsMatchKeywords(input.facts, PUBLIC_OFFICIAL_KW)) subTerms.push("انتحال:موظف");
-      if (factsMatchKeywords(input.facts, LEGAL_PROCEEDING_KW)) subTerms.push("انتحال:دعوى");
-      if (factsMatchKeywords(input.facts, UNIFORM_KW)) subTerms.push("انتحال:زي");
-      // If no gate fires, fall back to "انتحال" (empty map) → noConfidentMatch.
-      criminalTerms = subTerms.length > 0
-        ? subTerms.map((t) => ({ term: t, origin: "expanded" as const }))
-        : [{ term: "انتحال", origin: "expanded" as const }];
+      const isOfficialImpersonation =
+        factsMatchKeywords(input.facts, IMPOSTOR_VERB_KW) &&
+        factsMatchClaimMarker(input.facts, PUBLIC_OFFICIAL_KW);
+      if (isOfficialImpersonation && factsMatchMoneyTake(input.facts)) {
+        // Fraud is the primary charge; impersonation of official is the method.
+        // Override to احتيال (Art. 178 rank 1); Art. 93 injected via discussConcepts.
+        criminalTerms = [{ term: "احتيال", origin: "expanded" as const }];
+        officialImpersonatorGateFired = true;
+      } else {
+        const subTerms: string[] = [];
+        if (factsMatchKeywords(input.facts, PUBLIC_OFFICIAL_KW)) subTerms.push("انتحال:موظف");
+        if (factsMatchKeywords(input.facts, LEGAL_PROCEEDING_KW)) subTerms.push("انتحال:دعوى");
+        if (factsMatchKeywords(input.facts, UNIFORM_KW)) subTerms.push("انتحال:زي");
+        // If no gate fires, fall back to "انتحال" (empty map) → noConfidentMatch.
+        criminalTerms = subTerms.length > 0
+          ? subTerms.map((t) => ({ term: t, origin: "expanded" as const }))
+          : [{ term: "انتحال", origin: "expanded" as const }];
+      }
     } else {
       criminalTerms = [{ term: llmResult.concept, origin: "expanded" as const }];
     }
@@ -1940,6 +2041,14 @@ export async function analyzeCase(
             ...(factsMatchKeywords(input.facts, SUPPLY_TO_PERSON_KW) ? ["مخدرات:تقديم"] : []),
             ...filteredDiscuss,
           ]
+        // Impersonation gate: احتيال path — Art. 178 stays rank 1, inject Art. 93 discuss.
+        // Also fires when انتحال is overridden to احتيال (officialImpersonatorGateFired=true).
+        : llmResult.type === "criminal" && (officialImpersonatorGateFired || (
+            llmResult.concept === "احتيال" &&
+            factsMatchKeywords(input.facts, IMPOSTOR_VERB_KW) &&
+            factsMatchClaimMarker(input.facts, PUBLIC_OFFICIAL_KW)
+          ))
+        ? ["انتحال:موظف", ...filteredDiscuss]
         : llmResult.type === "criminal"
         ? filteredDiscuss
         : undefined;
