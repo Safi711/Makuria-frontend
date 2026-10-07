@@ -79,6 +79,7 @@ function badgeStatus(force: ForceStatus): string | undefined {
 const TERM_DISPLAY_AR: Record<string, string> = {
   "مخدرات:قصد التعاطي":  "مخدرات — قصد التعاطي",
   "مخدرات:قصد الاتجار":  "مخدرات — قصد الاتجار",
+  "مخدرات:تقديم":        "مخدرات — تقديم لشخص آخر",
   "سرقة:حد":             "سرقة — السرقة الحدية",
 };
 function termDisplayAr(term: string): string {

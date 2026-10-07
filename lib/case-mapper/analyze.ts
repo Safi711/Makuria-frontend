@@ -342,10 +342,9 @@ const CONCEPT_TO_ARTICLES: Record<string, ConceptArticleEntry[]> = {
     { lawSlug: "criminal-law-1991", articleNumber: "129" }, // القتل وأنواعه — definition
   ],
   "مخدرات": [
-    { lawSlug: "narcotics-psychotropic-substances-act-1994", articleNumber: "15" }, // REVIEW: الاتجار
-    { lawSlug: "narcotics-psychotropic-substances-act-1994", articleNumber: "16" }, // REVIEW
-    { lawSlug: "narcotics-psychotropic-substances-act-1994", articleNumber: "20" }, // REVIEW: الحيازة للتعاطي
-    { lawSlug: "narcotics-psychotropic-substances-act-1994", articleNumber: "12" }, // REVIEW: ranked last
+    { lawSlug: "narcotics-psychotropic-substances-act-1994", articleNumber: "15" }, // الاتجار
+    { lawSlug: "narcotics-psychotropic-substances-act-1994", articleNumber: "12" }, // حظر التعامل
+    // Art. 16 (تقديم) injected via discuss when supply keywords match; Art. 20 (تعاطي) excluded: intent already known
   ],
   // Stated personal use — intent known; Art. 20 applicable, Art. 16/15 excluded
   "مخدرات:قصد التعاطي": [
@@ -610,6 +609,10 @@ const DISCUSS_CONCEPT_TO_ARTICLES: Record<string, ConceptArticleEntry[]> = {
   "مخدرات:قصد التعاطي": [
     { lawSlug: "narcotics-psychotropic-substances-act-1994", articleNumber: "20" },
   ],
+  // Art. 16 (تقديم): shown only when supply-to-person keywords match the facts
+  "مخدرات:تقديم": [
+    { lawSlug: "narcotics-psychotropic-substances-act-1994", articleNumber: "16" },
+  ],
   // Hadd theft: always an open point — hadd is never asserted by the tool
   "سرقة:حد": [
     { lawSlug: "criminal-law-1991", articleNumber: "170" }, // السرقة الحدية
@@ -623,6 +626,7 @@ const DISCUSS_CONCEPT_LABEL: Record<string, string> = {
   "قتل عمد": "الشروع في القتل العمد — نقطة مفتوحة للمحامي",
   "مخدرات:قصد الاتجار": "المادة 15 — الاتجار في المواد المخدرة",
   "مخدرات:قصد التعاطي": "المادة 20 — الحيازة بقصد التعاطي",
+  "مخدرات:تقديم": "المادة 16 — تقديم المخدرات لشخص آخر",
   "سرقة:حد": "السرقة الحدية — تطبيق المادة 170 رهنٌ بثبوت شروط الحد",
 };
 
@@ -630,6 +634,7 @@ const DISCUSS_CONCEPT_DESC: Record<string, string> = {
   "قتل عمد": "ليست هذه تصنيفاً. قد تُثار مسألة الشروع في القتل بحسب ما يثبت من قصد الجاني — وإثباتها أو نفيها مهمة المحامي، والفصل فيها للمحكمة.",
   "مخدرات:قصد الاتجار": "الوقائع تثبت الحيازة. تطبيق المادة 15 (الاتجار) رهنٌ بإثبات قصد الاتجار — وإثباته أو نفيه مهمة المحامي، والفصل فيه للمحكمة.",
   "مخدرات:قصد التعاطي": "الوقائع تثبت الحيازة. تطبيق المادة 20 (التعاطي الشخصي) رهنٌ بإثبات القصد الشخصي — وإثباته أو نفيه مهمة المحامي، والفصل فيه للمحكمة.",
+  "مخدرات:تقديم": "الوقائع تشير إلى تقديم مواد مخدرة لشخص آخر. تطبيق المادة 16 (تقديم المخدرات) رهنٌ بإثبات التسليم المباشر — وإثباته أو نفيه مهمة المحامي، والفصل فيه للمحكمة.",
   "سرقة:حد": "الوقائع تثبت السرقة. تطبيق عقوبة الحد (المادة 170) مشروط بثبوت شروطه، ومنها أخذ المال خفية من حرزه وبلوغه النصاب — وإثبات ذلك أو نفيه مهمة المحامي، والفصل فيه للمحكمة.",
 };
 
@@ -643,6 +648,59 @@ function stripTashkeel(text: string): string {
  * every alef spelling a lawyer might use. */
 function arabicNormalize(text: string): string {
   return stripTashkeel(text).replace(/[أإآٱ]/g, "ا");
+}
+
+/** Extends arabicNormalize with ة→ه and ى→ي for keyword gate matching.
+ * Used only for the lethal-weapon, supply, and public-official gates. */
+function normalizeForKwMatch(text: string): string {
+  return stripTashkeel(text)
+    .replace(/[أإآٱ]/g, "ا")
+    .replace(/ة/g, "ه")
+    .replace(/ى/g, "ي");
+}
+
+/** Strips the definite-article prefix chain from a token before matching.
+ * Handles وال/فال/بال/كال/لل/ال so "الضابط" and "للضابط" both match "ضابط". */
+const KW_ARTICLE_PREFIXES = ["وال", "فال", "بال", "كال", "لل", "ال"];
+function stripKwArticle(token: string): string {
+  for (const p of KW_ARTICLE_PREFIXES) {
+    if (token.startsWith(p) && token.length > p.length + 1) return token.slice(p.length);
+  }
+  return token;
+}
+
+/** True when textToken matches kwToken as:
+ *  - exact match
+ *  - article-stripped form equals kwToken ("الضابط" → "ضابط")
+ *  - textToken starts with kwToken (handles pronoun suffixes: "وزعها" → "وزع") */
+function tokenMatchesKw(textToken: string, kwToken: string): boolean {
+  if (textToken === kwToken) return true;
+  const stripped = stripKwArticle(textToken);
+  if (stripped === kwToken) return true;
+  if (textToken.startsWith(kwToken) && textToken.length > kwToken.length) return true;
+  if (stripped !== textToken && stripped.startsWith(kwToken) && stripped.length > kwToken.length) return true;
+  return false;
+}
+
+/** Returns true when any keyword from `keywords` appears in `facts`.
+ * Single-token keywords use tokenMatchesKw (handles suffixes and articles).
+ * Multi-token phrases require all tokens to appear contiguously in order. */
+function factsMatchKeywords(facts: string, keywords: string[]): boolean {
+  const normFacts = normalizeForKwMatch(facts);
+  const factsTokens = normFacts.split(/[^؀-ۿA-Za-z0-9]+/).filter(Boolean);
+  for (const kw of keywords) {
+    const kwTokens = normalizeForKwMatch(kw).split(/[^؀-ۿA-Za-z0-9]+/).filter(Boolean);
+    if (kwTokens.length === 0) continue;
+    if (kwTokens.length === 1) {
+      if (factsTokens.some((t) => tokenMatchesKw(t, kwTokens[0]))) return true;
+    } else {
+      const n = kwTokens.length;
+      for (let i = 0; i <= factsTokens.length - n; i++) {
+        if (kwTokens.every((kt, j) => tokenMatchesKw(factsTokens[i + j], kt))) return true;
+      }
+    }
+  }
+  return false;
 }
 
 /** Replaces Arabic in-word punctuation (،؛؟) and ASCII period with a space
@@ -1750,6 +1808,32 @@ async function analyzeCriminalConceptMap(
   };
 }
 
+// ── Keyword gate lists ────────────────────────────────────────────────────
+// Matched via factsMatchKeywords (token-based, not substring).
+// Lawyer-supplied additions go here; these are the base lists only.
+
+/** Item 2: attempted-murder open point fires only for stabbings and shootings. */
+const LETHAL_WEAPON_KW = [
+  // stabbing
+  "طعن", "سكين", "خنجر", "حربة", "شفرة", "بسيف", "بالسيف", "بموس", "بالموس",
+  // shooting
+  "رصاص", "رصاصة", "مسدس", "بندقية", "سلاح ناري",
+];
+
+/** Item 3: Art. 16 (تقديم) discuss card fires only when supply-to-person verbs match. */
+const SUPPLY_TO_PERSON_KW = [
+  "قدم له",   // handed to him (phrase)
+  "سلم له",   // delivered to him (phrase)
+  "أعطاه",    // gave him
+  "أعطى",     // gave (general)
+  "يعطيه",    // gives him
+  "وزع",      // distributed
+  "يوزع",     // distributes
+  "ناول",     // handed over
+  "يناول",    // hands over
+  // bare "يسلم" dropped: fires on "يسلم نفسه للشرطة" even after token matching
+];
+
 export async function analyzeCase(
   supabase: SupabaseClient,
   input: CaseMapperInput
@@ -1800,19 +1884,27 @@ export async function analyzeCase(
 
   // Criminal cases use a deterministic concept-map path — no text search for laws.
   if (caseTypeFull?.slug === "criminal") {
-    // When intent is unknown (bare narcotics possession), inject the two intent-
-    // specific discuss concepts so they appear in the open-point cards; the main
-    // CONCEPT_TO_ARTICLES entry for "مخدرات" still fetches all four narcotics
-    // articles, but Art. 15, 16, and 20 are stripped from laws below — only
-    // Art. 12 remains applicable. Slug-qualified comparison prevents Criminal
-    // Act Art. 20 from ever being touched.
-    const discussConcepts =
+    // Item 2: filter the LLM's attempted-murder discuss suggestion to stabbings
+    // and shootings only. A stick blow in a fight should not trigger it.
+    const rawDiscuss = llmResult.type === "criminal" ? (llmResult.discuss ?? []) : [];
+    const filteredDiscuss = rawDiscuss.filter(
+      (c) => c !== "قتل عمد" || factsMatchKeywords(input.facts, LETHAL_WEAPON_KW),
+    );
+
+    // Build discuss concept list for the open-point cards.
+    const discussConcepts: string[] | undefined =
       llmResult.type === "criminal" && llmResult.intentUnknown
         ? ["مخدرات:قصد الاتجار", "مخدرات:قصد التعاطي"]
         : llmResult.type === "criminal" && llmResult.concept === "سرقة"
-        ? ["سرقة:حد", ...(llmResult.discuss ?? [])]
+        ? ["سرقة:حد", ...filteredDiscuss]
+        // Item 3: for clear dealing, add Art. 16 (تقديم) only when supply keywords match.
+        : llmResult.type === "criminal" && llmResult.concept === "مخدرات" && !llmResult.intentUnknown
+        ? [
+            ...(factsMatchKeywords(input.facts, SUPPLY_TO_PERSON_KW) ? ["مخدرات:تقديم"] : []),
+            ...filteredDiscuss,
+          ]
         : llmResult.type === "criminal"
-        ? llmResult.discuss
+        ? filteredDiscuss
         : undefined;
 
     const cmResult = await analyzeCriminalConceptMap(
@@ -1822,6 +1914,8 @@ export async function analyzeCase(
 
     if (llmResult.type === "criminal" && llmResult.intentUnknown) {
       const NARCOTICS = "narcotics-psychotropic-substances-act-1994";
+      // Arts. 16 and 20 are no longer in CONCEPT_TO_ARTICLES["مخدرات"] but
+      // the guard is kept in case a future map change re-adds them.
       const isStrippedArt = (l: { lawSlug?: string | null; articleNumber?: string | null }) =>
         l.lawSlug === NARCOTICS &&
         (l.articleNumber === "15" || l.articleNumber === "16" || l.articleNumber === "20");
