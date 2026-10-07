@@ -287,10 +287,16 @@ const CONCEPT_TO_ARTICLES: Record<string, ConceptArticleEntry[]> = {
     { lawSlug: "criminal-law-1991", articleNumber: "123" }, // عقوبة التزوير في المستندات
     { lawSlug: "criminal-law-1991", articleNumber: "124" }, // تحريف مستند بواسطة موظف عام
   ],
-  "انتحال": [
-    { lawSlug: "criminal-law-1991", articleNumber: "113" }, // انتحال شخصية الغير
+  // Base "انتحال" is empty; sub-concepts are injected in analyzeCase based on keyword gates.
+  "انتحال": [],
+  "انتحال:موظف": [
     { lawSlug: "criminal-law-1991", articleNumber: "93" },  // انتحال صفة الموظف العام
-    { lawSlug: "criminal-law-1991", articleNumber: "60" },  // استعمال الزي والشارات العسكرية
+  ],
+  "انتحال:دعوى": [
+    { lawSlug: "criminal-law-1991", articleNumber: "113" }, // انتحال شخصية الغير في دعوى
+  ],
+  "انتحال:زي": [
+    { lawSlug: "criminal-law-1991", articleNumber: "60" },  // استعمال الزي والشارات
   ],
   "إيذاء جسيم": [
     { lawSlug: "criminal-law-1991", articleNumber: "139" }, // عقوبة الجراح العمد — penalty first
@@ -1834,6 +1840,24 @@ const SUPPLY_TO_PERSON_KW = [
   // bare "يسلم" dropped: fires on "يسلم نفسه للشرطة" even after token matching
 ];
 
+/** Item 4: Art. 93 fires when facts mention a public-official role. */
+const PUBLIC_OFFICIAL_KW = [
+  "موظف", "ضابط", "مأمور", "وزارة", "حكومي",
+];
+
+/** Item 4: Art. 113 fires only when facts mention a legal proceeding. */
+const LEGAL_PROCEEDING_KW = [
+  "دعوى", "محكمة", "إقرار", "كفالة", "ضامن",
+];
+
+/** Item 4: Art. 60 fires only when facts mention a uniform or badge phrase.
+ * Bare "زي" excluded: Sudanese colloquial "زي ما قال" = "just as ... said".
+ * Bare "شارة" excluded: "شارة المرور" (traffic signal) would false-fire. */
+const UNIFORM_KW = [
+  "زي رسمي", "زي عسكري", "زي الشرطة", "زي الجيش", "زي الأمن",
+  "شارة الشرطة", "شارة رسمية", "شارة عسكرية",
+];
+
 export async function analyzeCase(
   supabase: SupabaseClient,
   input: CaseMapperInput
@@ -1870,8 +1894,21 @@ export async function analyzeCase(
     anyFired = false;
     criminalTerms = [];
   } else {
-    // LLM is authoritative: replace word-list concepts with the LLM concept
-    criminalTerms = [{ term: llmResult.concept, origin: "expanded" as const }];
+    // LLM is authoritative: replace word-list concepts with the LLM concept.
+    // Item 4: for انتحال, split into sub-concepts based on keyword gates so that
+    // Art. 93/113/60 are shown only when the facts support their specific scope.
+    if (llmResult.concept === "انتحال") {
+      const subTerms: string[] = [];
+      if (factsMatchKeywords(input.facts, PUBLIC_OFFICIAL_KW)) subTerms.push("انتحال:موظف");
+      if (factsMatchKeywords(input.facts, LEGAL_PROCEEDING_KW)) subTerms.push("انتحال:دعوى");
+      if (factsMatchKeywords(input.facts, UNIFORM_KW)) subTerms.push("انتحال:زي");
+      // If no gate fires, fall back to "انتحال" (empty map) → noConfidentMatch.
+      criminalTerms = subTerms.length > 0
+        ? subTerms.map((t) => ({ term: t, origin: "expanded" as const }))
+        : [{ term: "انتحال", origin: "expanded" as const }];
+    } else {
+      criminalTerms = [{ term: llmResult.concept, origin: "expanded" as const }];
+    }
     anyFired = true;
   }
 
