@@ -10,7 +10,6 @@ import {
   factsMatchLethalWeapon,
   dropAthaIfWound,
   dropBareJurhIfWound,
-  dropAthaIfBareWound,
   SUPPLY_TO_PERSON_KW,
   PUBLIC_OFFICIAL_KW,
   LEGAL_PROCEEDING_KW,
@@ -327,7 +326,9 @@ const CONCEPT_TO_ARTICLES: Record<string, ConceptArticleEntry[]> = {
     { lawSlug: "criminal-law-1991", articleNumber: "142" }, // الأذى
   ],
   "جرح": [
-    { lawSlug: "criminal-law-1991", articleNumber: "138" }, // الجراح وأنواعها — definition only; 139/140/141 in open-point card
+    { lawSlug: "criminal-law-1991", articleNumber: "139" }, // عقوبة الجراح العمد — word-list catch-all, rank-1
+    { lawSlug: "criminal-law-1991", articleNumber: "138" }, // الجراح وأنواعها — definition
+    // 140/141 belong to شبه عمد/خطأ only; 142 (الأذى) conflicts with wound; 143 (قوة جنائية) separate offence
   ],
   "جرح عمد": [
     { lawSlug: "criminal-law-1991", articleNumber: "139" }, // عقوبة الجراح العمد
@@ -640,12 +641,6 @@ const DISCUSS_CONCEPT_TO_ARTICLES: Record<string, ConceptArticleEntry[]> = {
   "انتحال:موظف": [
     { lawSlug: "criminal-law-1991", articleNumber: "93" },
   ],
-  // Bare wound without stated intent: Art. 138 in laws; 139/140/141 as open points
-  "جرح:وصف": [
-    { lawSlug: "criminal-law-1991", articleNumber: "139" }, // عقوبة الجراح العمد
-    { lawSlug: "criminal-law-1991", articleNumber: "140" }, // عقوبة الجراح شبه العمد
-    { lawSlug: "criminal-law-1991", articleNumber: "141" }, // عقوبة الجراح الخطأ
-  ],
   // Hadd theft: always an open point — hadd is never asserted by the tool
   "سرقة:حد": [
     { lawSlug: "criminal-law-1991", articleNumber: "170" }, // السرقة الحدية
@@ -661,7 +656,6 @@ const DISCUSS_CONCEPT_LABEL: Record<string, string> = {
   "مخدرات:قصد التعاطي": "المادة 20 — الحيازة بقصد التعاطي",
   "مخدرات:تقديم": "المادة 16 — تقديم المخدرات لشخص آخر",
   "انتحال:موظف": "انتحال صفة الموظف العام (المادة ٩٣)",
-  "جرح:وصف": "وصف الجرح — نقطة مفتوحة للمحامي",
   "سرقة:حد": "السرقة الحدية — تطبيق المادة 170 رهنٌ بثبوت شروط الحد",
 };
 
@@ -671,7 +665,6 @@ const DISCUSS_CONCEPT_DESC: Record<string, string> = {
   "مخدرات:قصد التعاطي": "الوقائع تثبت الحيازة. تطبيق المادة 20 (التعاطي الشخصي) رهنٌ بإثبات القصد الشخصي — وإثباته أو نفيه مهمة المحامي، والفصل فيه للمحكمة.",
   "مخدرات:تقديم": "الوقائع تشير إلى تقديم مواد مخدرة لشخص آخر. تطبيق المادة 16 (تقديم المخدرات) رهنٌ بإثبات التسليم المباشر — وإثباته أو نفيه مهمة المحامي، والفصل فيه للمحكمة.",
   "انتحال:موظف": "تفيد الوقائع أن المتهم ادّعى صفة موظف عام للحصول على المال. الوصف الأساسي هو الاحتيال (المادة ١٧٨). على المحامي أن يبحث: هل يقوم انتحال الصفة جريمةً مستقلة إلى جانب الاحتيال، أم هو مجرد وسيلة له؟ والمادة ٩٣ تشترط سوء القصد.",
-  "جرح:وصف": "ليست هذه تصنيفاً. تفيد الوقائع وقوع جرح دون ما يبيّن قصد الجاني. المادة ١٣٨ تقسم الجراح إلى عمد وشبه عمد وخطأ، وتحديد الوصف بحسب ما يثبت من القصد وظروف الفعل مهمة المحامي، والفصل فيه للمحكمة.",
   "سرقة:حد": "الوقائع تثبت السرقة. تطبيق عقوبة الحد (المادة 170) مشروط بثبوت شروطه، ومنها أخذ المال خفية من حرزه وبلوغه النصاب — وإثبات ذلك أو نفيه مهمة المحامي، والفصل فيه للمحكمة.",
 };
 
@@ -1421,21 +1414,9 @@ async function analyzeCriminalConceptMap(
   const conceptTermsFromExpansions = extractTerms(input.facts)
     .filter((t) => t.origin === "expanded")
     .map((t) => t.term);
-  const allConceptTerms = dropAthaIfBareWound(dropBareJurhIfWound(dropAthaIfWound([
+  const allConceptTerms = dropBareJurhIfWound(dropAthaIfWound([
     ...new Set([...criminalTerms.map((t) => t.term), ...conceptTermsFromExpansions]),
-  ])));
-
-  // Bare "جرح" without any qualified form (عمد/شبه عمد/خطأ): Art. 138 in laws;
-  // Arts. 139/140/141 as open-point card for the lawyer to classify intent.
-  // Bare "جرح" also appears from assault-verb expansions when a qualified form is
-  // already present — suppress the card in that case to avoid contradicting the
-  // classification.
-  const QUALIFIED_WOUND = ["جرح عمد", "جرح شبه عمد", "جرح خطأ"] as const;
-  const hasQualifiedWound = QUALIFIED_WOUND.some((t) => allConceptTerms.includes(t));
-  const effectiveDiscuss =
-    allConceptTerms.includes("جرح") && !hasQualifiedWound
-      ? [...(discussConcepts ?? []), "جرح:وصف"]
-      : (discussConcepts ?? []);
+  ]));
 
   const showLens = Boolean(input.caseType?.trim() || caseTypeFull.inferred);
   const caseTypeLens = showLens
@@ -1556,9 +1537,9 @@ async function analyzeCriminalConceptMap(
   // so criminal-law-1991 articles (19/20/130) are already in articleByPair.
   // For any discuss law not yet in lawBySlug we do a supplementary fetch.
   let discussItems: DiscussItem[] | undefined;
-  if (effectiveDiscuss.length) {
+  if (discussConcepts?.length) {
     const discussEntries: Array<ConceptArticleEntry & { concept: string }> = [];
-    for (const concept of effectiveDiscuss) {
+    for (const concept of discussConcepts) {
       for (const entry of DISCUSS_CONCEPT_TO_ARTICLES[concept] ?? []) {
         discussEntries.push({ ...entry, concept });
       }
