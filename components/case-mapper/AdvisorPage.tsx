@@ -84,6 +84,7 @@ const TERM_DISPLAY_AR: Record<string, string> = {
   "انتحال:موظف":         "انتحال — صفة موظف عام",
   "انتحال:دعوى":         "انتحال — شخصية في دعوى",
   "انتحال:زي":           "انتحال — زي أو شارة رسمية",
+  "نهب:جرح":             "نهب — جرح مصاحب",
 };
 function termDisplayAr(term: string): string {
   return TERM_DISPLAY_AR[term] ?? term;

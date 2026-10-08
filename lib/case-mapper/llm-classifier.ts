@@ -55,6 +55,10 @@ const CONCEPTS = [
 
 const CONCEPT_SET = new Set<string>(CONCEPTS);
 
+// Discuss-only keys: valid in the discuss array but never as concept.
+// نهب:جرح is accepted only when concept === "نهب" — enforced in the parser below.
+const DISCUSS_ONLY_CONCEPTS = new Set(["نهب:جرح"]);
+
 const SYSTEM_PROMPT = `أنت محلل قانوني سوداني. مهمتك: تصنيف الوقائع إلى نوع جريمة جنائية من القائمة المغلقة، أو إعادة civil أو abstain.
 
 القائمة المغلقة — أعد concept من هذه القائمة حصراً:
@@ -97,11 +101,15 @@ const SYSTEM_PROMPT = `أنت محلل قانوني سوداني. مهمتك: ت
       — إذا وُجدت إشارة صريحة للبيع أو الترويج أو الاتجار أو التهريب في مادة مخدرة: أعد {"type":"criminal","concept":"مخدرات"}
       — إذا وُجدت إشارة صريحة للتعاطي أو الاستهلاك الشخصي: أعد {"type":"criminal","concept":"مخدرات:قصد التعاطي"}
       — إذا وصفت الوقائع الحيازة فقط دون قرينة على القصد (لا بيع ولا تعاطٍ مذكور): أعد {"type":"criminal","concept":"مخدرات","intentUnknown":true}
+   ش) النهب المصاحب لجرح فعلي: إذا كان المفهوم نهباً وأفادت الوقائع بوقوع جرح حقيقي على المجني عليه أثناء النهب — كطعنه بسكين فجرحه، أو ضربه بحجر أو عصا فأحدث به جرحاً مثبتاً، أو كسر عظماً — أضف "نهب:جرح" في حقل discuss. لا تضفه في الحالات التالية: (أ) اقتصر الفعل على التهديد بسلاح دون إصابة فعلية؛ (ب) نصّت الوقائع صراحةً على عدم وقوع أذى أو جرح، مثل "ولم يصبه بأذى" أو "ولم يحدث به جرحاً"؛ (ج) لم يُذكر في الوقائع أي وصف لإصابة جسدية.
+      أمثلة تستدعي الإضافة: (١) اعتدى شخصان على سائق وشجّا رأسه بحجر وأخذا سيارته؛ (٢) خطف الهاتف من يد المجني عليها فسقطت وكُسرت يدها.
+      أمثلة لا تستدعي الإضافة: أشهر مسدساً في وجه الصراف وأخذ النقود دون أن يطلق النار.
 7. لا تذكر أرقام مواد أو أسماء قوانين
 8. إذا وصفت الوقائع جريمة لا يطابقها أي مفهوم في القائمة المغلقة، أعد abstain — لا تختر أقرب مفهوم ولو بدا مشابهاً
 9. أخرج JSON صالحاً فقط لا نص آخر — اختر إحدى الصيغ التالية وأخرج واحدة فقط:
    إذا جريمة جنائية:               {"type":"criminal","concept":"سرقة"}
    إذا جريمة جنائية مع نقطة بحث:  {"type":"criminal","concept":"جرح عمد","discuss":["قتل عمد"]}   ← discuss: مفاهيم من القائمة المغلقة للمحامي، لا للتصنيف
+   إذا نهب مع جرح فعلي:           {"type":"criminal","concept":"نهب","discuss":["نهب:جرح"]}
    إذا حيازة مخدرات بقصد مجهول:   {"type":"criminal","concept":"مخدرات","intentUnknown":true}
    إذا نزاع مدني:                  {"type":"civil"}
    إذا غموض أو امتناع:             {"type":"abstain"}`;
@@ -166,9 +174,13 @@ export async function classifyWithLLM(
     CONCEPT_SET.has(p.concept)
   ) {
     const rawDiscuss = Array.isArray(p.discuss) ? (p.discuss as unknown[]) : [];
-    const discuss = rawDiscuss.filter(
-      (d): d is string => typeof d === "string" && CONCEPT_SET.has(d),
-    );
+    const discuss = rawDiscuss.filter((d): d is string => {
+      if (typeof d !== "string") return false;
+      if (CONCEPT_SET.has(d)) return true;
+      // نهب:جرح is discuss-only: accepted only when concept is نهب
+      if (d === "نهب:جرح" && p.concept === "نهب") return true;
+      return false;
+    });
     // intentUnknown is only meaningful when the concept is مخدرات (bare possession)
     const intentUnknown = p.intentUnknown === true && p.concept === "مخدرات" ? true as const : undefined;
     return {

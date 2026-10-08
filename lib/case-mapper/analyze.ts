@@ -8,6 +8,7 @@ import {
   factsMatchClaimMarker,
   factsMatchMoneyTake,
   factsMatchLethalWeapon,
+  factsMatchWound,
   dropAthaIfWound,
   dropBareJurhIfWound,
   SUPPLY_TO_PERSON_KW,
@@ -641,6 +642,10 @@ const DISCUSS_CONCEPT_TO_ARTICLES: Record<string, ConceptArticleEntry[]> = {
   "انتحال:موظف": [
     { lawSlug: "criminal-law-1991", articleNumber: "93" },
   ],
+  // Robbery with wound: Art. 139 open point — laws stay Art. 175 only
+  "نهب:جرح": [
+    { lawSlug: "criminal-law-1991", articleNumber: "139" }, // عقوبة الجراح العمد
+  ],
   // Hadd theft: always an open point — hadd is never asserted by the tool
   "سرقة:حد": [
     { lawSlug: "criminal-law-1991", articleNumber: "170" }, // السرقة الحدية
@@ -656,6 +661,7 @@ const DISCUSS_CONCEPT_LABEL: Record<string, string> = {
   "مخدرات:قصد التعاطي": "المادة 20 — الحيازة بقصد التعاطي",
   "مخدرات:تقديم": "المادة 16 — تقديم المخدرات لشخص آخر",
   "انتحال:موظف": "انتحال صفة الموظف العام (المادة ٩٣)",
+  "نهب:جرح": "الجرح المصاحب للنهب (المادة ١٣٩) — نقطة مفتوحة للمحامي",
   "سرقة:حد": "السرقة الحدية — تطبيق المادة 170 رهنٌ بثبوت شروط الحد",
 };
 
@@ -665,6 +671,7 @@ const DISCUSS_CONCEPT_DESC: Record<string, string> = {
   "مخدرات:قصد التعاطي": "الوقائع تثبت الحيازة. تطبيق المادة 20 (التعاطي الشخصي) رهنٌ بإثبات القصد الشخصي — وإثباته أو نفيه مهمة المحامي، والفصل فيه للمحكمة.",
   "مخدرات:تقديم": "الوقائع تشير إلى تقديم مواد مخدرة لشخص آخر. تطبيق المادة 16 (تقديم المخدرات) رهنٌ بإثبات التسليم المباشر — وإثباته أو نفيه مهمة المحامي، والفصل فيه للمحكمة.",
   "انتحال:موظف": "تفيد الوقائع أن المتهم ادّعى صفة موظف عام للحصول على المال. الوصف الأساسي هو الاحتيال (المادة ١٧٨). على المحامي أن يبحث: هل يقوم انتحال الصفة جريمةً مستقلة إلى جانب الاحتيال، أم هو مجرد وسيلة له؟ والمادة ٩٣ تشترط سوء القصد.",
+  "نهب:جرح": "تفيد الوقائع أن النهب صاحبه جرح. الوصف الأساسي هو النهب (المادة ١٧٥)، وبندها الثاني يجعل عقوبته «بالإضافة إلى أي عقوبة أخرى مقررة لما يترتب على فعله»، فقد تنطبق المادتان معاً. إثبات الجرح وتحديد وصفه مهمة المحامي، والفصل فيه للمحكمة.",
   "سرقة:حد": "الوقائع تثبت السرقة. تطبيق عقوبة الحد (المادة 170) مشروط بثبوت شروطه، ومنها أخذ المال خفية من حرزه وبلوغه النصاب — وإثبات ذلك أو نفيه مهمة المحامي، والفصل فيه للمحكمة.",
 };
 
@@ -1860,9 +1867,12 @@ export async function analyzeCase(
     // Item 2: filter the LLM's attempted-murder discuss suggestion to stabbings
     // and shootings only. A stick blow in a fight should not trigger it.
     const rawDiscuss = llmResult.type === "criminal" ? (llmResult.discuss ?? []) : [];
-    const filteredDiscuss = rawDiscuss.filter(
-      (c) => c !== "قتل عمد" || factsMatchLethalWeapon(input.facts),
-    );
+    const filteredDiscuss = rawDiscuss.filter((c) => {
+      if (c === "قتل عمد") return factsMatchLethalWeapon(input.facts);
+      // Robbery-with-wound card: LLM proposes + keyword gate both required.
+      if (c === "نهب:جرح") return factsMatchWound(input.facts);
+      return true;
+    });
 
     // Build discuss concept list for the open-point cards.
     const discussConcepts: string[] | undefined =
