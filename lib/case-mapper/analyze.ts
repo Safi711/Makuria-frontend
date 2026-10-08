@@ -8,6 +8,7 @@ import {
   factsMatchClaimMarker,
   factsMatchMoneyTake,
   factsMatchLethalWeapon,
+  factsMatchLethalMethod,
   factsMatchIntentToKill,
   factsMatchWound,
   dropAthaIfWound,
@@ -1880,6 +1881,7 @@ export async function analyzeCase(
     if (
       (llmResult.concept === "قتل عمد" || llmResult.concept === "قتل شبه عمد") &&
       !factsMatchLethalWeapon(input.facts) &&
+      !factsMatchLethalMethod(input.facts) &&
       !factsMatchIntentToKill(input.facts)
     ) {
       criminalTerms = [{ term: "قتل:وصف", origin: "expanded" as const }];
