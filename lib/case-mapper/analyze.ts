@@ -1411,12 +1411,12 @@ async function analyzeCriminalConceptMap(
     if (!arr.includes(term)) arr.push(term);
   };
 
-  const conceptTermsFromExpansions = extractTerms(input.facts)
-    .filter((t) => t.origin === "expanded")
-    .map((t) => t.term);
-  const allConceptTerms = dropBareJurhIfWound(dropAthaIfWound([
-    ...new Set([...criminalTerms.map((t) => t.term), ...conceptTermsFromExpansions]),
-  ]));
+  // The LLM is authoritative: use its concept(s) only, not extractTerms expansions.
+  // Expansions (CONCEPT_EXPANSIONS) add noise here — they fire on assault verbs and
+  // inject "جرح"/"أذى" regardless of what the LLM classified (نهب, قتل عمد, etc.).
+  const allConceptTerms = dropBareJurhIfWound(dropAthaIfWound(
+    criminalTerms.map((t) => t.term)
+  ));
 
   const showLens = Boolean(input.caseType?.trim() || caseTypeFull.inferred);
   const caseTypeLens = showLens
