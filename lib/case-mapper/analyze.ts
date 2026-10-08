@@ -8,6 +8,7 @@ import {
   factsMatchClaimMarker,
   factsMatchMoneyTake,
   factsMatchLethalWeapon,
+  factsMatchIntentToKill,
   factsMatchWound,
   dropAthaIfWound,
   dropBareJurhIfWound,
@@ -366,6 +367,10 @@ const CONCEPT_TO_ARTICLES: Record<string, ConceptArticleEntry[]> = {
     { lawSlug: "criminal-law-1991", articleNumber: "131" }, // القتل شبه العمد — penalty
     { lawSlug: "criminal-law-1991", articleNumber: "129" }, // القتل وأنواعه — definition
   ],
+  // Homicide — intent/characterisation open: Art. 129 definition only, card covers 130+131
+  "قتل:وصف": [
+    { lawSlug: "criminal-law-1991", articleNumber: "129" }, // القتل وأنواعه — definition only
+  ],
   "مخدرات": [
     { lawSlug: "narcotics-psychotropic-substances-act-1994", articleNumber: "15" }, // الاتجار
     { lawSlug: "narcotics-psychotropic-substances-act-1994", articleNumber: "12" }, // حظر التعامل
@@ -642,6 +647,11 @@ const DISCUSS_CONCEPT_TO_ARTICLES: Record<string, ConceptArticleEntry[]> = {
   "انتحال:موظف": [
     { lawSlug: "criminal-law-1991", articleNumber: "93" },
   ],
+  // Homicide intent open point: card covers 130 (عمد) and 131 (شبه عمد) for lawyer
+  "قتل:وصف": [
+    { lawSlug: "criminal-law-1991", articleNumber: "130" }, // القتل العمد — lawyer investigates
+    { lawSlug: "criminal-law-1991", articleNumber: "131" }, // القتل شبه العمد — lawyer investigates
+  ],
   // Robbery with wound: Art. 139 open point — laws stay Art. 175 only
   "نهب:جرح": [
     { lawSlug: "criminal-law-1991", articleNumber: "139" }, // عقوبة الجراح العمد
@@ -661,6 +671,7 @@ const DISCUSS_CONCEPT_LABEL: Record<string, string> = {
   "مخدرات:قصد التعاطي": "المادة 20 — الحيازة بقصد التعاطي",
   "مخدرات:تقديم": "المادة 16 — تقديم المخدرات لشخص آخر",
   "انتحال:موظف": "انتحال صفة الموظف العام (المادة ٩٣)",
+  "قتل:وصف": "وصف القتل: عمد أم شبه عمد — نقطة مفتوحة للمحامي",
   "نهب:جرح": "الجرح المصاحب للنهب (المادة ١٣٩) — نقطة مفتوحة للمحامي",
   "سرقة:حد": "السرقة الحدية — تطبيق المادة 170 رهنٌ بثبوت شروط الحد",
 };
@@ -671,6 +682,7 @@ const DISCUSS_CONCEPT_DESC: Record<string, string> = {
   "مخدرات:قصد التعاطي": "الوقائع تثبت الحيازة. تطبيق المادة 20 (التعاطي الشخصي) رهنٌ بإثبات القصد الشخصي — وإثباته أو نفيه مهمة المحامي، والفصل فيه للمحكمة.",
   "مخدرات:تقديم": "الوقائع تشير إلى تقديم مواد مخدرة لشخص آخر. تطبيق المادة 16 (تقديم المخدرات) رهنٌ بإثبات التسليم المباشر — وإثباته أو نفيه مهمة المحامي، والفصل فيه للمحكمة.",
   "انتحال:موظف": "تفيد الوقائع أن المتهم ادّعى صفة موظف عام للحصول على المال. الوصف الأساسي هو الاحتيال (المادة ١٧٨). على المحامي أن يبحث: هل يقوم انتحال الصفة جريمةً مستقلة إلى جانب الاحتيال، أم هو مجرد وسيلة له؟ والمادة ٩٣ تشترط سوء القصد.",
+  "قتل:وصف": "ليست هذه تصنيفاً. تفيد الوقائع وقوع وفاة نتيجة فعل المتهم دون ما يبيّن قصد القتل. يكون القتل عمداً إذا قصده الجاني أو قصد الفعل وكان الموت نتيجة راجحة له (المادة ١٣٠)، وشبه عمد إذا لم يقصد القتل ولم يكن الموت نتيجة راجحة لفعله (المادة ١٣١). تحديد الوصف بحسب ما يثبت من القصد والأداة وموضع الإصابة مهمة المحامي، والفصل فيه للمحكمة.",
   "نهب:جرح": "تفيد الوقائع أن النهب صاحبه جرح. الوصف الأساسي هو النهب (المادة ١٧٥)، وبندها الثاني يجعل عقوبته «بالإضافة إلى أي عقوبة أخرى مقررة لما يترتب على فعله»، فقد تنطبق المادتان معاً. إثبات الجرح وتحديد وصفه مهمة المحامي، والفصل فيه للمحكمة.",
   "سرقة:حد": "الوقائع تثبت السرقة. تطبيق عقوبة الحد (المادة 170) مشروط بثبوت شروطه، ومنها أخذ المال خفية من حرزه وبلوغه النصاب — وإثبات ذلك أو نفيه مهمة المحامي، والفصل فيه للمحكمة.",
 };
@@ -1425,6 +1437,16 @@ async function analyzeCriminalConceptMap(
     criminalTerms.map((t) => t.term)
   ));
 
+  // Internal keys (e.g. "قتل:وصف") must never reach the search engine — they
+  // contain a colon and would match nothing.  Map each to the clean query term
+  // that actually retrieves relevant cases and principles.
+  const SEARCH_QUERY_FOR_TERM: Record<string, string> = {
+    "قتل:وصف": "قتل",
+  };
+  function searchQuery(term: string): string {
+    return SEARCH_QUERY_FOR_TERM[term] ?? term;
+  }
+
   const showLens = Boolean(input.caseType?.trim() || caseTypeFull.inferred);
   const caseTypeLens = showLens
     ? {
@@ -1623,7 +1645,7 @@ async function analyzeCriminalConceptMap(
   const caseCandidates = await Promise.all(
     allConceptTerms.map(async (term) => {
       const { data, error } = await supabase.rpc("quick_search_v4", {
-        q: term, limit_rows: PER_TERM_LIMIT, include_repealed: true,
+        q: searchQuery(term), limit_rows: PER_TERM_LIMIT, include_repealed: true,
       });
       return { term, rows: (error ? [] : (data ?? [])) as V4Row[] };
     })
@@ -1727,7 +1749,7 @@ async function analyzeCriminalConceptMap(
   const v3Results = await Promise.all(
     allConceptTerms.map(async (term) => {
       const { data, error } = await supabase.rpc("universal_search_v3", {
-        q: term,
+        q: searchQuery(term),
         result_types: ["principle"],
         filter_category_id: caseTypeFull.categoryId ?? null,
         limit_per_type: V3_PER_TYPE,
@@ -1852,6 +1874,16 @@ export async function analyzeCase(
     } else {
       criminalTerms = [{ term: llmResult.concept, origin: "expanded" as const }];
     }
+    // Homicide open-point gate: when death after assault but no lethal weapon
+    // and no explicitly stated intent to kill, show Art. 129 only and open
+    // a card for the lawyer to determine 130 (عمد) vs 131 (شبه عمد).
+    if (
+      (llmResult.concept === "قتل عمد" || llmResult.concept === "قتل شبه عمد") &&
+      !factsMatchLethalWeapon(input.facts) &&
+      !factsMatchIntentToKill(input.facts)
+    ) {
+      criminalTerms = [{ term: "قتل:وصف", origin: "expanded" as const }];
+    }
     anyFired = true;
   }
 
@@ -1874,10 +1906,15 @@ export async function analyzeCase(
       return true;
     });
 
+    // True when the homicide gate overrode the concept to قتل:وصف.
+    const homicideOpenPoint = criminalTerms[0]?.term === "قتل:وصف";
+
     // Build discuss concept list for the open-point cards.
     const discussConcepts: string[] | undefined =
       llmResult.type === "criminal" && llmResult.intentUnknown
         ? ["مخدرات:قصد الاتجار", "مخدرات:قصد التعاطي"]
+        : llmResult.type === "criminal" && homicideOpenPoint
+        ? ["قتل:وصف", ...filteredDiscuss]
         : llmResult.type === "criminal" && llmResult.concept === "سرقة"
         ? ["سرقة:حد", ...filteredDiscuss]
         // Item 3: for clear dealing, add Art. 16 (تقديم) only when supply keywords match.

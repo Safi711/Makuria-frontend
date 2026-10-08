@@ -41,6 +41,23 @@ const CASES: Case[] = [
     expectedDiscussCount: 0,
     note: "أذى: Art. 142 only — no wound articles from ضرب expansion",
   },
+  // (c) Homicide open point — stick, no explicit intent, no lethal weapon keyword
+  //     laws:[129] (definition only), discuss card قتل:وصف
+  {
+    id: "REG-03",
+    facts: "ضرب المتهم المجني عليه بعصا على رأسه فتوفي بعد يومين.",
+    expectedLaws: ["129"],
+    expectedDiscussCount: 1,
+    note: "قتل:وصف open point — laws:[129], 1 discuss card",
+  },
+  // (d) Homicide open point — brawl push, no intent phrase, no lethal weapon keyword
+  {
+    id: "REG-04",
+    facts: "لكم المتهم المجني عليه أثناء مشاجرة فسقط وتوفي.",
+    expectedLaws: ["129"],
+    expectedDiscussCount: 1,
+    note: "قتل:وصف open point — laws:[129], 1 discuss card",
+  },
 ];
 
 async function main() {

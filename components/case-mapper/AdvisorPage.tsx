@@ -85,6 +85,7 @@ const TERM_DISPLAY_AR: Record<string, string> = {
   "انتحال:دعوى":         "انتحال — شخصية في دعوى",
   "انتحال:زي":           "انتحال — زي أو شارة رسمية",
   "نهب:جرح":             "نهب — جرح مصاحب",
+  "قتل:وصف":             "قتل — الوصف غير محسوم",
 };
 function termDisplayAr(term: string): string {
   return TERM_DISPLAY_AR[term] ?? term;
