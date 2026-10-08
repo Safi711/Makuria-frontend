@@ -9,6 +9,7 @@ import {
   factsMatchMoneyTake,
   factsMatchLethalWeapon,
   dropAthaIfWound,
+  dropBareJurhIfWound,
   SUPPLY_TO_PERSON_KW,
   PUBLIC_OFFICIAL_KW,
   LEGAL_PROCEEDING_KW,
@@ -1413,9 +1414,9 @@ async function analyzeCriminalConceptMap(
   const conceptTermsFromExpansions = extractTerms(input.facts)
     .filter((t) => t.origin === "expanded")
     .map((t) => t.term);
-  const allConceptTerms = dropAthaIfWound([
+  const allConceptTerms = dropBareJurhIfWound(dropAthaIfWound([
     ...new Set([...criminalTerms.map((t) => t.term), ...conceptTermsFromExpansions]),
-  ]);
+  ]));
 
   const showLens = Boolean(input.caseType?.trim() || caseTypeFull.inferred);
   const caseTypeLens = showLens
