@@ -58,6 +58,14 @@ const CASES: Case[] = [
     expectedDiscussCount: 1,
     note: "قتل:وصف open point — laws:[129], 1 discuss card",
   },
+  // Golden 10: جرح عمد + بسكين → weapon card شروع:سلاح fires deterministically
+  {
+    id: "REG-G10",
+    facts: "ضرب شخص آخر بسكين عمدًا، فأحدث جرحًا قطعيًا مثبتًا طبيًا، دون وفاته.",
+    expectedLaws: ["139", "138"],
+    expectedDiscussCount: 1,
+    note: "Golden 10: جرح عمد + بسكين → weapon card شروع:سلاح — laws:[139,138], discuss:1",
+  },
 ];
 
 async function main() {

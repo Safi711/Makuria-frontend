@@ -11,6 +11,8 @@ import {
   factsMatchLethalMethod,
   factsMatchIntentToKill,
   factsMatchWound,
+  factsMatchDeliberateAssault,
+  whichLethalMethod,
   dropAthaIfWound,
   dropBareJurhIfWound,
   SUPPLY_TO_PERSON_KW,
@@ -279,9 +281,9 @@ const CASE_TYPE_COMPANIONS: Record<string, string[]> = {
 // When a criminal expansion concept fires, fetch these specific articles
 // directly by (lawSlug, articleNumber) — no text search for laws.
 // Every entry is marked REVIEW until verified against the live corpus.
-type ConceptArticleEntry = { lawSlug: string; articleNumber: string };
+export type ConceptArticleEntry = { lawSlug: string; articleNumber: string };
 
-const CONCEPT_TO_ARTICLES: Record<string, ConceptArticleEntry[]> = {
+export const CONCEPT_TO_ARTICLES: Record<string, ConceptArticleEntry[]> = {
   "خيانة الأمانة": [
     { lawSlug: "criminal-law-1991", articleNumber: "177" }, // REVIEW
   ],
@@ -627,7 +629,7 @@ const CONCEPT_TO_ARTICLES: Record<string, ConceptArticleEntry[]> = {
 
 // Articles surfaced as open points for the lawyer when the LLM signals a
 // discuss concept. These are fetched separately and never appear in `laws`.
-const DISCUSS_CONCEPT_TO_ARTICLES: Record<string, ConceptArticleEntry[]> = {
+export const DISCUSS_CONCEPT_TO_ARTICLES: Record<string, ConceptArticleEntry[]> = {
   "قتل عمد": [
     { lawSlug: "criminal-law-1991", articleNumber: "19" },  // تعريف الشروع
     { lawSlug: "criminal-law-1991", articleNumber: "20" },  // العقوبة على الشروع
@@ -664,6 +666,37 @@ const DISCUSS_CONCEPT_TO_ARTICLES: Record<string, ConceptArticleEntry[]> = {
     { lawSlug: "criminal-law-1991", articleNumber: "172" }, // مسقطات عقوبة الحد
     { lawSlug: "criminal-law-1991", articleNumber: "173" }, // عقوبة السرقة عند سقوط الحد
   ],
+  // Attempted-murder open-point cards (C18) — weapon + 5 methods, all → Arts. 19/20/130
+  "شروع:سلاح": [
+    { lawSlug: "criminal-law-1991", articleNumber: "19" },
+    { lawSlug: "criminal-law-1991", articleNumber: "20" },
+    { lawSlug: "criminal-law-1991", articleNumber: "130" },
+  ],
+  "شروع:خنق": [
+    { lawSlug: "criminal-law-1991", articleNumber: "19" },
+    { lawSlug: "criminal-law-1991", articleNumber: "20" },
+    { lawSlug: "criminal-law-1991", articleNumber: "130" },
+  ],
+  "شروع:سم": [
+    { lawSlug: "criminal-law-1991", articleNumber: "19" },
+    { lawSlug: "criminal-law-1991", articleNumber: "20" },
+    { lawSlug: "criminal-law-1991", articleNumber: "130" },
+  ],
+  "شروع:حرق": [
+    { lawSlug: "criminal-law-1991", articleNumber: "19" },
+    { lawSlug: "criminal-law-1991", articleNumber: "20" },
+    { lawSlug: "criminal-law-1991", articleNumber: "130" },
+  ],
+  "شروع:إغراق": [
+    { lawSlug: "criminal-law-1991", articleNumber: "19" },
+    { lawSlug: "criminal-law-1991", articleNumber: "20" },
+    { lawSlug: "criminal-law-1991", articleNumber: "130" },
+  ],
+  "شروع:ذبح": [
+    { lawSlug: "criminal-law-1991", articleNumber: "19" },
+    { lawSlug: "criminal-law-1991", articleNumber: "20" },
+    { lawSlug: "criminal-law-1991", articleNumber: "130" },
+  ],
 };
 
 const DISCUSS_CONCEPT_LABEL: Record<string, string> = {
@@ -675,6 +708,12 @@ const DISCUSS_CONCEPT_LABEL: Record<string, string> = {
   "قتل:وصف": "وصف القتل: عمد أم شبه عمد — نقطة مفتوحة للمحامي",
   "نهب:جرح": "الجرح المصاحب للنهب (المادة ١٣٩) — نقطة مفتوحة للمحامي",
   "سرقة:حد": "السرقة الحدية — تطبيق المادة 170 رهنٌ بثبوت شروط الحد",
+  "شروع:سلاح":  "احتمال الشروع في القتل — نقطة مفتوحة للمحامي",
+  "شروع:خنق":   "احتمال الشروع في القتل — نقطة مفتوحة للمحامي",
+  "شروع:سم":    "احتمال الشروع في القتل — نقطة مفتوحة للمحامي",
+  "شروع:حرق":   "احتمال الشروع في القتل — نقطة مفتوحة للمحامي",
+  "شروع:إغراق": "احتمال الشروع في القتل — نقطة مفتوحة للمحامي",
+  "شروع:ذبح":   "احتمال الشروع في القتل — نقطة مفتوحة للمحامي",
 };
 
 const DISCUSS_CONCEPT_DESC: Record<string, string> = {
@@ -686,6 +725,13 @@ const DISCUSS_CONCEPT_DESC: Record<string, string> = {
   "قتل:وصف": "ليست هذه تصنيفاً. تفيد الوقائع وقوع وفاة نتيجة فعل المتهم دون ما يبيّن قصد القتل. يكون القتل عمداً إذا قصده الجاني أو قصد الفعل وكان الموت نتيجة راجحة له (المادة ١٣٠)، وشبه عمد إذا لم يقصد القتل ولم يكن الموت نتيجة راجحة لفعله (المادة ١٣١). تحديد الوصف بحسب ما يثبت من القصد والأداة وموضع الإصابة مهمة المحامي، والفصل فيه للمحكمة.",
   "نهب:جرح": "تفيد الوقائع أن النهب صاحبه جرح. الوصف الأساسي هو النهب (المادة ١٧٥)، وبندها الثاني يجعل عقوبته «بالإضافة إلى أي عقوبة أخرى مقررة لما يترتب على فعله»، فقد تنطبق المادتان معاً. إثبات الجرح وتحديد وصفه مهمة المحامي، والفصل فيه للمحكمة.",
   "سرقة:حد": "الوقائع تثبت السرقة. تطبيق عقوبة الحد (المادة 170) مشروط بثبوت شروطه، ومنها أخذ المال خفية من حرزه وبلوغه النصاب — وإثبات ذلك أو نفيه مهمة المحامي، والفصل فيه للمحكمة.",
+  // ── Attempted-murder open-point cards: base + method-specific evidence line ──
+  "شروع:سلاح":  "ليست هذه تصنيفاً. استعمال وسيلة قاتلة بطبيعتها يفتح باب فحص الشروع في القتل ولا يثبته. لا بد من فحص القصد وبدء التنفيذ والأدلة المحيطة بالفعل. إثبات ذلك أو نفيه مهمة المحامي، والتكييف النهائي من اختصاص المحكمة.\nقرائن تُفحص: موضع الإصابة، وطريقة الاعتداء، وشدته، وتكراره، والتهديد السابق، وسائر ظروف الواقعة. ولا يُستنتج الشروع من السلاح أو الجرح وحدهما.",
+  "شروع:خنق":   "ليست هذه تصنيفاً. استعمال وسيلة قاتلة بطبيعتها يفتح باب فحص الشروع في القتل ولا يثبته. لا بد من فحص القصد وبدء التنفيذ والأدلة المحيطة بالفعل. إثبات ذلك أو نفيه مهمة المحامي، والتكييف النهائي من اختصاص المحكمة.\nقرائن تُفحص: فقدان الوعي، ومدة الضغط على العنق، واستمرار الاعتداء بعد سقوط المجني عليه. ولا يُجزم بقصد القتل من فقدان الوعي وحده.",
+  "شروع:سم":    "ليست هذه تصنيفاً. استعمال وسيلة قاتلة بطبيعتها يفتح باب فحص الشروع في القتل ولا يثبته. لا بد من فحص القصد وبدء التنفيذ والأدلة المحيطة بالفعل. إثبات ذلك أو نفيه مهمة المحامي، والتكييف النهائي من اختصاص المحكمة.\nقرائن تُفحص: طبيعة المادة، والجرعة، وطريقة إعطائها، وعلم الجاني بخطورتها.",
+  "شروع:حرق":   "ليست هذه تصنيفاً. استعمال وسيلة قاتلة بطبيعتها يفتح باب فحص الشروع في القتل ولا يثبته. لا بد من فحص القصد وبدء التنفيذ والأدلة المحيطة بالفعل. إثبات ذلك أو نفيه مهمة المحامي، والتكييف النهائي من اختصاص المحكمة.\nقرائن تُفحص: موضع الحرق، واتساعه، وهل منع الجاني المجني عليه من النجاة.",
+  "شروع:إغراق": "ليست هذه تصنيفاً. استعمال وسيلة قاتلة بطبيعتها يفتح باب فحص الشروع في القتل ولا يثبته. لا بد من فحص القصد وبدء التنفيذ والأدلة المحيطة بالفعل. إثبات ذلك أو نفيه مهمة المحامي، والتكييف النهائي من اختصاص المحكمة.\nقرائن تُفحص: تعمّد إبقاء المجني عليه تحت الماء، وظروف إنقاذه.",
+  "شروع:ذبح":   "ليست هذه تصنيفاً. استعمال وسيلة قاتلة بطبيعتها يفتح باب فحص الشروع في القتل ولا يثبته. لا بد من فحص القصد وبدء التنفيذ والأدلة المحيطة بالفعل. إثبات ذلك أو نفيه مهمة المحامي، والتكييف النهائي من اختصاص المحكمة.\nقرائن تُفحص: موضع الإصابة، والأداة، والقصد.",
 };
 
 /** Strips tashkeel AND folds alef variants (أ إ آ ٱ) to bare alef.
@@ -1886,6 +1932,16 @@ export async function analyzeCase(
     ) {
       criminalTerms = [{ term: "قتل:وصف", origin: "expanded" as const }];
     }
+    // Deliberate-assault override: when the LLM returns قتل خطأ but the act
+    // was a deliberate assault (ضرب/لكم/ركل/طعن/هاجم/خنق/دفعه/...), the
+    // killing type is open — شبه عمد or عمد, not خطأ. Override to قتل:وصف.
+    // This path never yields Art. 130 (intent not established) or Art. 132.
+    if (
+      llmResult.concept === "قتل خطأ" &&
+      factsMatchDeliberateAssault(input.facts)
+    ) {
+      criminalTerms = [{ term: "قتل:وصف", origin: "expanded" as const }];
+    }
     anyFired = true;
   }
 
@@ -1901,12 +1957,44 @@ export async function analyzeCase(
     // Item 2: filter the LLM's attempted-murder discuss suggestion to stabbings
     // and shootings only. A stick blow in a fight should not trigger it.
     const rawDiscuss = llmResult.type === "criminal" ? (llmResult.discuss ?? []) : [];
-    const filteredDiscuss = rawDiscuss.filter((c) => {
-      if (c === "قتل عمد") return factsMatchLethalWeapon(input.facts);
+    let filteredDiscuss = rawDiscuss.filter((c) => {
+      // Always drop LLM's "قتل عمد" — the deterministic gates below replace it.
+      if (c === "قتل عمد") return false;
       // Robbery-with-wound card: LLM proposes + keyword gate both required.
       if (c === "نهب:جرح") return factsMatchWound(input.facts);
       return true;
     });
+
+    // Method gate: deterministic — does not depend on LLM volunteering discuss.
+    // Fires when the act involved a lethal method (خنق/سم/حرق/إغراق/ذبح) and
+    // the charge is a non-fatal bodily-harm concept.
+    // When method fires, weapon gate is suppressed (one card per case).
+    let methodCardFired = false;
+    if (
+      llmResult.type === "criminal" &&
+      (llmResult.concept === "جرح عمد" ||
+        llmResult.concept === "جرح شبه عمد" ||
+        llmResult.concept === "أذى" ||
+        llmResult.concept === "قوة جنائية")
+    ) {
+      const whichMethod = whichLethalMethod(input.facts);
+      if (whichMethod !== null) {
+        filteredDiscuss = [...filteredDiscuss, `شروع:${whichMethod}`];
+        methodCardFired = true;
+      }
+    }
+
+    // Weapon gate: deterministic — fires for جرح عمد + lethal weapon.
+    // Skipped when the method gate already fired, so each case shows at most
+    // one attempted-murder card.
+    if (
+      !methodCardFired &&
+      llmResult.type === "criminal" &&
+      llmResult.concept === "جرح عمد" &&
+      factsMatchLethalWeapon(input.facts)
+    ) {
+      filteredDiscuss = [...filteredDiscuss, "شروع:سلاح"];
+    }
 
     // True when the homicide gate overrode the concept to قتل:وصف.
     const homicideOpenPoint = criminalTerms[0]?.term === "قتل:وصف";
