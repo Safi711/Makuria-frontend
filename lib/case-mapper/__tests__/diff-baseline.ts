@@ -4,7 +4,7 @@
  */
 import { createClient } from "@supabase/supabase-js";
 import { analyzeCase } from "../analyze";
-import baseline from "../../../.claude/after-c11.json";
+import baseline from "./baseline-after-c11.json";
 
 try { (process as any).loadEnvFile(".env.local"); } catch { /* ok */ }
 
