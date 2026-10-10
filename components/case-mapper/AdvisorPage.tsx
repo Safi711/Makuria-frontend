@@ -806,6 +806,18 @@ export async function AdvisorPage({
               <Muted className="mb-4">
                 {item.description ?? "ليست هذه تصنيفاً — وإثبات هذه المسألة أو نفيها مهمة المحامي، والفصل فيها للمحكمة."}
               </Muted>
+              {item.evidenceLine && (
+                <Muted className="mb-4">
+                  <strong style={{ color: "var(--cm-text-2)" }}>{"قرائن تُفحص:"}</strong>
+                  {" "}{item.evidenceLine}
+                  {item.cautionLine && (
+                    <><br />{item.cautionLine}</>
+                  )}
+                </Muted>
+              )}
+              {item.negationNote && (
+                <Muted className="mb-4">{item.negationNote}</Muted>
+              )}
               <ul className="space-y-3">
                 {item.articles.map((law) => (
                   <LawRow

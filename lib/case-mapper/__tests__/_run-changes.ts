@@ -229,7 +229,7 @@ async function runOnce(facts: string): Promise<RunResult> {
     laws,
     cardCount: cards.length,
     cardKeys: cards.map((d: any) => d.concept ?? "?"),
-    descNote: Boolean(qatlCard?.description?.includes(NEGATE_KILL_APPEND_FRAGMENT)),
+    descNote: Boolean(qatlCard?.negationNote?.includes(NEGATE_KILL_APPEND_FRAGMENT)),
   };
 }
 
