@@ -721,8 +721,8 @@ export const DISCUSS_CONCEPT_TO_ARTICLES: Record<string, ConceptArticleEntry[]> 
   // Change 1: injury-description open point — no stated wound after lethal method.
   // Both articles are "for investigation, not classification".
   "إصابة:وصف": [
-    { lawSlug: "criminal-law-1991", articleNumber: "139", statusNoteOverride: "معروضة للبحث، لا للتصنيف" },
-    { lawSlug: "criminal-law-1991", articleNumber: "142", statusNoteOverride: "معروضة للبحث، لا للتصنيف" },
+    { lawSlug: "criminal-law-1991", articleNumber: "139" },
+    { lawSlug: "criminal-law-1991", articleNumber: "142" },
   ],
 };
 
