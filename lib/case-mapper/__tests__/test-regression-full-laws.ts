@@ -66,6 +66,14 @@ const CASES: Case[] = [
     expectedDiscussCount: 1,
     note: "Golden 10: جرح عمد + بسكين → weapon card شروع:سلاح — laws:[139,138], discuss:1",
   },
+  // Burns ruling (Commit 22): حرق + حروق (burns) — Art. 139 not auto-classified
+  {
+    id: "REG-C1H",
+    facts: "سكب عليه البنزين وأشعل فيه النار فأصيب بحروق ونجا.",
+    expectedLaws: ["138"],
+    expectedDiscussCount: 2,
+    note: "حرق burns: laws:[138], 2 cards [شروع:حرق, إصابة:وصف]",
+  },
 ];
 
 async function main() {

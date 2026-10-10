@@ -12,6 +12,7 @@ import {
   factsMatchIntentToKill,
   factsMatchWound,
   factsMatchDeliberateAssault,
+  factsNegateIntentToKill,
   whichLethalMethod,
   dropAthaIfWound,
   dropBareJurhIfWound,
@@ -281,7 +282,13 @@ const CASE_TYPE_COMPANIONS: Record<string, string[]> = {
 // When a criminal expansion concept fires, fetch these specific articles
 // directly by (lawSlug, articleNumber) — no text search for laws.
 // Every entry is marked REVIEW until verified against the live corpus.
-export type ConceptArticleEntry = { lawSlug: string; articleNumber: string };
+export type ConceptArticleEntry = {
+  lawSlug: string;
+  articleNumber: string;
+  /** Optional override for the statusNote shown on the article inside a discuss card.
+   * Use "معروضة للبحث، لا للتصنيف" for articles that are open points, not assertions. */
+  statusNoteOverride?: string;
+};
 
 export const CONCEPT_TO_ARTICLES: Record<string, ConceptArticleEntry[]> = {
   "خيانة الأمانة": [
@@ -338,6 +345,11 @@ export const CONCEPT_TO_ARTICLES: Record<string, ConceptArticleEntry[]> = {
   "جرح عمد": [
     { lawSlug: "criminal-law-1991", articleNumber: "139" }, // عقوبة الجراح العمد
     { lawSlug: "criminal-law-1991", articleNumber: "138" }, // الجراح وأنواعها — definition
+  ],
+  // Change 1 override: lethal method (non-weapon) + no stated wound → Art. 138 only.
+  // Arts. 139 and 142 are shown in the إصابة:وصف discuss card instead.
+  "جرح:وصف": [
+    { lawSlug: "criminal-law-1991", articleNumber: "138" }, // الجراح وأنواعها — definition only
   ],
   "جرح شبه عمد": [
     { lawSlug: "criminal-law-1991", articleNumber: "140" }, // عقوبة الجراح شبه العمد
@@ -697,6 +709,12 @@ export const DISCUSS_CONCEPT_TO_ARTICLES: Record<string, ConceptArticleEntry[]> 
     { lawSlug: "criminal-law-1991", articleNumber: "20" },
     { lawSlug: "criminal-law-1991", articleNumber: "130" },
   ],
+  // Change 1: injury-description open point — no stated wound after lethal method.
+  // Both articles are "for investigation, not classification".
+  "إصابة:وصف": [
+    { lawSlug: "criminal-law-1991", articleNumber: "139", statusNoteOverride: "معروضة للبحث، لا للتصنيف" },
+    { lawSlug: "criminal-law-1991", articleNumber: "142", statusNoteOverride: "معروضة للبحث، لا للتصنيف" },
+  ],
 };
 
 const DISCUSS_CONCEPT_LABEL: Record<string, string> = {
@@ -714,6 +732,7 @@ const DISCUSS_CONCEPT_LABEL: Record<string, string> = {
   "شروع:حرق":   "احتمال الشروع في القتل — نقطة مفتوحة للمحامي",
   "شروع:إغراق": "احتمال الشروع في القتل — نقطة مفتوحة للمحامي",
   "شروع:ذبح":   "احتمال الشروع في القتل — نقطة مفتوحة للمحامي",
+  "إصابة:وصف":  "وصف الإصابة: جراح أم أذى — نقطة مفتوحة للمحامي",
 };
 
 const DISCUSS_CONCEPT_DESC: Record<string, string> = {
@@ -732,6 +751,7 @@ const DISCUSS_CONCEPT_DESC: Record<string, string> = {
   "شروع:حرق":   "ليست هذه تصنيفاً. استعمال وسيلة قاتلة بطبيعتها يفتح باب فحص الشروع في القتل ولا يثبته. لا بد من فحص القصد وبدء التنفيذ والأدلة المحيطة بالفعل. إثبات ذلك أو نفيه مهمة المحامي، والتكييف النهائي من اختصاص المحكمة.\nقرائن تُفحص: موضع الحرق، واتساعه، وهل منع الجاني المجني عليه من النجاة.",
   "شروع:إغراق": "ليست هذه تصنيفاً. استعمال وسيلة قاتلة بطبيعتها يفتح باب فحص الشروع في القتل ولا يثبته. لا بد من فحص القصد وبدء التنفيذ والأدلة المحيطة بالفعل. إثبات ذلك أو نفيه مهمة المحامي، والتكييف النهائي من اختصاص المحكمة.\nقرائن تُفحص: تعمّد إبقاء المجني عليه تحت الماء، وظروف إنقاذه.",
   "شروع:ذبح":   "ليست هذه تصنيفاً. استعمال وسيلة قاتلة بطبيعتها يفتح باب فحص الشروع في القتل ولا يثبته. لا بد من فحص القصد وبدء التنفيذ والأدلة المحيطة بالفعل. إثبات ذلك أو نفيه مهمة المحامي، والتكييف النهائي من اختصاص المحكمة.\nقرائن تُفحص: موضع الإصابة، والأداة، والقصد.",
+  "إصابة:وصف":  "ليست هذه تصنيفاً. لا تذكر الوقائع جرحاً ولا إصابة موصوفة. تحديد الوصف بين تسبيب الجراح العمد (المادة ١٣٩) والأذى (المادة ١٤٢) يتوقف على الإصابة الثابتة بالتقرير الطبي، وإثباتها مهمة المحامي، والفصل فيها للمحكمة.",
 };
 
 /** Strips tashkeel AND folds alef variants (أ إ آ ٱ) to bare alef.
@@ -1489,6 +1509,7 @@ async function analyzeCriminalConceptMap(
   // that actually retrieves relevant cases and principles.
   const SEARCH_QUERY_FOR_TERM: Record<string, string> = {
     "قتل:وصف": "قتل",
+    "جرح:وصف": "جرح",
   };
   function searchQuery(term: string): string {
     return SEARCH_QUERY_FOR_TERM[term] ?? term;
@@ -1670,7 +1691,7 @@ async function analyzeCriminalConceptMap(
           lawSlug: entry.lawSlug,
           sourceUrl: parentLaw.source_url ?? null,
           force: forceFromLawStatus(parentLaw.status),
-          statusNote: article.status_note_ar ?? null,
+          statusNote: entry.statusNoteOverride ?? article.status_note_ar ?? null,
           matchedTerms: [entry.concept],
           rank: 100,
           inScope: true,
@@ -1679,12 +1700,20 @@ async function analyzeCriminalConceptMap(
         arr.push(art);
         byConceptMap.set(entry.concept, arr);
       }
-      discussItems = [...byConceptMap.entries()].map(([concept, articles]) => ({
-        concept,
-        label: DISCUSS_CONCEPT_LABEL[concept] ?? concept,
-        ...(DISCUSS_CONCEPT_DESC[concept] ? { description: DISCUSS_CONCEPT_DESC[concept] } : {}),
-        articles,
-      }));
+      const NEGATE_KILL_APPEND =
+        "\nورد في الوقائع نفيٌ لقصد القتل. وهو قرينة تُفحص مع سائر الظروف، ولا تحسم الوصف وحدها.";
+      discussItems = [...byConceptMap.entries()].map(([concept, articles]) => {
+        let desc = DISCUSS_CONCEPT_DESC[concept];
+        if (concept === "قتل:وصف" && desc && factsNegateIntentToKill(input.facts)) {
+          desc = desc + NEGATE_KILL_APPEND;
+        }
+        return {
+          concept,
+          label: DISCUSS_CONCEPT_LABEL[concept] ?? concept,
+          ...(desc ? { description: desc } : {}),
+          articles,
+        };
+      });
     }
   }
 
@@ -1921,6 +1950,9 @@ export async function analyzeCase(
     } else {
       criminalTerms = [{ term: llmResult.concept, origin: "expanded" as const }];
     }
+    // Governing rule — docs/abu-rannat-governing-rules.md:
+    // لا نستنتج القصد من السلاح وحده، ولا ننفيه من أقوال المتهم وحدها،
+    // ولا نجزم بوصف الإصابة دون سند كافٍ.
     // Homicide open-point gate: when death after assault but no lethal weapon
     // and no explicitly stated intent to kill, show Art. 129 only and open
     // a card for the lawyer to determine 130 (عمد) vs 131 (شبه عمد).
@@ -1929,6 +1961,17 @@ export async function analyzeCase(
       !factsMatchLethalWeapon(input.facts) &&
       !factsMatchLethalMethod(input.facts) &&
       !factsMatchIntentToKill(input.facts)
+    ) {
+      criminalTerms = [{ term: "قتل:وصف", origin: "expanded" as const }];
+    }
+    // Change 2 — lethal means, but the FACTS negate intent at the narrator level:
+    // "دون قصد قتله" / "ولم يكن يقصد قتله" etc., NOT the accused's denial.
+    // When a lethal weapon or method is used but the narrative itself states no
+    // intent, the homicide characterisation is open — override to قتل:وصف.
+    if (
+      (llmResult.concept === "قتل عمد" || llmResult.concept === "قتل شبه عمد") &&
+      (factsMatchLethalWeapon(input.facts) || factsMatchLethalMethod(input.facts)) &&
+      factsNegateIntentToKill(input.facts)
     ) {
       criminalTerms = [{ term: "قتل:وصف", origin: "expanded" as const }];
     }
@@ -1994,6 +2037,24 @@ export async function analyzeCase(
       factsMatchLethalWeapon(input.facts)
     ) {
       filteredDiscuss = [...filteredDiscuss, "شروع:سلاح"];
+    }
+
+    // Change 1 — lethal METHOD (خنق/سم/إغراق/حرق) + no stated wound + no lethal
+    // weapon → injury characterisation is open.  Laws: Art. 138 only; add a
+    // second "إصابة:وصف" card so the lawyer can determine 139 vs 142 from the
+    // medical report.  The attempted-murder card from the method gate still shows.
+    const OPEN_INJURY_METHODS = new Set(["خنق", "سم", "إغراق", "حرق"]);
+    if (
+      llmResult.type === "criminal" &&
+      (llmResult.concept === "جرح عمد" ||
+        llmResult.concept === "جرح شبه عمد" ||
+        llmResult.concept === "أذى") &&
+      OPEN_INJURY_METHODS.has(whichLethalMethod(input.facts) ?? "") &&
+      !factsMatchWound(input.facts) &&
+      !factsMatchLethalWeapon(input.facts)
+    ) {
+      criminalTerms = [{ term: "جرح:وصف", origin: "expanded" as const }];
+      filteredDiscuss = [...filteredDiscuss, "إصابة:وصف"];
     }
 
     // True when the homicide gate overrode the concept to قتل:وصف.
