@@ -2016,6 +2016,14 @@ export async function analyzeCase(
     ) {
       criminalTerms = [{ term: "قتل:وصف", origin: "expanded" as const }];
     }
+    // R1 — Engine never asserts Art. 131. When none of the gates above have
+    // overridden قتل شبه عمد, force to قتل:وصف (Art. 129 + open-point card).
+    if (
+      llmResult.concept === "قتل شبه عمد" &&
+      criminalTerms[0]?.term === "قتل شبه عمد"
+    ) {
+      criminalTerms = [{ term: "قتل:وصف", origin: "expanded" as const }];
+    }
     anyFired = true;
   }
 
