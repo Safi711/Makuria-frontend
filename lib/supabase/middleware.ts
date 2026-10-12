@@ -22,7 +22,7 @@ const PROTECTED_PREFIXES = [
 /**
  * Refreshes the Supabase session on every request and gates the
  * authenticated Lawyer Workspace routes. Public research routes
- * (/, /laws, /cases, /search, /principles, /case-mapper) are never
+ * (/, /laws, /cases, /search, /principles, /abu-rannat) are never
  * touched here.
  */
 export async function updateSession(request: NextRequest) {

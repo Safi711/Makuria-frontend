@@ -17,7 +17,7 @@ import type {
 } from "@/lib/case-mapper/analyze";
 
 /**
- * «المستشار القانوني الذكي» — /case-mapper
+ * «المستشار القانوني الذكي» — /abu-rannat (was /case-mapper until 2026-10-12)
  *
  * Laid out to Safi's design sheet (Makuria_Case_Mapper_Smart_Advisor.pdf,
  * 2026-09-28): dark navy ground, gold accents, RTL, a two-card top row
@@ -436,7 +436,7 @@ export async function AdvisorPage({
 }: {
   locale: Locale;
   searchParams: Record<string, string | string[] | undefined>;
-  /** Where the form posts back to. Both «/» and «/case-mapper» render this
+  /** Where the form posts back to. Both «/» and «/abu-rannat» render this
    * component, and each must submit to itself so the address bar keeps
    * showing the page the visitor is actually on. */
   basePath: string;

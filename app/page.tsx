@@ -279,7 +279,7 @@ export default async function HomePage() {
             {t(locale, "homeAdvisorBody")}
           </p>
           <Link
-            href="/case-mapper"
+            href="/abu-rannat"
             className="inline-block rounded-xl px-6 py-3 text-sm font-bold"
             style={{
               background: "linear-gradient(180deg,#EACC82 0%,#DBB663 100%)",
