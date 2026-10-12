@@ -120,7 +120,17 @@ export default async function LawDetailPage(props: PageProps<"/laws/[slug]">) {
       count: "exact",
     })
     .eq("law_id", law.id)
-    .order("article_number_int", { ascending: true })
+    // Numeric order first. Rows that share a number — «47», «47أ», «47ب»;
+    // «135», «135 مكرر» — were returned in whatever order Postgres found them,
+    // so «47أ» could print before «47». The text of the number breaks the tie:
+    // the bare number is a prefix of its lettered siblings and sorts first, and
+    // أ ب ج د هـ و follow each other in that order.
+    //
+    // Rows with no number (article_number_int NULL — a schedule such as
+    // «الجدول الأول») sort last, after the numbered articles, which is where a
+    // law's schedules belong.
+    .order("article_number_int", { ascending: true, nullsFirst: false })
+    .order("article_number", { ascending: true })
     .range(from, to);
 
   // Structured data: lets Google understand this page as a piece of
