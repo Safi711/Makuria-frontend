@@ -62,7 +62,7 @@ export function AuthShell({ locale, children }: { locale: Locale; children: Reac
             {t(locale, "authPublicNote")}
           </p>
           <Link
-            href="/case-mapper"
+            href="/abu-rannat"
             className="mt-2 inline-block text-sm font-medium hover:underline"
             style={{ color: "var(--mk-gold-soft)" }}
           >
