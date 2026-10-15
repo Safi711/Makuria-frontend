@@ -150,6 +150,8 @@ export const dictionaries: Record<Locale, Record<string, string>> = {
     cmAnalyzing: "جارٍ التحليل...",
     cmEmptyFacts: "الرجاء إدخال وقائع القضية قبل التحليل.",
     cmErrorState: "حدث خطأ أثناء تحليل القضية. يرجى المحاولة مرة أخرى.",
+    cmNoConfidentMatch:
+      "لم يُعثر على مطابقة موثوقة — الوقائع المُدخلة لم تكشف عن نص قانوني محدد في قاعدة مكوريا. حاول توصيف الفعل القانوني بمزيد من الدقة أو أضف كلمات مفتاحية.",
     cmNoResultsAtAll:
       "لم يتم العثور على مرجع موثّق في قاعدة مكوريا. جرّب إضافة كلمات مفتاحية أكثر تحديدًا.",
     cmSectionSummary: "ملخص الوقائع",
@@ -362,6 +364,8 @@ export const dictionaries: Record<Locale, Record<string, string>> = {
     cmAnalyzing: "Analyzing...",
     cmEmptyFacts: "Please enter the case facts before analyzing.",
     cmErrorState: "Something went wrong analyzing the case. Please try again.",
+    cmNoConfidentMatch:
+      "No confident match found — the facts supplied did not map to a specific legal provision in the Makuria database. Try describing the legal act more precisely or adding keywords.",
     cmNoResultsAtAll:
       "No verified authority was found in the Makuria database. Try adding more specific keywords.",
     cmSectionSummary: "Facts Summary",

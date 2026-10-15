@@ -1,0 +1,22 @@
+.wrap { direction: rtl; display: flex; flex-direction: column; align-items: flex-start; gap: 6px; margin-top: 16px; }
+.stage { position: relative; width: 120px; height: 120px; }
+.stamp { position: absolute; inset: 0; width: 120px; height: 120px; opacity: 0;
+  transform: scale(2.6) rotate(-22deg);
+  animation: hit .55s cubic-bezier(.2,.9,.3,1.2) forwards; }
+.ring { position: absolute; inset: 0; border-radius: 50%; border: 2px solid #E3C06A; opacity: 0;
+  animation: ripple .7s ease-out .33s forwards; }
+.done { margin: 4px 0 0; color: #E3C06A; font-size: 15px; opacity: 0; animation: fade .4s ease-out .6s forwards; }
+.note { margin: 0; color: #9FB0CC; font-size: 12px; }
+@keyframes hit {
+  0% { opacity: 0; transform: scale(2.6) rotate(-22deg); }
+  60% { opacity: 1; transform: scale(.92) rotate(-8deg); }
+  80% { transform: scale(1.04) rotate(-9deg); }
+  100% { opacity: 1; transform: scale(1) rotate(-9deg); }
+}
+@keyframes ripple { 0% { opacity: .8; transform: scale(1); } 100% { opacity: 0; transform: scale(1.7); } }
+@keyframes fade { to { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) {
+  .stamp { animation: none; opacity: 1; transform: rotate(-9deg); }
+  .ring { animation: none; display: none; }
+  .done { animation: none; opacity: 1; }
+}

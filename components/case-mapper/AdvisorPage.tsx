@@ -6,6 +6,7 @@ import { AuthorityBadge } from "@/components/case-mapper/AuthorityBadge";
 import { Highlight } from "@/components/case-mapper/Highlight";
 import { sourceNameAr } from "@/lib/site";
 import { AbuRannatSeal } from "@/components/case-mapper/AbuRannatSeal";
+import AbuRannatStamp from "@/components/AbuRannatStamp";
 import { analyzeCase } from "@/lib/case-mapper/analyze";
 import type {
   CaseMapResult,
@@ -70,6 +71,25 @@ function badgeStatus(force: ForceStatus): string | undefined {
     default:
       return undefined;
   }
+}
+
+/** Map internal colon-key concept terms to reader-facing Arabic labels.
+ * These keys (e.g. "مخدرات:قصد التعاطي") are vocabulary identifiers in the
+ * classifier and must never appear verbatim in the UI. */
+const TERM_DISPLAY_AR: Record<string, string> = {
+  "مخدرات:قصد التعاطي":  "مخدرات — قصد التعاطي",
+  "مخدرات:قصد الاتجار":  "مخدرات — قصد الاتجار",
+  "مخدرات:تقديم":        "مخدرات — تقديم لشخص آخر",
+  "سرقة:حد":             "سرقة — السرقة الحدية",
+  "انتحال:موظف":         "انتحال — صفة موظف عام",
+  "انتحال:دعوى":         "انتحال — شخصية في دعوى",
+  "انتحال:زي":           "انتحال — زي أو شارة رسمية",
+  "نهب:جرح":             "نهب — جرح مصاحب",
+  "قتل:وصف":             "قتل — الوصف غير محسوم",
+  "جرح:وصف":             "إصابة — الوصف غير محسوم",
+};
+function termDisplayAr(term: string): string {
+  return TERM_DISPLAY_AR[term] ?? term;
 }
 
 function originLabel(locale: Locale, origin: IssueLens["origin"]): string {
@@ -188,7 +208,15 @@ function FullTextLink({ href, label }: { href: string; label: string }) {
 
 /* ----------------------------------------------------------------- results */
 
-function LawRow({ locale, law }: { locale: Locale; law: RetrievedAuthority }) {
+function LawRow({
+  locale,
+  law,
+  matchedTermsOverride,
+}: {
+  locale: Locale;
+  law: RetrievedAuthority;
+  matchedTermsOverride?: string;
+}) {
   const href =
     law.type === "article"
       ? law.lawSlug
@@ -243,7 +271,7 @@ function LawRow({ locale, law }: { locale: Locale; law: RetrievedAuthority }) {
         {t(locale, "sourceLabel")}: {sourceNameAr(law.sourceUrl) ?? t(locale, "noSourceRecorded")}
       </MetaLine>
       <MetaLine>
-        {t(locale, "cmMatchedOn")}: {law.matchedTerms.join("، ")}
+        {matchedTermsOverride ?? `${t(locale, "cmMatchedOn")}: ${law.matchedTerms.map(termDisplayAr).join("، ")}`}
       </MetaLine>
 
       {href && (
@@ -285,7 +313,7 @@ function CaseRow({ locale, c }: { locale: Locale; c: RetrievedCase }) {
         {t(locale, "sourceLabel")}: {sourceNameAr(c.sourceUrl) ?? t(locale, "noSourceRecorded")}
       </MetaLine>
       <MetaLine>
-        {t(locale, "cmMatchedOn")}: {c.matchedTerms.join("، ")}
+        {t(locale, "cmMatchedOn")}: {c.matchedTerms.map(termDisplayAr).join("، ")}
       </MetaLine>
 
       {c.slug && (
@@ -305,11 +333,11 @@ function PrincipleRow({ locale, p }: { locale: Locale; p: RetrievedPrinciple }) 
       {p.category && <MetaLine>{p.category}</MetaLine>}
       {p.summary && (
         <p className="mt-2 text-sm leading-relaxed" style={{ color: "var(--cm-text-2)" }}>
-          {p.summary.slice(0, 220)}
+          {(() => { const t = p.summary; if (t.length <= 220) return t; const cut = t.lastIndexOf(" ", 220); return (cut > 0 ? t.slice(0, cut) : t.slice(0, 220)) + "…"; })()}
         </p>
       )}
       <MetaLine>
-        {t(locale, "cmMatchedOn")}: {p.matchedTerms.join("، ")}
+        {t(locale, "cmMatchedOn")}: {p.matchedTerms.map(termDisplayAr).join("، ")}
       </MetaLine>
       {p.slug && (
         <FullTextLink
@@ -341,7 +369,7 @@ function MethodCard({ locale, result }: { locale: Locale; result: CaseMapResult 
             }}
             title={originLabel(locale, issue.origin)}
           >
-            {issue.term}
+            {termDisplayAr(issue.term)}
           </li>
         ))}
       </ul>
@@ -363,7 +391,7 @@ function MethodCard({ locale, result }: { locale: Locale; result: CaseMapResult 
       <ul className="mt-4 space-y-3">
         {result.issues.map((issue) => (
           <Row key={`chain-${issue.term}`}>
-            <p className="mb-1 text-sm font-semibold">{issue.term}</p>
+            <p className="mb-1 text-sm font-semibold">{termDisplayAr(issue.term)}</p>
             <MetaLine>{originLabel(locale, issue.origin)}</MetaLine>
 
             {issue.searchedAndEmpty ? (
@@ -657,7 +685,20 @@ export async function AdvisorPage({
           </p>
         )}
 
-        {result && !result.hasAnyResults && (
+        {result?.noConfidentMatch && (
+          <p
+            className="mt-6 rounded-xl border px-4 py-3 text-sm leading-relaxed"
+            style={{
+              borderColor: "rgba(228,193,67,0.50)",
+              background: "rgba(228,193,67,0.09)",
+              color: "var(--cm-text-2)",
+            }}
+          >
+            {t(locale, "cmNoConfidentMatch")}
+          </p>
+        )}
+
+        {result && !result.hasAnyResults && !result.noConfidentMatch && (
           <p
             className="mt-6 rounded-xl border px-4 py-3 text-sm leading-relaxed"
             style={{ borderColor: "var(--cm-line)", background: "var(--cm-surface)", color: "var(--cm-text-2)" }}
@@ -748,7 +789,51 @@ export async function AdvisorPage({
               )}
             </Card>
           </div>
+
+          {/* 4 — open point for the lawyer (discuss), never mixed into ranked laws */}
+          {result?.discuss?.map((item) => (
+            <section
+              key={item.concept}
+              className="mt-5 rounded-2xl border p-5 sm:p-6"
+              style={{
+                background: "var(--cm-surface)",
+                borderColor: "var(--cm-line)",
+                borderInlineStartColor: "var(--mk-gold-soft)",
+                borderInlineStartWidth: "3px",
+              }}
+            >
+              <CardTag>{"نقطة مفتوحة للمحامي"}</CardTag>
+              <CardTitle>{item.label}</CardTitle>
+              <Muted className="mb-4">
+                {item.description ?? "ليست هذه تصنيفاً — وإثبات هذه المسألة أو نفيها مهمة المحامي، والفصل فيها للمحكمة."}
+              </Muted>
+              {item.evidenceLine && (
+                <Muted className="mb-4">
+                  <strong style={{ color: "var(--cm-text-2)" }}>{"قرائن تُفحص:"}</strong>
+                  {" "}{item.evidenceLine}
+                  {item.cautionLine && (
+                    <><br />{item.cautionLine}</>
+                  )}
+                </Muted>
+              )}
+              {item.negationNote && (
+                <Muted className="mb-4">{item.negationNote}</Muted>
+              )}
+              <ul className="space-y-3">
+                {item.articles.map((law) => (
+                  <LawRow
+                    key={law.id}
+                    locale={locale}
+                    law={law}
+                    matchedTermsOverride="معروضة للبحث، لا للتصنيف"
+                  />
+                ))}
+              </ul>
+            </section>
+          ))}
         </div>
+
+        {result && !errored && result.hasAnyResults && <AbuRannatStamp />}
 
         <p
           className="mt-10 rounded-xl border px-4 py-3 text-xs leading-relaxed"
