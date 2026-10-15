@@ -122,10 +122,16 @@ export default async function HomePage() {
   const articlesQuery = supabase.from("articles").select("id", { count: "exact", head: true });
 
   const [lawCount, articleCount, caseCount, recent] = await Promise.all([
+    // Only laws whose text is actually in the corpus are counted. A title-only
+    // record (shown on /laws as «النص لم يُدخل بعد») is not yet a law a reader
+    // can use, so it does not belong in the number on the front door.
+    // total_articles matched the real article rows for every law on 12 Oct 2026
+    // (79 = 79).
     supabase
       .from("laws")
       .select("id", { count: "exact", head: true })
-      .neq("slug", "site-migration-notice"),
+      .neq("slug", "site-migration-notice")
+      .gt("total_articles", 0),
     noticeId ? articlesQuery.neq("law_id", noticeId) : articlesQuery,
     supabase
       .from("cases")
@@ -273,7 +279,7 @@ export default async function HomePage() {
             {t(locale, "homeAdvisorBody")}
           </p>
           <Link
-            href="/case-mapper"
+            href="/abu-rannat"
             className="inline-block rounded-xl px-6 py-3 text-sm font-bold"
             style={{
               background: "linear-gradient(180deg,#EACC82 0%,#DBB663 100%)",

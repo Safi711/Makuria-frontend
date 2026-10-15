@@ -42,7 +42,7 @@ export function CaseInputForm({
     if (values.keywords.trim()) params.set("keywords", values.keywords.trim());
     params.set("submitted", "1");
     startTransition(() => {
-      router.push(`/case-mapper?${params.toString()}`);
+      router.push(`/abu-rannat?${params.toString()}`);
     });
   }
 

@@ -5,6 +5,7 @@ import { getLocale } from "@/lib/i18n-server";
 import { t } from "@/lib/i18n";
 import { LawStatusBadge } from "@/components/LawStatusBadge";
 import { Pagination } from "@/components/Pagination";
+import { ArticleBody } from "@/components/ArticleBody";
 import { SITE_URL, clampDescription, lawStatusWordAr, sourceNameAr } from "@/lib/site";
 
 const ARTICLES_PAGE_SIZE = 30;
@@ -120,7 +121,22 @@ export default async function LawDetailPage(props: PageProps<"/laws/[slug]">) {
       count: "exact",
     })
     .eq("law_id", law.id)
-    .order("article_number_int", { ascending: true })
+    // Numeric order first. Rows that share a number — «47», «47أ», «47ب»;
+    // «135», «135 مكرر» — were returned in whatever order Postgres found them,
+    // so «47أ» could print before «47». The text of the number breaks the tie:
+    // the bare number is a prefix of its lettered siblings and sorts first, and
+    // أ ب ج د هـ و follow each other in that order.
+    //
+    // Rows with no number (article_number_int NULL — a schedule such as
+    // «الجدول الأول») sort last, after the numbered articles, which is where a
+    // law's schedules belong.
+    //
+    // Among the unnumbered rows `display_order` decides: by text alone
+    // «الجدول الثالث» sorts before «الجدول الثاني». Numbered rows carry
+    // display_order equal to their number, so this key never reorders them.
+    .order("article_number_int", { ascending: true, nullsFirst: false })
+    .order("display_order", { ascending: true, nullsFirst: false })
+    .order("article_number", { ascending: true })
     .range(from, to);
 
   // Structured data: lets Google understand this page as a piece of
@@ -209,12 +225,19 @@ export default async function LawDetailPage(props: PageProps<"/laws/[slug]">) {
         <ol className="space-y-4">
           {articles.map((a) => (
             <li key={a.id} className="rounded-lg border p-4" style={{ borderColor: "var(--mk-border)" }}>
-              <div className="mb-1 flex items-center justify-between gap-2">
+              <div className="mb-2">
+                {/* A number reads «المادة 47»; a schedule's label is already a
+                    name («الجدول الأول») and prints as it is. */}
                 <span className="text-sm font-semibold">
-                  {locale === "ar" ? "المادة" : "Article"} {a.article_number}
+                  {/^\d/.test(a.article_number ?? "")
+                    ? `${locale === "ar" ? "المادة" : "Article"} ${a.article_number}`
+                    : a.article_number}
                 </span>
+                {a.title_ar && (
+                  <span className="text-sm text-neutral-600"> — {a.title_ar}</span>
+                )}
               </div>
-              <p className="text-sm leading-relaxed">{a.content_ar}</p>
+              <ArticleBody content={a.content_ar} />
               {a.status_note_ar && (
                 <p
                   className="mt-2 border-s-[3px] px-3 py-1.5 text-xs leading-relaxed"
