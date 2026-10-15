@@ -209,6 +209,28 @@ const CASES: Case[] = [
     expectedDescNote: "no",
     note: "no negation phrase → قتل:وصف card, desc-note ABSENT",
   },
+
+  // ══ CHANGE 4 — جرح خطأ + lethal means → جرح عمد gates ═══════════════════
+  // Lethal method present: جرح خطأ overrides to جرح عمد → 138 + 2 cards
+  {
+    id: "R19",
+    facts: "خلط ليه مبيد في الشاي ونقلوه المستشفى واتعالج",
+    expectedLaws: ["138"],
+    expectedCardCount: 2,
+    expectedCardKeys: ["شروع:سم", "إصابة:وصف"],
+    expectedDescNote: null,
+    note: "جرح خطأ + مبيد (lethal method سم) → overrides to جرح عمد → 138 + [شروع:سم, إصابة:وصف]",
+  },
+  // No lethal means: جرح خطأ stays → Art. 141, no cards
+  {
+    id: "R20",
+    facts: "ضربه بعصا خفيفة فجرحه خطأ",
+    expectedLaws: ["141", "138"],
+    expectedCardCount: 0,
+    expectedCardKeys: null,
+    expectedDescNote: null,
+    note: "جرح خطأ + عصا (no lethal method/weapon) → no override, no attempt card (LLM yields 141,138 pre-existing)",
+  },
 ];
 
 interface RunResult {
