@@ -2016,6 +2016,16 @@ export async function analyzeCase(
     ) {
       criminalTerms = [{ term: "قتل:وصف", origin: "expanded" as const }];
     }
+    // Lethal-means override: when the LLM returns جرح خطأ but facts contain a
+    // lethal method or lethal weapon, the wounding type is open — override to
+    // جرح عمد so the method/weapon/injury-description gates run normally.
+    if (
+      llmResult.concept === "جرح خطأ" &&
+      (whichLethalMethod(input.facts) !== null ||
+        factsMatchLethalWeapon(input.facts))
+    ) {
+      llmResult = { ...llmResult, concept: "جرح عمد" };
+    }
     // R1 — Engine never asserts Art. 131. When none of the gates above have
     // overridden قتل شبه عمد, force to قتل:وصف (Art. 129 + open-point card).
     if (
