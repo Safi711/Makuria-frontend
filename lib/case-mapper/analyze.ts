@@ -1939,7 +1939,7 @@ export async function analyzeCase(
   // concept or abstain when a required offence element is missing from the facts.
   // Required for B2-018 (correction) and B2-020 (abstention despite theft trigger).
   // Article numbers never come from the LLM — only CONCEPT_TO_ARTICLES is used.
-  const llmResult = await classifyWithLLM(
+  let llmResult = await classifyWithLLM(
     input.facts,
     process.env.ANTHROPIC_API_KEY ?? "",
   );
