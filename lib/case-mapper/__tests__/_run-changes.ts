@@ -211,6 +211,9 @@ const CASES: Case[] = [
   },
 
   // ══ CHANGE 4 — جرح خطأ + lethal means → جرح عمد gates ═══════════════════
+  // (R19, R20 defined above)
+
+  // ══ CHANGE 5 — serious injury review card + explicit attempt (Commit 33) ══
   // Lethal method present: جرح خطأ overrides to جرح عمد → 138 + 2 cards
   {
     id: "R19",
@@ -230,6 +233,79 @@ const CASES: Case[] = [
     expectedCardKeys: null,
     expectedDescNote: null,
     note: "جرح خطأ + عصا (no lethal method/weapon) → no override, no attempt card (LLM yields 141,138 pre-existing)",
+  },
+
+  // ══ CHANGE 5 — serious injury review card + explicit attempt (Commit 33) ══
+  // Bone fracture → 139, 138 + إصابة:مراجعة
+  {
+    id: "R21",
+    facts: "ضرب شخصاً بعصا على ساعده، وأثبتت الأشعة وجود كسر دون جرح مفتوح",
+    expectedLaws: ["139", "138"],
+    expectedCardCount: 1,
+    expectedCardKeys: ["إصابة:مراجعة"],
+    expectedDescNote: null,
+    note: "كسر ساعد → serious injury → 139,138 + إصابة:مراجعة (no attempt card)",
+  },
+  // Hot liquid pour → 139, 138 + إصابة:مراجعة
+  {
+    id: "R22",
+    facts: "أثناء مشاجرة كبّ شخص ماءً مغلياً على جسم آخر فأحدث حروقاً",
+    expectedLaws: ["139", "138"],
+    expectedCardCount: 1,
+    expectedCardKeys: ["إصابة:مراجعة"],
+    expectedDescNote: null,
+    note: "ماء مغلي → serious injury → 139,138 + إصابة:مراجعة (no dangerous site)",
+  },
+  // Caustic liquid + dangerous site → 139, 138 + إصابة:مراجعة + شروع:حرق
+  {
+    id: "R23",
+    facts: "رشّ شخص وجه امرأة بمادة كاوية «موية نار» فأصابها بحروق",
+    expectedLaws: ["139", "138"],
+    expectedCardCount: 2,
+    expectedCardKeys: ["إصابة:مراجعة", "شروع:حرق"],
+    expectedDescNote: null,
+    note: "موية نار + وجه (dangerous site) → 139,138 + [إصابة:مراجعة, شروع:حرق]",
+  },
+  // Stated intent + serious injury → شروع:قتل (20, 130, 19, 139) + إصابة:مراجعة
+  {
+    id: "R24",
+    facts: "أدخل شخص ماءً مغلياً في أنف إنسان نائم بقصد قتله، لكن المجني عليه نجا",
+    expectedLaws: ["20", "130", "19", "139"],
+    expectedCardCount: 1,
+    expectedCardKeys: ["إصابة:مراجعة"],
+    expectedDescNote: null,
+    note: "بقصد قتله + ماء مغلي في أنف → شروع:قتل [20,130,19,139] + إصابة:مراجعة only",
+  },
+  // Contusion only — no fracture, no hot liquid → 142, no cards
+  {
+    id: "R25",
+    facts: "ضرب شخص آخر فأحدث كدمة وألماً دون كسر أو حرق أو إصابة جسيمة",
+    expectedLaws: ["142"],
+    expectedCardCount: 0,
+    expectedCardKeys: null,
+    expectedDescNote: null,
+    note: "كدمة وألم فقط (no fracture, no hot liquid) → 142, no cards",
+  },
+  // Cold/mild liquid — NOT 139; record what engine returns
+  {
+    id: "R26",
+    facts: "سكب شخص ماءً بارداً أو شاياً فاتراً على آخر دون حدوث حرق أو إصابة مثبتة",
+    expectedLaws: null,
+    expectedCardCount: 0,
+    expectedCardKeys: null,
+    expectedDescNote: null,
+    reportOnly: true,
+    note: "ماء بارد/شاي فاتر → cold liquid guard: NOT 139; report what engine returns",
+  },
+  // Hot liquid to leg — review card but NO attempt (leg not in danger-site list)
+  {
+    id: "R27",
+    facts: "كب عليها موية سخنة في رجلها",
+    expectedLaws: ["139", "138"],
+    expectedCardCount: 1,
+    expectedCardKeys: ["إصابة:مراجعة"],
+    expectedDescNote: null,
+    note: "موية سخنة + رجل (not dangerous site) → 139,138 + إصابة:مراجعة only (no attempt card)",
   },
 ];
 
