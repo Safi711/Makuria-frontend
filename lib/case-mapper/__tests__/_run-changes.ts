@@ -307,6 +307,34 @@ const CASES: Case[] = [
     expectedDescNote: null,
     note: "موية سخنة + رجل (not dangerous site) → 139,138 + إصابة:مراجعة only (no attempt card)",
   },
+  // ══ CHANGE 6 — Commit 35: جرح خطأ with serious injury stays negligence ══════
+  {
+    id: "R28",
+    facts: "أثناء قيادة سيارة في شارع مزدحم، فوجئ السائق بطفل يعبر الطريق. انحرف لتفاديه فاصطدم بأحد المشاة، الذي أصيب بكسر في ساقه. ذكر السائق أنه كان يقود بالسرعة المقررة.",
+    expectedLaws: ["141", "138"],
+    expectedCardCount: 1,
+    expectedCardKeys: ["إهمال:فحص"],
+    expectedDescNote: null,
+    note: "traffic accident + fracture → stays جرح خطأ; negligence card, NOT إصابة:مراجعة, NOT 139",
+  },
+  {
+    id: "R29",
+    facts: "ضربه بعصا على رجله فكسر ساقه ونُقل للمستشفى",
+    expectedLaws: ["139", "138"],
+    expectedCardCount: 1,
+    expectedCardKeys: ["إصابة:مراجعة"],
+    expectedDescNote: null,
+    note: "deliberate assault + fracture → unchanged C.2 behaviour",
+  },
+  {
+    id: "R30",
+    facts: "دفعه في المشاجرة فوقع وانكسرت ساقه",
+    expectedLaws: ["139", "138"],
+    expectedCardCount: 1,
+    expectedCardKeys: ["إصابة:مراجعة"],
+    expectedDescNote: null,
+    note: "دفعه is a deliberate-assault verb → C.2 still fires",
+  },
 ];
 
 interface RunResult {

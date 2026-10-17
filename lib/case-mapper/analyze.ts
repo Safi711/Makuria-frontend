@@ -14,6 +14,7 @@ import {
   factsMatchDeliberateAssault,
   factsNegateIntentToKill,
   whichLethalMethod,
+  factsMatchHotLiquidPour,
   factsMatchSeriousInjury,
   factsMatchDangerousSite,
   dropAthaIfWound,
@@ -738,6 +739,11 @@ export const DISCUSS_CONCEPT_TO_ARTICLES: Record<string, ConceptArticleEntry[]> 
     { lawSlug: "criminal-law-1991", articleNumber: "139" },
     { lawSlug: "criminal-law-1991", articleNumber: "142" },
   ],
+  // Commit 35: negligence/causation open point — جرح خطأ with serious injury but no deliberate act.
+  "إهمال:فحص": [
+    { lawSlug: "criminal-law-1991", articleNumber: "16" },
+    { lawSlug: "criminal-law-1991", articleNumber: "142" },
+  ],
 };
 
 const DISCUSS_CONCEPT_LABEL: Record<string, string> = {
@@ -757,6 +763,7 @@ const DISCUSS_CONCEPT_LABEL: Record<string, string> = {
   "شروع:ذبح":   "احتمال الشروع في القتل — نقطة مفتوحة للمحامي",
   "إصابة:وصف":    "وصف الإصابة: جراح أم أذى — نقطة مفتوحة للمحامي",
   "إصابة:مراجعة": "مراجعة وصف الإصابة — نقطة مفتوحة للمحامي",
+  "إهمال:فحص":    "فحص الإهمال والسببية والحادث العرضي — نقطة مفتوحة للمحامي",
 };
 
 const DISCUSS_CONCEPT_DESC: Record<string, string> = {
@@ -777,6 +784,7 @@ const DISCUSS_CONCEPT_DESC: Record<string, string> = {
   "شروع:ذبح":   "ليست هذه تصنيفاً. استعمال وسيلة قاتلة بطبيعتها يفتح باب فحص الشروع في القتل ولا يثبته. لا بد من فحص القصد وبدء التنفيذ والأدلة المحيطة بالفعل. إثبات ذلك أو نفيه مهمة المحامي، والتكييف النهائي من اختصاص المحكمة.",
   "إصابة:وصف":    "ليست هذه تصنيفاً. لا تذكر الوقائع جرحاً ولا إصابة موصوفة. تحديد الوصف بين تسبيب الجراح العمد (المادة ١٣٩) والأذى (المادة ١٤٢) يتوقف على الإصابة الثابتة بالتقرير الطبي، وإثباتها مهمة المحامي، والفصل فيها للمحكمة.",
   "إصابة:مراجعة": "ليست هذه تصنيفاً نهائياً. عُرضت المادة ١٣٩ مبدئياً لأن الوقائع تذكر إصابة جسيمة (كسراً أو حرقاً) دون وصف طبي كافٍ. تحديد الوصف بين تسبيب الجراح (المادة ١٣٩) والأذى (المادة ١٤٢) يتوقف على التقرير الطبي وطبيعة الإصابة ومآلها، وإثباتها مهمة المحامي، والفصل فيها للمحكمة.",
+  "إهمال:فحص": "ليست هذه تصنيفاً نهائياً. عُرضت المادة ١٤١ مبدئياً لأن الوقائع تذكر إصابة دون فعل اعتداء عمدي. إثبات الجراح الخطأ يتوقف على ثبوت الإهمال أو عدم الاحتياط، وعلى علاقة السببية بين الفعل والإصابة؛ وقد ينتفي الخطأ أصلاً إذا توافرت شروط الحادث العرضي (المادة ١٦). ووصف الإصابة بين الجراح والأذى (المادة ١٤٢) يتوقف على التقرير الطبي. التحقق من ذلك مهمة المحامي، والفصل فيه للمحكمة.",
 };
 
 /** Evidence items for شروع:* cards — displayed after a bold "قرائن تُفحص:" label. */
@@ -2077,6 +2085,8 @@ export async function analyzeCase(
     // Gate C.1: stated intent + serious injury → attempt (شروع:قتل) as primary concept.
     // Gate C.2: serious injury without stated intent → جرح عمد + review card [+ شروع:حرق if site].
     // Both gates supersede the method/weapon/Change-1 gates below.
+    // Gate C.0 (Commit 35): جرح خطأ without a deliberate act stays negligence (Art. 141).
+    //   If a serious injury is described, open the negligence card instead of the review card.
     const LIVING_VICTIM_CONCEPTS = new Set([
       "جرح عمد", "جرح شبه عمد", "جرح خطأ", "أذى", "قوة جنائية",
     ]);
@@ -2085,7 +2095,21 @@ export async function analyzeCase(
       llmResult.type === "criminal" &&
       LIVING_VICTIM_CONCEPTS.has(llmResult.concept)
     ) {
-      if (
+      const deliberateAct =
+        factsMatchDeliberateAssault(input.facts) ||
+        factsMatchIntentToKill(input.facts) ||
+        // Pouring hot/caustic liquid on a person is inherently deliberate —
+        // check directly so "صب عليه موية مغلية فكسر رجله" (both paths true)
+        // still routes through C.2, not C.0.
+        factsMatchHotLiquidPour(input.facts);
+      if (llmResult.concept === "جرح خطأ" && !deliberateAct) {
+        // C.0: negligence stays negligence — do not upgrade to جرح عمد.
+        // Keep criminalTerms as-is (concept map already gives 141, 138).
+        if (factsMatchSeriousInjury(input.facts)) {
+          filteredDiscuss = [...filteredDiscuss, "إهمال:فحص"];
+        }
+        seriousInjuryGateFired = true;
+      } else if (
         factsMatchIntentToKill(input.facts) &&
         factsMatchSeriousInjury(input.facts)
       ) {
