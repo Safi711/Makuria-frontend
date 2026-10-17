@@ -14,6 +14,8 @@ import {
   factsMatchDeliberateAssault,
   factsNegateIntentToKill,
   whichLethalMethod,
+  factsMatchSeriousInjury,
+  factsMatchDangerousSite,
   dropAthaIfWound,
   dropBareJurhIfWound,
   SUPPLY_TO_PERSON_KW,
@@ -395,6 +397,13 @@ export const CONCEPT_TO_ARTICLES: Record<string, ConceptArticleEntry[]> = {
   "قتل:وصف": [
     { lawSlug: "criminal-law-1991", articleNumber: "129" }, // القتل وأنواعه — definition only
   ],
+  // Explicit attempted homicide: stated intent + serious injury (Commit 33)
+  "شروع:قتل": [
+    { lawSlug: "criminal-law-1991", articleNumber: "20" },  // العقوبة على الشروع
+    { lawSlug: "criminal-law-1991", articleNumber: "130" }, // القتل العمد
+    { lawSlug: "criminal-law-1991", articleNumber: "19" },  // تعريف الشروع
+    { lawSlug: "criminal-law-1991", articleNumber: "139" }, // عقوبة الجراح العمد
+  ],
   "مخدرات": [
     { lawSlug: "narcotics-psychotropic-substances-act-1994", articleNumber: "15" }, // الاتجار
     { lawSlug: "narcotics-psychotropic-substances-act-1994", articleNumber: "12" }, // حظر التعامل
@@ -724,6 +733,11 @@ export const DISCUSS_CONCEPT_TO_ARTICLES: Record<string, ConceptArticleEntry[]> 
     { lawSlug: "criminal-law-1991", articleNumber: "139" },
     { lawSlug: "criminal-law-1991", articleNumber: "142" },
   ],
+  // Commit 33: serious-injury review — bone fracture or hot/caustic liquid; research only.
+  "إصابة:مراجعة": [
+    { lawSlug: "criminal-law-1991", articleNumber: "139" },
+    { lawSlug: "criminal-law-1991", articleNumber: "142" },
+  ],
 };
 
 const DISCUSS_CONCEPT_LABEL: Record<string, string> = {
@@ -741,7 +755,8 @@ const DISCUSS_CONCEPT_LABEL: Record<string, string> = {
   "شروع:حرق":   "احتمال الشروع في القتل — نقطة مفتوحة للمحامي",
   "شروع:إغراق": "احتمال الشروع في القتل — نقطة مفتوحة للمحامي",
   "شروع:ذبح":   "احتمال الشروع في القتل — نقطة مفتوحة للمحامي",
-  "إصابة:وصف":  "وصف الإصابة: جراح أم أذى — نقطة مفتوحة للمحامي",
+  "إصابة:وصف":    "وصف الإصابة: جراح أم أذى — نقطة مفتوحة للمحامي",
+  "إصابة:مراجعة": "مراجعة وصف الإصابة — نقطة مفتوحة للمحامي",
 };
 
 const DISCUSS_CONCEPT_DESC: Record<string, string> = {
@@ -760,7 +775,8 @@ const DISCUSS_CONCEPT_DESC: Record<string, string> = {
   "شروع:حرق":   "ليست هذه تصنيفاً. استعمال وسيلة قاتلة بطبيعتها يفتح باب فحص الشروع في القتل ولا يثبته. لا بد من فحص القصد وبدء التنفيذ والأدلة المحيطة بالفعل. إثبات ذلك أو نفيه مهمة المحامي، والتكييف النهائي من اختصاص المحكمة.",
   "شروع:إغراق": "ليست هذه تصنيفاً. استعمال وسيلة قاتلة بطبيعتها يفتح باب فحص الشروع في القتل ولا يثبته. لا بد من فحص القصد وبدء التنفيذ والأدلة المحيطة بالفعل. إثبات ذلك أو نفيه مهمة المحامي، والتكييف النهائي من اختصاص المحكمة.",
   "شروع:ذبح":   "ليست هذه تصنيفاً. استعمال وسيلة قاتلة بطبيعتها يفتح باب فحص الشروع في القتل ولا يثبته. لا بد من فحص القصد وبدء التنفيذ والأدلة المحيطة بالفعل. إثبات ذلك أو نفيه مهمة المحامي، والتكييف النهائي من اختصاص المحكمة.",
-  "إصابة:وصف":  "ليست هذه تصنيفاً. لا تذكر الوقائع جرحاً ولا إصابة موصوفة. تحديد الوصف بين تسبيب الجراح العمد (المادة ١٣٩) والأذى (المادة ١٤٢) يتوقف على الإصابة الثابتة بالتقرير الطبي، وإثباتها مهمة المحامي، والفصل فيها للمحكمة.",
+  "إصابة:وصف":    "ليست هذه تصنيفاً. لا تذكر الوقائع جرحاً ولا إصابة موصوفة. تحديد الوصف بين تسبيب الجراح العمد (المادة ١٣٩) والأذى (المادة ١٤٢) يتوقف على الإصابة الثابتة بالتقرير الطبي، وإثباتها مهمة المحامي، والفصل فيها للمحكمة.",
+  "إصابة:مراجعة": "ليست هذه تصنيفاً نهائياً. عُرضت المادة ١٣٩ مبدئياً لأن الوقائع تذكر إصابة جسيمة (كسراً أو حرقاً) دون وصف طبي كافٍ. تحديد الوصف بين تسبيب الجراح (المادة ١٣٩) والأذى (المادة ١٤٢) يتوقف على التقرير الطبي وطبيعة الإصابة ومآلها، وإثباتها مهمة المحامي، والفصل فيها للمحكمة.",
 };
 
 /** Evidence items for شروع:* cards — displayed after a bold "قرائن تُفحص:" label. */
@@ -2057,12 +2073,44 @@ export async function analyzeCase(
       return true;
     });
 
+    // Serious-injury gates (Commit 33): bone fracture or hot/caustic liquid pour.
+    // Gate C.1: stated intent + serious injury → attempt (شروع:قتل) as primary concept.
+    // Gate C.2: serious injury without stated intent → جرح عمد + review card [+ شروع:حرق if site].
+    // Both gates supersede the method/weapon/Change-1 gates below.
+    const LIVING_VICTIM_CONCEPTS = new Set([
+      "جرح عمد", "جرح شبه عمد", "جرح خطأ", "أذى", "قوة جنائية",
+    ]);
+    let seriousInjuryGateFired = false;
+    if (
+      llmResult.type === "criminal" &&
+      LIVING_VICTIM_CONCEPTS.has(llmResult.concept)
+    ) {
+      if (
+        factsMatchIntentToKill(input.facts) &&
+        factsMatchSeriousInjury(input.facts)
+      ) {
+        // C.1: attempt — stated intent is the classification; no extra attempt card
+        criminalTerms = [{ term: "شروع:قتل", origin: "expanded" as const }];
+        filteredDiscuss = [...filteredDiscuss, "إصابة:مراجعة"];
+        seriousInjuryGateFired = true;
+      } else if (factsMatchSeriousInjury(input.facts)) {
+        // C.2: serious injury without explicit intent → جرح عمد + review card
+        criminalTerms = [{ term: "جرح عمد", origin: "expanded" as const }];
+        filteredDiscuss = [...filteredDiscuss, "إصابة:مراجعة"];
+        if (factsMatchDangerousSite(input.facts)) {
+          filteredDiscuss = [...filteredDiscuss, "شروع:حرق"];
+        }
+        seriousInjuryGateFired = true;
+      }
+    }
+
     // Method gate: deterministic — does not depend on LLM volunteering discuss.
     // Fires when the act involved a lethal method (خنق/سم/حرق/إغراق/ذبح) and
     // the charge is a non-fatal bodily-harm concept.
     // When method fires, weapon gate is suppressed (one card per case).
     let methodCardFired = false;
     if (
+      !seriousInjuryGateFired &&
       llmResult.type === "criminal" &&
       (llmResult.concept === "جرح عمد" ||
         llmResult.concept === "جرح شبه عمد" ||
@@ -2080,6 +2128,7 @@ export async function analyzeCase(
     // Skipped when the method gate already fired, so each case shows at most
     // one attempted-murder card.
     if (
+      !seriousInjuryGateFired &&
       !methodCardFired &&
       llmResult.type === "criminal" &&
       llmResult.concept === "جرح عمد" &&
@@ -2094,6 +2143,7 @@ export async function analyzeCase(
     // medical report.  The attempted-murder card from the method gate still shows.
     const OPEN_INJURY_METHODS = new Set(["خنق", "سم", "إغراق", "حرق"]);
     if (
+      !seriousInjuryGateFired &&
       llmResult.type === "criminal" &&
       (llmResult.concept === "جرح عمد" ||
         llmResult.concept === "جرح شبه عمد" ||
