@@ -20,6 +20,9 @@ import {
   factsMatchDeath,
   factsMatchFireDamage,
   factsMatchMoneyDemand,
+  factsMatchPropertyDamage,
+  factsMatchAccidentMarker,
+  factsMatchRescueNecessity,
   dropAthaIfWound,
   dropBareJurhIfWound,
   SUPPLY_TO_PERSON_KW,
@@ -662,6 +665,9 @@ export const CONCEPT_TO_ARTICLES: Record<string, ConceptArticleEntry[]> = {
   // Commit 36: fire-damage abstain fallback — discuss-only path (Art. 182 lives in the card).
   // Empty here so the primary laws array stays empty; the article is shown via DISCUSS_CONCEPT_TO_ARTICLES.
   "إتلاف:بيّنة": [],
+  // Commit 38: accident / necessity discuss-only cards — no primary laws.
+  "إباحة:عرضي": [],
+  "إباحة:ضرورة": [],
 };
 
 // Articles surfaced as open points for the lawyer when the LLM signals a
@@ -759,6 +765,16 @@ export const DISCUSS_CONCEPT_TO_ARTICLES: Record<string, ConceptArticleEntry[]> 
     { lawSlug: "criminal-law-1991", articleNumber: "144" },
     { lawSlug: "criminal-law-1991", articleNumber: "160" },
   ],
+  // Commit 38: accidental damage — Art. 16 (accident) + Art. 182 (destruction) for comparison.
+  "إباحة:عرضي": [
+    { lawSlug: "criminal-law-1991", articleNumber: "16" },
+    { lawSlug: "criminal-law-1991", articleNumber: "182" },
+  ],
+  // Commit 38: necessity — Art. 15 (necessity) + Art. 182 (destruction) for comparison.
+  "إباحة:ضرورة": [
+    { lawSlug: "criminal-law-1991", articleNumber: "15" },
+    { lawSlug: "criminal-law-1991", articleNumber: "182" },
+  ],
 };
 
 const DISCUSS_CONCEPT_LABEL: Record<string, string> = {
@@ -781,6 +797,8 @@ const DISCUSS_CONCEPT_LABEL: Record<string, string> = {
   "إهمال:فحص":    "فحص الإهمال والسببية والحادث العرضي — نقطة مفتوحة للمحامي",
   "إتلاف:بيّنة":  "الإتلاف الجنائي بالنار — احتمال قانوني غير مسند بما يكفي",
   "تهديد:فحص":    "فحص التهديد: ألفاظه وسياقه — نقطة مفتوحة للمحامي",
+  "إباحة:عرضي":   "لا تظهر جريمة ظاهراً — فحص الحادث العرضي، نقطة مفتوحة للمحامي",
+  "إباحة:ضرورة":  "لا تظهر جريمة ظاهراً — فحص الضرورة والتناسب، نقطة مفتوحة للمحامي",
 };
 
 const DISCUSS_CONCEPT_DESC: Record<string, string> = {
@@ -804,6 +822,8 @@ const DISCUSS_CONCEPT_DESC: Record<string, string> = {
   "إهمال:فحص": "ليست هذه تصنيفاً نهائياً. عُرضت المادة ١٤١ مبدئياً لأن الوقائع تذكر إصابة دون فعل اعتداء عمدي. إثبات الجراح الخطأ يتوقف على ثبوت الإهمال أو عدم الاحتياط، وعلى علاقة السببية بين الفعل والإصابة؛ وقد ينتفي الخطأ أصلاً إذا توافرت شروط الحادث العرضي (المادة ١٦). ووصف الإصابة بين الجراح والأذى (المادة ١٤٢) يتوقف على التقرير الطبي. التحقق من ذلك مهمة المحامي، والفصل فيه للمحكمة.",
   "إتلاف:بيّنة": "ليست هذه تصنيفاً. تذكر الوقائع حريقاً وإتلافاً، ولا تذكر ما يُسند الفعل إلى شخص معيّن إسناداً كافياً. عُرضت المادة ١٨٢ بوصفها احتمالاً قانونياً للبحث لا تكييفاً. وجود المتهم قرب المكان أو وجود دافع لا يكفيان وحدهما لإثبات الإحراق. تقدير كفاية البيّنة مهمة المحامي، والفصل فيها للمحكمة.",
   "تهديد:فحص": "ليست هذه تصنيفاً نهائياً. عُرضت المادة ١٤٤ مبدئياً لأن الوقائع تذكر تهديداً دون طلب مال أو سند، فاستُبعد مسار الابتزاز (المادة ١٧٦) من التصنيف. إثبات الإرهاب يتوقف على ألفاظ التهديد وسياقها وجدّيتها وأثرها في المهدَّد، وقد لا يتجاوز الفعل حدّ الإساءة (المادة ١٦٠). التحقق من ذلك مهمة المحامي، والفصل فيه للمحكمة.",
+  "إباحة:عرضي": "ليست هذه تصنيفاً ولا إعلان براءة. لا تذكر الوقائع قصداً جنائياً، وتشير إلى أن الفعل ربما كان حادثاً عرضياً. عُرضت المادة ١٦ (الحادث العرضي) والمادة ١٨٢ (الإتلاف) للمقارنة لا للتكييف. إثبات انعدام القصد أو توافره مهمة المحامي، والفصل فيه للمحكمة.",
+  "إباحة:ضرورة": "ليست هذه تصنيفاً ولا إعلان براءة. تذكر الوقائع فعلاً يُعدّ في ذاته إتلافاً، غير أن السياق يشير إلى احتمال الضرورة. عُرضت المادة ١٥ (حالة الضرورة) والمادة ١٨٢ (الإتلاف) للمقارنة لا للتكييف. إثبات شروط الضرورة وتناسب الفعل مع الخطر مهمة المحامي، والفصل فيه للمحكمة.",
 };
 
 /** Evidence items for شروع:* cards — displayed after a bold "قرائن تُفحص:" label. */
@@ -1990,12 +2010,15 @@ export async function analyzeCase(
     process.env.ANTHROPIC_API_KEY ?? "",
   );
   if (llmResult.type === "abstain") {
-    // Commit 36: deterministic fallback when the LLM abstains but keyword detectors
+    // Commit 36/38: deterministic fallback when the LLM abstains but keyword detectors
     // identify a recognisable pattern — never asserts intent or guilt.
     const assaultDeath =
       factsMatchDeliberateAssault(input.facts) && factsMatchDeath(input.facts);
-    const fire = factsMatchFireDamage(input.facts);
-    if (!assaultDeath && !fire) {
+    const propDmg     = factsMatchPropertyDamage(input.facts);
+    const propRescue  = propDmg && factsMatchRescueNecessity(input.facts);
+    const propAccident = propDmg && factsMatchAccidentMarker(input.facts);
+    const fire        = factsMatchFireDamage(input.facts);
+    if (!assaultDeath && !propRescue && !propAccident && !fire) {
       return {
         factsExcerpt: excerpt, factsIsTruncated: truncated,
         caseTypeLens: null, inferredCaseType: null,
@@ -2005,11 +2028,23 @@ export async function analyzeCase(
     }
     if (assaultDeath) {
       // (a) Assault + death: route through homicide open-point gate (Art. 129 + قتل:وصف card).
-      // Mirrors the normal قتل:وصف path; the else block below will overwrite criminalTerms
-      // with the same value so no special short-circuit is needed.
       llmResult = { type: "criminal" as const, concept: "قتل:وصف", discuss: [] };
+    } else if (propRescue) {
+      // (b) Necessity: property damage in a rescue context → Art. 15 open-point card.
+      llmResult = {
+        type: "criminal" as const,
+        concept: "إباحة:ضرورة",
+        discuss: ["إباحة:ضرورة"],
+      };
+    } else if (propAccident) {
+      // (c) Accident: property damage without intent → Art. 16 open-point card.
+      llmResult = {
+        type: "criminal" as const,
+        concept: "إباحة:عرضي",
+        discuss: ["إباحة:عرضي"],
+      };
     } else {
-      // (b) Fire damage: discuss-only path — Art. 182 lives in the إتلاف:بيّنة card,
+      // (d) Fire damage: discuss-only path — Art. 182 lives in the إتلاف:بيّنة card,
       // not in the primary laws array (CONCEPT_TO_ARTICLES["إتلاف:بيّنة"] = []).
       llmResult = {
         type: "criminal" as const,
@@ -2018,6 +2053,29 @@ export async function analyzeCase(
       };
     }
     // anyFired is set by the else branch below (llmResult.type is now "criminal").
+  }
+  // Commit 38: when the LLM labels the case "civil" but facts show property damage
+  // with a rescue or accident context, surface the open-point card instead.
+  // This handles cases where the compensation framing misleads the LLM (B12-03,
+  // B12-06). Pure civil cases (no property-damage verb) pass through unchanged.
+  if (llmResult.type === "civil" && factsMatchPropertyDamage(input.facts)) {
+    if (factsMatchRescueNecessity(input.facts)) {
+      llmResult = {
+        type: "criminal" as const,
+        concept: "إباحة:ضرورة",
+        discuss: ["إباحة:ضرورة"],
+      };
+    } else if (
+      factsMatchAccidentMarker(input.facts) &&
+      !factsMatchIntentToKill(input.facts) &&
+      !factsMatchDeliberateAssault(input.facts)
+    ) {
+      llmResult = {
+        type: "criminal" as const,
+        concept: "إباحة:عرضي",
+        discuss: ["إباحة:عرضي"],
+      };
+    }
   }
   if (llmResult.type === "civil") {
     // Suppress criminal path — civil text search runs below
@@ -2053,6 +2111,23 @@ export async function analyzeCase(
       if (llmResult.concept === "ابتزاز" && !factsMatchMoneyDemand(input.facts)) {
         llmResult = { ...llmResult, concept: "تهديد" };
         criminalTerms = [{ term: "تهديد", origin: "expanded" as const }];
+      }
+      // Commit 38 — damage/trespass concepts: when the context shows necessity or
+      // accident (without intent), drop the primary article and show an إباحة card.
+      // B12-07 (intentional laptop) and theft+damage cases must remain unchanged.
+      const _DAMAGE_TRESPASS = new Set(["إتلاف جنائي", "تعدٍّ", "اقتحام"]);
+      if (_DAMAGE_TRESPASS.has(llmResult.concept)) {
+        if (factsMatchRescueNecessity(input.facts)) {
+          llmResult = { ...llmResult, concept: "إباحة:ضرورة", discuss: ["إباحة:ضرورة"] };
+          criminalTerms = [{ term: "إباحة:ضرورة", origin: "expanded" as const }];
+        } else if (
+          factsMatchAccidentMarker(input.facts) &&
+          !factsMatchIntentToKill(input.facts) &&
+          !factsMatchDeliberateAssault(input.facts)
+        ) {
+          llmResult = { ...llmResult, concept: "إباحة:عرضي", discuss: ["إباحة:عرضي"] };
+          criminalTerms = [{ term: "إباحة:عرضي", origin: "expanded" as const }];
+        }
       }
     }
     // Governing rule — docs/abu-rannat-governing-rules.md:
