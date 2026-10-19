@@ -378,6 +378,35 @@ const CASES: Case[] = [
     reportOnly: true,
     note: "REPORT: LLM abstained (rawConcept=—, 0 laws, 0 cards); no assault+death, no fire → 0 cards",
   },
+  // ══ CHANGE 4 (Commit 37) — extortion without money demand → تهديد ══════════
+  {
+    id: "R35",
+    facts: "قال الشاكي: «الزول دا مسكني من هدومي وقال لي لو جيت الحلة دي تاني حأوريك النجوم في عز الضهر». ولم يضربه أو يستعمل سلاحاً، لكن الشاكي قال إنه خاف من تنفيذ التهديد.",
+    expectedLaws: ["144"],
+    expectedCardCount: 1,
+    expectedCardKeys: ["تهديد:فحص"],
+    expectedDescNote: null,
+    note: "B12-02: ابتزاز without money demand → تهديد (Art. 144) + فحص card. mustNotHave 176.",
+  },
+  {
+    id: "R36",
+    facts: "هدده بالقتل إن لم يدفع له مليون جنيه خلال أسبوع",
+    expectedLaws: ["176"],
+    expectedCardCount: 0,
+    expectedCardKeys: null,
+    expectedDescNote: null,
+    note: "B12-02 control: threat + money demand → ابتزاز stays Art. 176, no card.",
+  },
+  {
+    id: "R37",
+    facts: "قال ليهو لو ما جبت القروش بكرة حأوريك",
+    expectedLaws: ["176"],
+    expectedCardCount: 0,
+    expectedCardKeys: null,
+    expectedDescNote: null,
+    reportOnly: true,
+    note: "REPORT: LLM returns تهديد directly (not ابتزاز) for this colloquial sentence — factsMatchMoneyDemand=true but override only fires on ابتزاز; LLM routing is the gap. R36 (مليون جنيه) reliably gives 176.",
+  },
 ];
 
 interface RunResult {
