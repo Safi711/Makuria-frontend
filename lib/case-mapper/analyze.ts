@@ -19,6 +19,7 @@ import {
   factsMatchDangerousSite,
   factsMatchDeath,
   factsMatchFireDamage,
+  factsMatchMoneyDemand,
   dropAthaIfWound,
   dropBareJurhIfWound,
   SUPPLY_TO_PERSON_KW,
@@ -753,6 +754,11 @@ export const DISCUSS_CONCEPT_TO_ARTICLES: Record<string, ConceptArticleEntry[]> 
   "إتلاف:بيّنة": [
     { lawSlug: "criminal-law-1991", articleNumber: "182" },
   ],
+  // Commit 37: threat without money demand — Art. 144 open point; Art. 160 as fallback.
+  "تهديد:فحص": [
+    { lawSlug: "criminal-law-1991", articleNumber: "144" },
+    { lawSlug: "criminal-law-1991", articleNumber: "160" },
+  ],
 };
 
 const DISCUSS_CONCEPT_LABEL: Record<string, string> = {
@@ -774,6 +780,7 @@ const DISCUSS_CONCEPT_LABEL: Record<string, string> = {
   "إصابة:مراجعة": "مراجعة وصف الإصابة — نقطة مفتوحة للمحامي",
   "إهمال:فحص":    "فحص الإهمال والسببية والحادث العرضي — نقطة مفتوحة للمحامي",
   "إتلاف:بيّنة":  "الإتلاف الجنائي بالنار — احتمال قانوني غير مسند بما يكفي",
+  "تهديد:فحص":    "فحص التهديد: ألفاظه وسياقه — نقطة مفتوحة للمحامي",
 };
 
 const DISCUSS_CONCEPT_DESC: Record<string, string> = {
@@ -796,6 +803,7 @@ const DISCUSS_CONCEPT_DESC: Record<string, string> = {
   "إصابة:مراجعة": "ليست هذه تصنيفاً نهائياً. عُرضت المادة ١٣٩ مبدئياً لأن الوقائع تذكر إصابة جسيمة (كسراً أو حرقاً) دون وصف طبي كافٍ. تحديد الوصف بين تسبيب الجراح (المادة ١٣٩) والأذى (المادة ١٤٢) يتوقف على التقرير الطبي وطبيعة الإصابة ومآلها، وإثباتها مهمة المحامي، والفصل فيها للمحكمة.",
   "إهمال:فحص": "ليست هذه تصنيفاً نهائياً. عُرضت المادة ١٤١ مبدئياً لأن الوقائع تذكر إصابة دون فعل اعتداء عمدي. إثبات الجراح الخطأ يتوقف على ثبوت الإهمال أو عدم الاحتياط، وعلى علاقة السببية بين الفعل والإصابة؛ وقد ينتفي الخطأ أصلاً إذا توافرت شروط الحادث العرضي (المادة ١٦). ووصف الإصابة بين الجراح والأذى (المادة ١٤٢) يتوقف على التقرير الطبي. التحقق من ذلك مهمة المحامي، والفصل فيه للمحكمة.",
   "إتلاف:بيّنة": "ليست هذه تصنيفاً. تذكر الوقائع حريقاً وإتلافاً، ولا تذكر ما يُسند الفعل إلى شخص معيّن إسناداً كافياً. عُرضت المادة ١٨٢ بوصفها احتمالاً قانونياً للبحث لا تكييفاً. وجود المتهم قرب المكان أو وجود دافع لا يكفيان وحدهما لإثبات الإحراق. تقدير كفاية البيّنة مهمة المحامي، والفصل فيها للمحكمة.",
+  "تهديد:فحص": "ليست هذه تصنيفاً نهائياً. عُرضت المادة ١٤٤ مبدئياً لأن الوقائع تذكر تهديداً دون طلب مال أو سند، فاستُبعد مسار الابتزاز (المادة ١٧٦) من التصنيف. إثبات الإرهاب يتوقف على ألفاظ التهديد وسياقها وجدّيتها وأثرها في المهدَّد، وقد لا يتجاوز الفعل حدّ الإساءة (المادة ١٦٠). التحقق من ذلك مهمة المحامي، والفصل فيه للمحكمة.",
 };
 
 /** Evidence items for شروع:* cards — displayed after a bold "قرائن تُفحص:" label. */
@@ -2040,6 +2048,12 @@ export async function analyzeCase(
       }
     } else {
       criminalTerms = [{ term: llmResult.concept, origin: "expanded" as const }];
+      // Commit 37 — B12-02: extortion without a money/document demand is not Art. 176.
+      // Override to تهديد (Art. 144); the فحص card is injected below.
+      if (llmResult.concept === "ابتزاز" && !factsMatchMoneyDemand(input.facts)) {
+        llmResult = { ...llmResult, concept: "تهديد" };
+        criminalTerms = [{ term: "تهديد", origin: "expanded" as const }];
+      }
     }
     // Governing rule — docs/abu-rannat-governing-rules.md:
     // لا نستنتج القصد من السلاح وحده، ولا ننفيه من أقوال المتهم وحدها،
@@ -2214,6 +2228,14 @@ export async function analyzeCase(
     ) {
       criminalTerms = [{ term: "جرح:وصف", origin: "expanded" as const }];
       filteredDiscuss = [...filteredDiscuss, "إصابة:وصف"];
+    }
+
+    // Commit 37: تهديد (direct LLM or overridden from ابتزاز without money demand)
+    // always gets the فحص card — Art. 144 is the primary, Art. 160 is the fallback.
+    if (llmResult.type === "criminal" && llmResult.concept === "تهديد") {
+      if (!filteredDiscuss.includes("تهديد:فحص")) {
+        filteredDiscuss = [...filteredDiscuss, "تهديد:فحص"];
+      }
     }
 
     // True when the homicide gate overrode the concept to قتل:وصف.
