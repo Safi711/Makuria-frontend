@@ -372,11 +372,10 @@ const CASES: Case[] = [
     id: "R34",
     facts: "سمع صراخ طفل فكسر قفل الباب لإنقاذه",
     expectedLaws: [],
-    expectedCardCount: 0,
-    expectedCardKeys: null,
+    expectedCardCount: 1,
+    expectedCardKeys: ["إباحة:ضرورة"],
     expectedDescNote: null,
-    reportOnly: true,
-    note: "REPORT: LLM abstained (rawConcept=—, 0 laws, 0 cards); no assault+death, no fire → 0 cards",
+    note: "Commit 38: LLM abstains; property-damage+rescue detectors fire → إباحة:ضرورة card (upgraded from reportOnly)",
   },
   // ══ CHANGE 4 (Commit 37) — extortion without money demand → تهديد ══════════
   {
@@ -406,6 +405,45 @@ const CASES: Case[] = [
     expectedDescNote: null,
     reportOnly: true,
     note: "REPORT: LLM returns تهديد directly (not ابتزاز) for this colloquial sentence — factsMatchMoneyDemand=true but override only fires on ابتزاز; LLM routing is the gap. R36 (مليون جنيه) reliably gives 176.",
+  },
+
+  // ══ CHANGE 8 — Commit 38: إباحة cards for accidental damage / necessity ═══
+  {
+    id: "R38",
+    facts: "أثناء مباراة كرة قدم في الحي، ركل أحد اللاعبين الكرة بقوة، فاصطدمت بزجاج سيارة متوقفة خارج الملعب وكسرته. صاحب السيارة طالب اللاعب بالتعويض، بينما قال اللاعب إنه لم يقصد إصابة السيارة.",
+    expectedLaws: [],
+    expectedCardCount: 1,
+    expectedCardKeys: ["إباحة:عرضي"],
+    expectedDescNote: null,
+    note: "B12-03: accidental damage during football → إباحة:عرضي card; laws []. mustNotHave 182.",
+  },
+  {
+    id: "R39",
+    facts: "دخل رجل إلى منزل جاره بعد أن سمع صراخ طفل واستغاثته من الداخل. كسر قفل الباب لإنقاذ الطفل، ثم تبين أن الطفل كان محبوساً وحده وأن والديه خارج المنزل. طالب صاحب المنزل بتعويض قيمة القفل.",
+    expectedLaws: [],
+    expectedCardCount: 1,
+    expectedCardKeys: ["إباحة:ضرورة"],
+    expectedDescNote: null,
+    note: "B12-06: rescue necessity → إباحة:ضرورة card; laws []. mustNotHave 182/183.",
+  },
+  {
+    id: "R40",
+    facts: "كسر لابتوب زوجته في نوبة غضب أمام أولاده",
+    expectedLaws: ["182"],
+    expectedCardCount: 0,
+    expectedCardKeys: null,
+    expectedDescNote: null,
+    note: "B12-07 (wife's laptop): intentional damage, no accident/rescue markers → Art. 182 unchanged, 0 cards.",
+  },
+  {
+    id: "R41",
+    facts: "كسر باب المحل ليلاً وسرق التلفزيون",
+    expectedLaws: null,
+    expectedCardCount: null,
+    expectedCardKeys: null,
+    expectedDescNote: null,
+    reportOnly: true,
+    note: "REPORT: Theft+damage — laws vary (سرقة/إتلاف جنائي/174 etc.); no accident/rescue detectors fire so no إباحة card. Report only; verified by detector logic.",
   },
 ];
 
