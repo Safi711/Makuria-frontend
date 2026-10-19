@@ -335,6 +335,49 @@ const CASES: Case[] = [
     expectedDescNote: null,
     note: "دفعه is a deliberate-assault verb → C.2 still fires",
   },
+
+  // ══ CHANGE 7 — Commit 36: abstain fallback ════════════════════════════════
+  // (a) Assault + death: Art. 129 + قتل:وصف — whether LLM abstains or returns homicide concept
+  {
+    id: "R31",
+    facts: "في مشاجرة داخل مناسبة اجتماعية، ضرب رجل آخر بعصا خشبية على كتفه. بعد انتهاء المشاجرة، عاد المصاب إلى منزله، ثم توفي بعد يومين. لم يصدر تقرير طبي يحدد سبب الوفاة، وذكر أقاربه أنه كان يعاني من مرض سابق.",
+    expectedLaws: ["129"],
+    expectedCardCount: 1,
+    expectedCardKeys: ["قتل:وصف"],
+    expectedDescNote: null,
+    note: "B12-10: assault + delayed death + uncertain causation → قتل:وصف (abstain route) or قتل:وصف (LLM homicide route). Never 130/131/132.",
+  },
+  // (b) Fire damage: إتلاف:بيّنة card; laws = null (accepts [] or ["182"])
+  {
+    id: "R32",
+    facts: "قال أحد الشهود في محضر الشرطة: «أنا شفت المتهم واقف قريب من الدكان وقت الحريقة، لكن ما شفتو ولّع النار». وأكد صاحب الدكان أن خلافاً مالياً قديماً كان قائماً بينه وبين المتهم.",
+    expectedLaws: null,         // accept [] (abstain route) or any set (LLM route)
+    expectedCardCount: 1,
+    expectedCardKeys: ["إتلاف:بيّنة"],
+    expectedDescNote: null,
+    note: "B12-09: fire + no attribution → إتلاف:بيّنة card; laws [] on abstain route. mustNotHave other articles.",
+  },
+  // Non-criminal sentences: abstain stays empty (no cards, noConfidentMatch true)
+  {
+    id: "R33",
+    facts: "ماتت بطارية العربية في الطريق فدفعها",
+    expectedLaws: [],
+    expectedCardCount: 0,
+    expectedCardKeys: null,
+    expectedDescNote: null,
+    reportOnly: true,
+    note: "REPORT: LLM classifies as traffic/vehicle (rawConcept=—, laws: 42,الجدول الثاني,28,13,15,30,43,90), 0 cards; non-person-subject guard blocks إتلاف/قتل routes",
+  },
+  {
+    id: "R34",
+    facts: "سمع صراخ طفل فكسر قفل الباب لإنقاذه",
+    expectedLaws: [],
+    expectedCardCount: 0,
+    expectedCardKeys: null,
+    expectedDescNote: null,
+    reportOnly: true,
+    note: "REPORT: LLM abstained (rawConcept=—, 0 laws, 0 cards); no assault+death, no fire → 0 cards",
+  },
 ];
 
 interface RunResult {

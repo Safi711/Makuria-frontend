@@ -17,6 +17,8 @@ import {
   factsMatchHotLiquidPour,
   factsMatchSeriousInjury,
   factsMatchDangerousSite,
+  factsMatchDeath,
+  factsMatchFireDamage,
   dropAthaIfWound,
   dropBareJurhIfWound,
   SUPPLY_TO_PERSON_KW,
@@ -656,6 +658,9 @@ export const CONCEPT_TO_ARTICLES: Record<string, ConceptArticleEntry[]> = {
     { lawSlug: "criminal-law-1991", articleNumber: "191" }, // جرائم الحرب بأساليب القتال المحظورة
     { lawSlug: "criminal-law-1991", articleNumber: "192" }, // جرائم الحرب باستخدام أسلحة محظورة
   ],
+  // Commit 36: fire-damage abstain fallback — discuss-only path (Art. 182 lives in the card).
+  // Empty here so the primary laws array stays empty; the article is shown via DISCUSS_CONCEPT_TO_ARTICLES.
+  "إتلاف:بيّنة": [],
 };
 
 // Articles surfaced as open points for the lawyer when the LLM signals a
@@ -744,6 +749,10 @@ export const DISCUSS_CONCEPT_TO_ARTICLES: Record<string, ConceptArticleEntry[]> 
     { lawSlug: "criminal-law-1991", articleNumber: "16" },
     { lawSlug: "criminal-law-1991", articleNumber: "142" },
   ],
+  // Commit 36: fire-damage abstain fallback — research-only, no primary classification.
+  "إتلاف:بيّنة": [
+    { lawSlug: "criminal-law-1991", articleNumber: "182" },
+  ],
 };
 
 const DISCUSS_CONCEPT_LABEL: Record<string, string> = {
@@ -764,6 +773,7 @@ const DISCUSS_CONCEPT_LABEL: Record<string, string> = {
   "إصابة:وصف":    "وصف الإصابة: جراح أم أذى — نقطة مفتوحة للمحامي",
   "إصابة:مراجعة": "مراجعة وصف الإصابة — نقطة مفتوحة للمحامي",
   "إهمال:فحص":    "فحص الإهمال والسببية والحادث العرضي — نقطة مفتوحة للمحامي",
+  "إتلاف:بيّنة":  "الإتلاف الجنائي بالنار — احتمال قانوني غير مسند بما يكفي",
 };
 
 const DISCUSS_CONCEPT_DESC: Record<string, string> = {
@@ -785,6 +795,7 @@ const DISCUSS_CONCEPT_DESC: Record<string, string> = {
   "إصابة:وصف":    "ليست هذه تصنيفاً. لا تذكر الوقائع جرحاً ولا إصابة موصوفة. تحديد الوصف بين تسبيب الجراح العمد (المادة ١٣٩) والأذى (المادة ١٤٢) يتوقف على الإصابة الثابتة بالتقرير الطبي، وإثباتها مهمة المحامي، والفصل فيها للمحكمة.",
   "إصابة:مراجعة": "ليست هذه تصنيفاً نهائياً. عُرضت المادة ١٣٩ مبدئياً لأن الوقائع تذكر إصابة جسيمة (كسراً أو حرقاً) دون وصف طبي كافٍ. تحديد الوصف بين تسبيب الجراح (المادة ١٣٩) والأذى (المادة ١٤٢) يتوقف على التقرير الطبي وطبيعة الإصابة ومآلها، وإثباتها مهمة المحامي، والفصل فيها للمحكمة.",
   "إهمال:فحص": "ليست هذه تصنيفاً نهائياً. عُرضت المادة ١٤١ مبدئياً لأن الوقائع تذكر إصابة دون فعل اعتداء عمدي. إثبات الجراح الخطأ يتوقف على ثبوت الإهمال أو عدم الاحتياط، وعلى علاقة السببية بين الفعل والإصابة؛ وقد ينتفي الخطأ أصلاً إذا توافرت شروط الحادث العرضي (المادة ١٦). ووصف الإصابة بين الجراح والأذى (المادة ١٤٢) يتوقف على التقرير الطبي. التحقق من ذلك مهمة المحامي، والفصل فيه للمحكمة.",
+  "إتلاف:بيّنة": "ليست هذه تصنيفاً. تذكر الوقائع حريقاً وإتلافاً، ولا تذكر ما يُسند الفعل إلى شخص معيّن إسناداً كافياً. عُرضت المادة ١٨٢ بوصفها احتمالاً قانونياً للبحث لا تكييفاً. وجود المتهم قرب المكان أو وجود دافع لا يكفيان وحدهما لإثبات الإحراق. تقدير كفاية البيّنة مهمة المحامي، والفصل فيها للمحكمة.",
 };
 
 /** Evidence items for شروع:* cards — displayed after a bold "قرائن تُفحص:" label. */
@@ -1599,8 +1610,10 @@ async function analyzeCriminalConceptMap(
     }
   }
 
-  // Concept fired but no map entry yet → noConfidentMatch
-  if (mappedEntries.length === 0) {
+  // Concept fired but no map entry yet → noConfidentMatch.
+  // Exception: when discuss concepts are present (discuss-only path, e.g. إتلاف:بيّنة),
+  // fall through so the discuss-item fetch can run and return the card.
+  if (mappedEntries.length === 0 && !(discussConcepts?.length)) {
     return {
       factsExcerpt: excerpt, factsIsTruncated: truncated,
       caseTypeLens, inferredCaseType,
@@ -1936,7 +1949,8 @@ async function analyzeCriminalConceptMap(
     principles: principleList.slice(0, DISPLAY_CAP),
     outOfScopeCount: 0,
     noConfidentMatch: false,
-    hasAnyResults: mappedLawList.length > 0 || caseList.length > 0 || principleList.length > 0,
+    hasAnyResults: mappedLawList.length > 0 || caseList.length > 0 || principleList.length > 0
+      || (discussItems?.length ?? 0) > 0,
     ...(discussItems?.length ? { discuss: discussItems } : {}),
   };
 }
@@ -1968,12 +1982,34 @@ export async function analyzeCase(
     process.env.ANTHROPIC_API_KEY ?? "",
   );
   if (llmResult.type === "abstain") {
-    return {
-      factsExcerpt: excerpt, factsIsTruncated: truncated,
-      caseTypeLens: null, inferredCaseType: null,
-      issues: [], laws: [], cases: [], principles: [],
-      outOfScopeCount: 0, noConfidentMatch: true, hasAnyResults: false,
-    };
+    // Commit 36: deterministic fallback when the LLM abstains but keyword detectors
+    // identify a recognisable pattern — never asserts intent or guilt.
+    const assaultDeath =
+      factsMatchDeliberateAssault(input.facts) && factsMatchDeath(input.facts);
+    const fire = factsMatchFireDamage(input.facts);
+    if (!assaultDeath && !fire) {
+      return {
+        factsExcerpt: excerpt, factsIsTruncated: truncated,
+        caseTypeLens: null, inferredCaseType: null,
+        issues: [], laws: [], cases: [], principles: [],
+        outOfScopeCount: 0, noConfidentMatch: true, hasAnyResults: false,
+      };
+    }
+    if (assaultDeath) {
+      // (a) Assault + death: route through homicide open-point gate (Art. 129 + قتل:وصف card).
+      // Mirrors the normal قتل:وصف path; the else block below will overwrite criminalTerms
+      // with the same value so no special short-circuit is needed.
+      llmResult = { type: "criminal" as const, concept: "قتل:وصف", discuss: [] };
+    } else {
+      // (b) Fire damage: discuss-only path — Art. 182 lives in the إتلاف:بيّنة card,
+      // not in the primary laws array (CONCEPT_TO_ARTICLES["إتلاف:بيّنة"] = []).
+      llmResult = {
+        type: "criminal" as const,
+        concept: "إتلاف:بيّنة",
+        discuss: ["إتلاف:بيّنة"],
+      };
+    }
+    // anyFired is set by the else branch below (llmResult.type is now "criminal").
   }
   if (llmResult.type === "civil") {
     // Suppress criminal path — civil text search runs below
