@@ -23,6 +23,7 @@ import {
   factsMatchPropertyDamage,
   factsMatchAccidentMarker,
   factsMatchRescueNecessity,
+  factsMatchParticipation,
   dropAthaIfWound,
   dropBareJurhIfWound,
   SUPPLY_TO_PERSON_KW,
@@ -668,6 +669,8 @@ export const CONCEPT_TO_ARTICLES: Record<string, ConceptArticleEntry[]> = {
   // Commit 38: accident / necessity discuss-only cards — no primary laws.
   "إباحة:عرضي": [],
   "إباحة:ضرورة": [],
+  // Commit 39: participation open-point card — discuss-only (Arts. 21/22 shown via card).
+  "اشتراك:فحص": [],
 };
 
 // Articles surfaced as open points for the lawyer when the LLM signals a
@@ -775,6 +778,11 @@ export const DISCUSS_CONCEPT_TO_ARTICLES: Record<string, ConceptArticleEntry[]> 
     { lawSlug: "criminal-law-1991", articleNumber: "15" },
     { lawSlug: "criminal-law-1991", articleNumber: "182" },
   ],
+  // Commit 39: participation — Arts. 21 (criminal participation) and 22 (accessory).
+  "اشتراك:فحص": [
+    { lawSlug: "criminal-law-1991", articleNumber: "21" },
+    { lawSlug: "criminal-law-1991", articleNumber: "22" },
+  ],
 };
 
 const DISCUSS_CONCEPT_LABEL: Record<string, string> = {
@@ -799,6 +807,7 @@ const DISCUSS_CONCEPT_LABEL: Record<string, string> = {
   "تهديد:فحص":    "فحص التهديد: ألفاظه وسياقه — نقطة مفتوحة للمحامي",
   "إباحة:عرضي":   "لا تظهر جريمة ظاهراً — فحص الحادث العرضي، نقطة مفتوحة للمحامي",
   "إباحة:ضرورة":  "لا تظهر جريمة ظاهراً — فحص الضرورة والتناسب، نقطة مفتوحة للمحامي",
+  "اشتراك:فحص":   "الاشتراك في الجريمة (المادتان ٢١ و٢٢) — نقطة مفتوحة للمحامي",
 };
 
 const DISCUSS_CONCEPT_DESC: Record<string, string> = {
@@ -824,6 +833,7 @@ const DISCUSS_CONCEPT_DESC: Record<string, string> = {
   "تهديد:فحص": "ليست هذه تصنيفاً نهائياً. عُرضت المادة ١٤٤ مبدئياً لأن الوقائع تذكر تهديداً دون طلب مال أو سند، فاستُبعد مسار الابتزاز (المادة ١٧٦) من التصنيف. إثبات الإرهاب يتوقف على ألفاظ التهديد وسياقها وجدّيتها وأثرها في المهدَّد، وقد لا يتجاوز الفعل حدّ الإساءة (المادة ١٦٠). التحقق من ذلك مهمة المحامي، والفصل فيه للمحكمة.",
   "إباحة:عرضي": "ليست هذه تصنيفاً ولا إعلان براءة. لا تذكر الوقائع قصداً جنائياً، وتشير إلى أن الفعل ربما كان حادثاً عرضياً. عُرضت المادة ١٦ (الحادث العرضي) والمادة ١٨٢ (الإتلاف) للمقارنة لا للتكييف. إثبات انعدام القصد أو توافره مهمة المحامي، والفصل فيه للمحكمة.",
   "إباحة:ضرورة": "ليست هذه تصنيفاً ولا إعلان براءة. تذكر الوقائع فعلاً يُعدّ في ذاته إتلافاً، غير أن السياق يشير إلى احتمال الضرورة. عُرضت المادة ١٥ (حالة الضرورة) والمادة ١٨٢ (الإتلاف) للمقارنة لا للتكييف. إثبات شروط الضرورة وتناسب الفعل مع الخطر مهمة المحامي، والفصل فيه للمحكمة.",
+  "اشتراك:فحص": "ليست هذه تصنيفاً نهائياً. تشير الوقائع إلى احتمال وجود أكثر من مشارك في الجريمة. تحديد دور كل شخص — فاعلاً أصلياً أم شريكاً أم متدخلاً — وإثبات القصد المشترك وفق المادتين ٢١ و٢٢ مهمة المحامي، والفصل فيه للمحكمة.",
 };
 
 /** Evidence items for شروع:* cards — displayed after a bold "قرائن تُفحص:" label. */
@@ -2323,7 +2333,16 @@ export async function analyzeCase(
         : llmResult.type === "criminal" && homicideOpenPoint
         ? ["قتل:وصف", ...filteredDiscuss]
         : llmResult.type === "criminal" && llmResult.concept === "سرقة"
-        ? ["سرقة:حد", ...filteredDiscuss]
+        ? [
+            "سرقة:حد",
+            ...(factsMatchParticipation(input.facts) ? ["اشتراك:فحص"] : []),
+            ...filteredDiscuss,
+          ]
+        : llmResult.type === "criminal" && llmResult.concept === "نهب"
+        ? [
+            ...(factsMatchParticipation(input.facts) ? ["اشتراك:فحص"] : []),
+            ...filteredDiscuss,
+          ]
         // Item 3: for clear dealing, add Art. 16 (تقديم) only when supply keywords match.
         : llmResult.type === "criminal" && llmResult.concept === "مخدرات" && !llmResult.intentUnknown
         ? [

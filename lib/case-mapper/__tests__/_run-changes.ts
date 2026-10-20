@@ -445,6 +445,25 @@ const CASES: Case[] = [
     reportOnly: true,
     note: "REPORT: Theft+damage — laws vary (سرقة/إتلاف جنائي/174 etc.); no accident/rescue detectors fire so no إباحة card. Report only; verified by detector logic.",
   },
+  // ══ CHANGE 5 (Commit 39) — participation card (اشتراك:فحص, Arts. 21/22) ══
+  {
+    id: "R42",
+    facts: "المشتكي قال إن اتنين زول سطوا على محله بالتهديد وأخذوا كل الكاش، واحد منهم وقف على الباب والتاني أمسكه من تيشيرته وطالبه بالفلوس.",
+    expectedLaws: ["175"],
+    expectedCardCount: 1,
+    expectedCardKeys: ["اشتراك:فحص"],
+    expectedDescNote: null,
+    note: "B12-05: robbery (سطوا + بالتهديد → نهب, Art. 175) + 'اتنين' → participation card fires; laws [175], 1 card.",
+  },
+  {
+    id: "R43",
+    facts: "واحد دخل المحل وسرق التلفزيون",
+    expectedLaws: null,
+    expectedCardCount: 1,
+    expectedCardKeys: ["سرقة:حد"],
+    expectedDescNote: null,
+    note: "Commit 39 guard: 'واحد' alone has no second-actor in window; participation card must not appear → 1 card [سرقة:حد] only.",
+  },
 ];
 
 interface RunResult {
