@@ -92,6 +92,7 @@ const TERM_DISPLAY_AR: Record<string, string> = {
   "إتلاف:بيّنة":         "إتلاف بالنار — كفاية البيّنة",
   "تهديد:فحص":           "تهديد — فحص الألفاظ والسياق",
   "إهمال:فحص":           "جرح خطأ — فحص الإهمال والسببية",
+  "إهمال:فحص:قتل":      "قتل خطأ — فحص الإهمال والسببية",
 };
 function termDisplayAr(term: string): string {
   return TERM_DISPLAY_AR[term] ?? term;
