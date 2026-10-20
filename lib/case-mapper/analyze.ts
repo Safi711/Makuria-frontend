@@ -24,6 +24,8 @@ import {
   factsMatchAccidentMarker,
   factsMatchRescueNecessity,
   factsMatchParticipation,
+  factsMatchGrossNegligence,
+  factsMatchVehicle,
   dropAthaIfWound,
   dropBareJurhIfWound,
   SUPPLY_TO_PERSON_KW,
@@ -210,6 +212,9 @@ export type CaseMapResult = {
   /** True when concept is مخدرات and intent (dealing vs. personal use) was not
    *  stated in the facts. Art. 15 and 20 are in discuss, not in laws. */
   intentUnknown?: boolean;
+  /** Related legislation slugs — law slugs attached by deterministic rules, not
+   *  retrieved by text search. e.g. traffic-law-2010 for vehicle cases. */
+  relatedLaws?: string[];
 };
 
 const MAX_TERMS = 6;
@@ -671,6 +676,8 @@ export const CONCEPT_TO_ARTICLES: Record<string, ConceptArticleEntry[]> = {
   "إباحة:ضرورة": [],
   // Commit 39: participation open-point card — discuss-only (Arts. 21/22 shown via card).
   "اشتراك:فحص": [],
+  // Commit 40: negligence open-point for قتل خطأ — discuss-only (Arts. 16/132 shown via card).
+  "إهمال:فحص:قتل": [],
 };
 
 // Articles surfaced as open points for the lawyer when the LLM signals a
@@ -783,6 +790,11 @@ export const DISCUSS_CONCEPT_TO_ARTICLES: Record<string, ConceptArticleEntry[]> 
     { lawSlug: "criminal-law-1991", articleNumber: "21" },
     { lawSlug: "criminal-law-1991", articleNumber: "22" },
   ],
+  // Commit 40: negligence / causation open point for قتل خطأ — Art. 16 (accident) + Art. 132.
+  "إهمال:فحص:قتل": [
+    { lawSlug: "criminal-law-1991", articleNumber: "16" },
+    { lawSlug: "criminal-law-1991", articleNumber: "132" },
+  ],
 };
 
 const DISCUSS_CONCEPT_LABEL: Record<string, string> = {
@@ -803,6 +815,7 @@ const DISCUSS_CONCEPT_LABEL: Record<string, string> = {
   "إصابة:وصف":    "وصف الإصابة: جراح أم أذى — نقطة مفتوحة للمحامي",
   "إصابة:مراجعة": "مراجعة وصف الإصابة — نقطة مفتوحة للمحامي",
   "إهمال:فحص":    "فحص الإهمال والسببية والحادث العرضي — نقطة مفتوحة للمحامي",
+  "إهمال:فحص:قتل": "فحص الإهمال والسببية والحادث العرضي — نقطة مفتوحة للمحامي",
   "إتلاف:بيّنة":  "الإتلاف الجنائي بالنار — احتمال قانوني غير مسند بما يكفي",
   "تهديد:فحص":    "فحص التهديد: ألفاظه وسياقه — نقطة مفتوحة للمحامي",
   "إباحة:عرضي":   "لا تظهر جريمة ظاهراً — فحص الحادث العرضي، نقطة مفتوحة للمحامي",
@@ -829,6 +842,7 @@ const DISCUSS_CONCEPT_DESC: Record<string, string> = {
   "إصابة:وصف":    "ليست هذه تصنيفاً. لا تذكر الوقائع جرحاً ولا إصابة موصوفة. تحديد الوصف بين تسبيب الجراح العمد (المادة ١٣٩) والأذى (المادة ١٤٢) يتوقف على الإصابة الثابتة بالتقرير الطبي، وإثباتها مهمة المحامي، والفصل فيها للمحكمة.",
   "إصابة:مراجعة": "ليست هذه تصنيفاً نهائياً. عُرضت المادة ١٣٩ مبدئياً لأن الوقائع تذكر إصابة جسيمة (كسراً أو حرقاً) دون وصف طبي كافٍ. تحديد الوصف بين تسبيب الجراح (المادة ١٣٩) والأذى (المادة ١٤٢) يتوقف على التقرير الطبي وطبيعة الإصابة ومآلها، وإثباتها مهمة المحامي، والفصل فيها للمحكمة.",
   "إهمال:فحص": "ليست هذه تصنيفاً نهائياً. عُرضت المادة ١٤١ مبدئياً لأن الوقائع تذكر إصابة دون فعل اعتداء عمدي. إثبات الجراح الخطأ يتوقف على ثبوت الإهمال أو عدم الاحتياط، وعلى علاقة السببية بين الفعل والإصابة؛ وقد ينتفي الخطأ أصلاً إذا توافرت شروط الحادث العرضي (المادة ١٦). ووصف الإصابة بين الجراح والأذى (المادة ١٤٢) يتوقف على التقرير الطبي. التحقق من ذلك مهمة المحامي، والفصل فيه للمحكمة.",
+  "إهمال:فحص:قتل": "ليست هذه تصنيفاً نهائياً. عُرضت المادة ١٣٢ مبدئياً لأن الوقائع تشير إلى قتل خطأ. إثبات القتل الخطأ يتوقف على ثبوت الإهمال أو عدم الاحتياط، وعلى علاقة السببية بين الفعل والوفاة؛ وقد ينتفي الخطأ أصلاً إذا توافرت شروط الحادث العرضي (المادة ١٦). التحقق من ذلك مهمة المحامي، والفصل فيه للمحكمة.",
   "إتلاف:بيّنة": "ليست هذه تصنيفاً. تذكر الوقائع حريقاً وإتلافاً، ولا تذكر ما يُسند الفعل إلى شخص معيّن إسناداً كافياً. عُرضت المادة ١٨٢ بوصفها احتمالاً قانونياً للبحث لا تكييفاً. وجود المتهم قرب المكان أو وجود دافع لا يكفيان وحدهما لإثبات الإحراق. تقدير كفاية البيّنة مهمة المحامي، والفصل فيها للمحكمة.",
   "تهديد:فحص": "ليست هذه تصنيفاً نهائياً. عُرضت المادة ١٤٤ مبدئياً لأن الوقائع تذكر تهديداً دون طلب مال أو سند، فاستُبعد مسار الابتزاز (المادة ١٧٦) من التصنيف. إثبات الإرهاب يتوقف على ألفاظ التهديد وسياقها وجدّيتها وأثرها في المهدَّد، وقد لا يتجاوز الفعل حدّ الإساءة (المادة ١٦٠). التحقق من ذلك مهمة المحامي، والفصل فيه للمحكمة.",
   "إباحة:عرضي": "ليست هذه تصنيفاً ولا إعلان براءة. لا تذكر الوقائع قصداً جنائياً، وتشير إلى أن الفعل ربما كان حادثاً عرضياً. عُرضت المادة ١٦ (الحادث العرضي) والمادة ١٨٢ (الإتلاف) للمقارنة لا للتكييف. إثبات انعدام القصد أو توافره مهمة المحامي، والفصل فيه للمحكمة.",
@@ -2205,6 +2219,11 @@ export async function analyzeCase(
 
   // Criminal cases use a deterministic concept-map path — no text search for laws.
   if (caseTypeFull?.slug === "criminal") {
+    // Capture the original LLM concept before any gate may override llmResult.
+    // Used for relatedLaws (Change C, Commit 40): جرح خطأ may be overridden to
+    // جرح عمد by the lethal-method gate below, but the traffic law still applies.
+    const origLlmConcept = llmResult.type === "criminal" ? llmResult.concept : null;
+
     // Item 2: filter the LLM's attempted-murder discuss suggestion to stabbings
     // and shootings only. A stick blow in a fight should not trigger it.
     const rawDiscuss = llmResult.type === "criminal" ? (llmResult.discuss ?? []) : [];
@@ -2261,6 +2280,20 @@ export async function analyzeCase(
         }
         seriousInjuryGateFired = true;
       }
+    }
+
+    // Change A (Commit 40): negligence open-point card for قتل خطأ.
+    // Fires when the LLM returned قتل خطأ and no deliberate act or gross negligence
+    // is present. Gross negligence (phone, drunk, red-light) is clear-cut and does
+    // not need an open-point card — the law applies without ambiguity.
+    if (
+      llmResult.type === "criminal" &&
+      llmResult.concept === "قتل خطأ" &&
+      !factsMatchDeliberateAssault(input.facts) &&
+      !factsMatchIntentToKill(input.facts) &&
+      !factsMatchGrossNegligence(input.facts)
+    ) {
+      filteredDiscuss = [...filteredDiscuss, "إهمال:فحص:قتل"];
     }
 
     // Method gate: deterministic — does not depend on LLM volunteering discuss.
@@ -2327,7 +2360,7 @@ export async function analyzeCase(
     const homicideOpenPoint = criminalTerms[0]?.term === "قتل:وصف";
 
     // Build discuss concept list for the open-point cards.
-    const discussConcepts: string[] | undefined =
+    let discussConcepts: string[] | undefined =
       llmResult.type === "criminal" && llmResult.intentUnknown
         ? ["مخدرات:قصد الاتجار", "مخدرات:قصد التعاطي"]
         : llmResult.type === "criminal" && homicideOpenPoint
@@ -2361,6 +2394,28 @@ export async function analyzeCase(
         ? filteredDiscuss
         : undefined;
 
+    // Change B (Commit 40): inject participation card for any criminal concept when
+    // facts contain participation markers. The سرقة/نهب branches already inject it;
+    // the !includes guard prevents duplicates.
+    if (
+      llmResult.type === "criminal" &&
+      discussConcepts !== undefined &&
+      !discussConcepts.includes("اشتراك:فحص") &&
+      factsMatchParticipation(input.facts)
+    ) {
+      discussConcepts = [...discussConcepts, "اشتراك:فحص"];
+    }
+
+    // Change C (Commit 40): attach traffic-law-2010 as related legislation when the
+    // original LLM concept is قتل خطأ or جرح خطأ and facts mention a vehicle.
+    const relatedLawSlugs: string[] = [];
+    if (
+      (origLlmConcept === "قتل خطأ" || origLlmConcept === "جرح خطأ") &&
+      factsMatchVehicle(input.facts)
+    ) {
+      relatedLawSlugs.push("traffic-law-2010");
+    }
+
     const cmResult = await analyzeCriminalConceptMap(
       supabase, input, caseTypeFull, criminalTerms, excerpt, truncated,
       discussConcepts,
@@ -2383,10 +2438,11 @@ export async function analyzeCase(
             : issue,
         ),
         intentUnknown: true,
+        ...(relatedLawSlugs.length > 0 ? { relatedLaws: relatedLawSlugs } : {}),
       };
     }
 
-    return cmResult;
+    return relatedLawSlugs.length > 0 ? { ...cmResult, relatedLaws: relatedLawSlugs } : cmResult;
   }
 
   // ── Phase 1: candidates ────────────────────────────────────────────────

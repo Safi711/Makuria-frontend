@@ -464,6 +464,46 @@ const CASES: Case[] = [
     expectedDescNote: null,
     note: "Commit 39 guard: 'واحد' alone has no second-actor in window; participation card must not appear → 1 card [سرقة:حد] only.",
   },
+
+  // ══ CHANGE A (Commit 40) — negligence card for قتل خطأ ════════════════════
+  {
+    id: "R44",
+    facts: "كان السائق يقود الشاحنة في طريق عام ليلاً حين خرج شخص فجأةً أمام السيارة دون أن يُبدي أي إشارة، فلم يتمكن السائق من الوقوف في الوقت المناسب فدهسته الشاحنة وتوفي متأثراً بإصاباته.",
+    expectedLaws: ["132"],
+    expectedCardCount: 1,
+    expectedCardKeys: ["إهمال:فحص:قتل"],
+    expectedDescNote: null,
+    note: "B13-128: simple traffic accident, no gross negligence → Art. 132 + إهمال:فحص:قتل card.",
+  },
+  {
+    id: "R45",
+    facts: "كان السائق يقود الشاحنة في طريق عام وكان ينظر إلى هاتفه فلم ينتبه للمشاة الذين كانوا يعبرون الطريق فاصطدمت الشاحنة بأحدهم وتوفي متأثراً بإصاباته.",
+    expectedLaws: ["132"],
+    expectedCardCount: 0,
+    expectedCardKeys: [],
+    expectedDescNote: null,
+    note: "B13-127: gross negligence guard fires (ينظر إلى هاتفه) → Art. 132, NO إهمال card.",
+  },
+
+  // ══ CHANGE B (Commit 40) — participation card for any criminal concept ════
+  {
+    id: "R46",
+    facts: "سلّم صاحب المحل بضاعةً بالأمانة إلى شخص وشريكه لبيعها ورد ثمنها إليه في أجل محدد، غير أنهما لم يردا الثمن ولم يعيدا البضاعة عند المطالبة.",
+    expectedLaws: ["177"],
+    expectedCardCount: 1,
+    expectedCardKeys: ["اشتراك:فحص"],
+    expectedDescNote: null,
+    note: "B13-122: breach of trust (Art. 177) + participation (شريك) → اشتراك:فحص card fires for non-سرقة concept.",
+  },
+  {
+    id: "R47",
+    facts: "اتنين اتفقوا وضربوه بالعصي",
+    expectedLaws: null,
+    expectedCardCount: 1,
+    expectedCardKeys: ["اشتراك:فحص"],
+    expectedDescNote: null,
+    note: "Commit 40 Change B: 'اتنين' triggers participation for any concept (جرح عمد / أذى) → 1 card [اشتراك:فحص].",
+  },
 ];
 
 interface RunResult {
