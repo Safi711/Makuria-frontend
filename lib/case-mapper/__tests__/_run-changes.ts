@@ -27,7 +27,9 @@ interface Case {
   facts: string;
   expectedLaws: string[] | null;       // null = don't check
   expectedCardCount: number | null;    // null = don't check
-  expectedCardKeys: string[] | null;   // null = don't check (any order)
+  expectedCardKeys: string[] | null;   // null = don't check (any order); checked for exact set equality
+  mustIncludeCardKeys?: string[];      // all must appear in got (subset); ignored when reportOnly
+  mustNotIncludeCardKeys?: string[];   // none may appear in got; ignored when reportOnly
   expectedDescNote: "yes" | "no" | null; // null = don't check
   reportOnly?: boolean;
   note: string;
@@ -390,11 +392,11 @@ const CASES: Case[] = [
   {
     id: "R36",
     facts: "هدده بالقتل إن لم يدفع له مليون جنيه خلال أسبوع",
-    expectedLaws: ["176"],
+    expectedLaws: ["20", "176", "19"],
     expectedCardCount: 0,
-    expectedCardKeys: null,
+    expectedCardKeys: [],
     expectedDescNote: null,
-    note: "B12-02 control: threat + money demand → ابتزاز stays Art. 176, no card.",
+    note: "B12-02 updated (Commit 41): threat + money demand + no delivery (لم يدفع) → شروع:ابتزاز [20,176,19], 0 cards.",
   },
   {
     id: "R37",
@@ -504,6 +506,95 @@ const CASES: Case[] = [
     expectedDescNote: null,
     note: "Commit 40 Change B: 'اتنين' triggers participation for any concept (جرح عمد / أذى) → 1 card [اشتراك:فحص].",
   },
+
+  // ══ COMMIT 41 — hadd upgrade, extortion attempt, hiraba card ══════════════
+
+  // R48 / R49: hadd upgrade — all 5 conditions stated → سرقة:حدية primary (170 first) + حد:مراجعة card
+  {
+    id: "R48",
+    facts: "المتهم البالغ دخل سراً إلى المحل المغلق وسرق النقود المملوكة لصاحب المحل دون إذنه ولا شبهة في ملكيتها.",
+    expectedLaws: ["170", "171", "174"],
+    expectedCardCount: 1,
+    expectedCardKeys: ["حد:مراجعة"],
+    expectedDescNote: null,
+    note: "B13-123: all 5 hadd conditions stated → سرقة:حدية primary (170,171,174) + حد:مراجعة card; old سرقة:حد card must NOT appear.",
+  },
+  {
+    id: "R49",
+    facts: "ثبت أن المتهم عاقل عمره 25 سنة أخذ المال خفيةً من الخزنة المحروسة المملوكة للغير دون إذن صاحبه ولا اضطرار.",
+    expectedLaws: ["170", "171", "174"],
+    expectedCardCount: 1,
+    expectedCardKeys: ["حد:مراجعة"],
+    expectedDescNote: null,
+    note: "B13-124: all 5 hadd conditions stated → same upgrade as R48.",
+  },
+
+  // R50: B12-04 verbatim — no capacity stated → hadd upgrade must NOT fire
+  {
+    id: "R50",
+    facts: "أبلغت امرأة أن شقيقها أخذ هاتفها من المنزل دون إذنها وباعه لشخص آخر، ثم أخبرها بأنه سيعيد قيمته عندما تتحسن ظروفه المالية. وتؤكد أنها لم توافق على البيع.",
+    expectedLaws: ["174"],
+    expectedCardCount: 1,
+    expectedCardKeys: ["سرقة:حد"],
+    mustNotIncludeCardKeys: ["حد:مراجعة"],
+    expectedDescNote: null,
+    note: "B12-04 verbatim: no capacity stated → factsMatchHaddTheftConditions=false → Art. 174 only + سرقة:حد card; NO حد:مراجعة.",
+  },
+
+  // R51 / R52: extortion attempt vs. completed extortion
+  {
+    id: "R51",
+    facts: "أرسل له رسالة يطلب فيها تحويل مبلغ وإلا فضح أمره، غير أن المجني عليه رفض الدفع وأبلغ الشرطة.",
+    expectedLaws: ["20", "176", "19"],
+    expectedCardCount: 0,
+    expectedCardKeys: [],
+    expectedDescNote: null,
+    note: "B13-126: extortion demand + no delivery (رفض) → شروع:ابتزاز (Arts. 20/176/19), 0 cards.",
+  },
+  {
+    id: "R52",
+    facts: "أرسل لها رسالة يهددها فيها بنشر صورها إذا لم تدفع له مبلغاً من المال، فدفعت له المبلغ المطلوب خوفاً.",
+    expectedLaws: ["176"],
+    expectedCardCount: 0,
+    expectedCardKeys: [],
+    expectedDescNote: null,
+    note: "B13-125: extortion demand + delivery occurred (دفعت) → ابتزاز (Art. 176 only), 0 cards.",
+  },
+
+  // R53: robbery with weapon in public place → حرابة:فحص card (in addition to نهب:جرح if LLM suggests it)
+  {
+    id: "R53",
+    facts: "هجم عليه شخص بمطوة في الشارع العام وجرحه في ذراعه ثم انتزع منه محفظته بالقوة وفرّ هارباً.",
+    expectedLaws: ["175"],
+    expectedCardCount: null,
+    expectedCardKeys: null,
+    mustIncludeCardKeys: ["حرابة:فحص", "نهب:جرح"],
+    expectedDescNote: null,
+    note: "B13-130: نهب + weapon + public place → laws [175] + cards must include حرابة:فحص + نهب:جرح.",
+  },
+
+  // R54: breach of trust + participation (verbatim from R46)
+  {
+    id: "R54",
+    facts: "سلّم صاحب المحل بضاعةً بالأمانة إلى شخص وشريكه لبيعها ورد ثمنها إليه في أجل محدد، غير أنهما لم يردا الثمن ولم يعيدا البضاعة عند المطالبة.",
+    expectedLaws: ["177"],
+    expectedCardCount: 1,
+    expectedCardKeys: ["اشتراك:فحص"],
+    expectedDescNote: null,
+    note: "B13-122 verbatim: خيانة أمانة (Art. 177) + participation (شريك) → laws [177], card [اشتراك:فحص].",
+  },
+
+  // R55: weapon in private place → حرابة:فحص must NOT appear
+  {
+    id: "R55",
+    facts: "ضربه بمطوة في البيت وشال تلفونه",
+    expectedLaws: null,
+    expectedCardCount: null,
+    expectedCardKeys: null,
+    mustNotIncludeCardKeys: ["حرابة:فحص"],
+    expectedDescNote: null,
+    note: "weapon + private place (البيت) → factsMatchWeaponPublicPlace=false → حرابة:فحص must NOT appear.",
+  },
 ];
 
 interface RunResult {
@@ -573,6 +664,18 @@ async function main() {
       if (c.expectedCardKeys !== null && !cardKeysMatch(r0.cardKeys, c.expectedCardKeys)) {
         ok = false;
         failReasons.push(`card-keys: expected [${c.expectedCardKeys.join(",")}] got [${r0.cardKeys.join(",")}]`);
+      }
+      if (c.mustIncludeCardKeys) {
+        const s = new Set(r0.cardKeys);
+        for (const k of c.mustIncludeCardKeys) {
+          if (!s.has(k)) { ok = false; failReasons.push(`must-include: key [${k}] absent; got [${r0.cardKeys.join(",")}]`); }
+        }
+      }
+      if (c.mustNotIncludeCardKeys) {
+        const s = new Set(r0.cardKeys);
+        for (const k of c.mustNotIncludeCardKeys) {
+          if (s.has(k)) { ok = false; failReasons.push(`must-not-include: key [${k}] present; got [${r0.cardKeys.join(",")}]`); }
+        }
       }
       if (c.expectedDescNote !== null) {
         const wantDesc = c.expectedDescNote === "yes";
