@@ -29,6 +29,7 @@ import {
   factsMatchHaddTheftConditions,
   factsMatchDelivery,
   factsMatchWeaponPublicPlace,
+  factsMatchNarcoticsContext,
   factsMatchLabPending,
   factsMatchKnowledgeDisputed,
   factsMatchConsentDisputed,
@@ -1715,8 +1716,10 @@ async function analyzeCriminalConceptMap(
     : null;
   const inferredCaseType = caseTypeFull.inferred ? (caseTypeFull.categoryNameAr ?? "جنائي") : null;
 
-  // No concept fired → immediate noConfidentMatch, skip all DB queries
-  if (allConceptTerms.length === 0) {
+  // No concept fired → immediate noConfidentMatch, skip all DB queries.
+  // Exception: discuss-only path (e.g. مخدرات:معمل from lab-pending early exit) — fall
+  // through so the discuss-item fetch can run.
+  if (allConceptTerms.length === 0 && !(discussConcepts?.length)) {
     return {
       factsExcerpt: excerpt, factsIsTruncated: truncated,
       caseTypeLens, inferredCaseType,
@@ -2307,6 +2310,23 @@ export async function analyzeCase(
     inferredCriminal,
   );
 
+  // Commit 43, Fix 1: lab-pending gate is deterministic — fires regardless of LLM
+  // result so it is reachable when the LLM abstains or returns civil.
+  const labPending =
+    factsMatchNarcoticsContext(input.facts) && factsMatchLabPending(input.facts);
+  if (labPending) {
+    const labCaseType =
+      caseTypeFull?.slug === "criminal"
+        ? caseTypeFull
+        : await resolveCaseTypeFull(supabase, undefined, true);
+    if (labCaseType) {
+      const cmResult = await analyzeCriminalConceptMap(
+        supabase, input, labCaseType, [], excerpt, truncated, ["مخدرات:معمل"],
+      );
+      return { ...cmResult, laws: [], noConfidentMatch: false, hasAnyResults: true };
+    }
+  }
+
   // Criminal cases use a deterministic concept-map path — no text search for laws.
   if (caseTypeFull?.slug === "criminal") {
     // Capture the original LLM concept before any gate may override llmResult.
@@ -2451,25 +2471,24 @@ export async function analyzeCase(
     // True when the homicide gate overrode the concept to قتل:وصف.
     const homicideOpenPoint = criminalTerms[0]?.term === "قتل:وصف";
 
-    // Commit 42, Change E — routing gates for new research cards.
+    // Commit 42/43, Change E — routing gates for new research cards.
     const NARCOTICS_CONCEPTS = new Set([
       "مخدرات", "مخدرات:قصد الاتجار", "مخدرات:قصد التعاطي", "مخدرات:تقديم",
     ]);
     const isNarcoticsConcept =
       llmResult.type === "criminal" && NARCOTICS_CONCEPTS.has(llmResult.concept);
 
-    // E1: lab-pending gate — overrides all narcotics routing; no primary law shown.
-    const labPending = isNarcoticsConcept && factsMatchLabPending(input.facts);
+    // labPending was computed above (deterministic, before branching) and returned early.
 
-    // E2a: stolen-goods knowledge dispute.
+    // E2a: stolen-goods knowledge dispute — test final primary term OR LLM concept.
     const stolenGoodsKnowledgeDisputed =
       llmResult.type === "criminal" &&
-      llmResult.concept === "استلام مسروق" &&
+      (llmResult.concept === "استلام مسروق" || criminalTerms[0]?.term === "استلام مسروق") &&
       factsMatchKnowledgeDisputed(input.facts) === "disputed";
 
-    // E2b: narcotics knowledge dispute (only when lab result IS present, not pending).
+    // E2b: narcotics knowledge dispute (lab is not pending — we already returned if it were).
     const narcoticsKnowledgeDisputed =
-      isNarcoticsConcept && !labPending &&
+      isNarcoticsConcept &&
       factsMatchKnowledgeDisputed(input.facts) === "disputed";
 
     // E3: consent contested in rape / indecent-acts cases.
@@ -2489,20 +2508,11 @@ export async function analyzeCase(
       factsMatchKeywords(input.facts, PUBLIC_PLACE_KW);
 
     // Build discuss concept list for the open-point cards.
+    // labPending was handled as an early return above.
+    // narcoticsKnowledgeDisputed, stolenGoodsKnowledgeDisputed, consentContested,
+    // indecencyPublicPlace are injected as independent post-chain blocks (Commit 43).
     let discussConcepts: string[] | undefined =
-      // E1 (Commit 42): lab-pending overrides all narcotics routing — no primary law.
-      labPending
-        ? ["مخدرات:معمل"]
-      // E2b (Commit 42): narcotics knowledge disputed — suppress intent cards, add knowledge card.
-      : narcoticsKnowledgeDisputed
-        ? [
-            "علم:فحص:مخدرات",
-            ...(llmResult.type === "criminal" && llmResult.concept === "مخدرات" &&
-              factsMatchKeywords(input.facts, SUPPLY_TO_PERSON_KW)
-              ? ["مخدرات:تقديم"] : []),
-            ...filteredDiscuss,
-          ]
-        : llmResult.type === "criminal" && llmResult.intentUnknown
+        llmResult.type === "criminal" && llmResult.intentUnknown
         ? ["مخدرات:قصد الاتجار", "مخدرات:قصد التعاطي"]
         : llmResult.type === "criminal" && homicideOpenPoint
         ? ["قتل:وصف", ...filteredDiscuss]
@@ -2535,15 +2545,7 @@ export async function analyzeCase(
           ))
         ? ["انتحال:موظف", ...filteredDiscuss]
         : llmResult.type === "criminal"
-        ? [
-            ...filteredDiscuss,
-            // E2a (Commit 42): stolen goods + disputed knowledge → add research card.
-            ...(stolenGoodsKnowledgeDisputed ? ["علم:فحص:مسروق"] : []),
-            // E3 (Commit 42): rape/indecency + contested consent → add consent card.
-            ...(consentContested ? ["رضا:فحص"] : []),
-            // E4 (Commit 42): indecency in public place → add review card.
-            ...(indecencyPublicPlace ? ["فاحشة:مراجعة"] : []),
-          ]
+        ? [...filteredDiscuss]
         : undefined;
 
     // Change B (Commit 40): inject participation card for any criminal concept when
@@ -2556,6 +2558,53 @@ export async function analyzeCase(
       factsMatchParticipation(input.facts)
     ) {
       discussConcepts = [...discussConcepts, "اشتراك:فحص"];
+    }
+
+    // Commit 43, Fix 2: Commit 42 cards injected as independent post-chain blocks so
+    // they fire regardless of which ternary branch was taken (سرقة, احتيال, etc.).
+
+    // E2a: stolen goods + disputed knowledge → علم:فحص:مسروق
+    if (
+      llmResult.type === "criminal" &&
+      discussConcepts !== undefined &&
+      stolenGoodsKnowledgeDisputed &&
+      !discussConcepts.includes("علم:فحص:مسروق")
+    ) {
+      discussConcepts = [...discussConcepts, "علم:فحص:مسروق"];
+    }
+
+    // E2b: narcotics knowledge disputed → علم:فحص:مخدرات at front, intent cards removed.
+    if (
+      llmResult.type === "criminal" &&
+      discussConcepts !== undefined &&
+      narcoticsKnowledgeDisputed
+    ) {
+      discussConcepts = [
+        ...(!discussConcepts.includes("علم:فحص:مخدرات") ? ["علم:فحص:مخدرات"] : []),
+        ...discussConcepts.filter(
+          (c) => c !== "مخدرات:قصد الاتجار" && c !== "مخدرات:قصد التعاطي",
+        ),
+      ];
+    }
+
+    // E3: contested consent → رضا:فحص
+    if (
+      llmResult.type === "criminal" &&
+      discussConcepts !== undefined &&
+      consentContested &&
+      !discussConcepts.includes("رضا:فحص")
+    ) {
+      discussConcepts = [...discussConcepts, "رضا:فحص"];
+    }
+
+    // E4: indecency in public place → فاحشة:مراجعة
+    if (
+      llmResult.type === "criminal" &&
+      discussConcepts !== undefined &&
+      indecencyPublicPlace &&
+      !discussConcepts.includes("فاحشة:مراجعة")
+    ) {
+      discussConcepts = [...discussConcepts, "فاحشة:مراجعة"];
     }
 
     // Change C (Commit 40): attach traffic-law-2010 as related legislation when the
@@ -2573,18 +2622,7 @@ export async function analyzeCase(
       discussConcepts,
     );
 
-    // E1 (Commit 42): lab pending → show only the مخدرات:معمل card, no primary laws.
-    if (labPending) {
-      return {
-        ...cmResult,
-        laws: [],
-        noConfidentMatch: false,
-        hasAnyResults: true,
-        ...(relatedLawSlugs.length > 0 ? { relatedLaws: relatedLawSlugs } : {}),
-      };
-    }
-
-    // E2b (Commit 42): narcotics knowledge disputed → keep Art. 12 only as primary.
+    // E2b (Commit 42/43): narcotics knowledge disputed → keep Art. 12 only as primary.
     if (narcoticsKnowledgeDisputed) {
       const NARCOTICS = "narcotics-psychotropic-substances-act-1994";
       const art12Only = cmResult.laws.filter(
