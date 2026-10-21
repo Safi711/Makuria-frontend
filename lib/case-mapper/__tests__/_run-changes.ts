@@ -666,7 +666,7 @@ const CASES: Case[] = [
     mustIncludeCardKeys: ["فاحشة:مراجعة"],
     mustNotIncludeCardKeys: ["رضا:فحص"],
     expectedDescNote: null,
-    note: "B14-136: أفعال فاحشة + public place → card [فاحشة:مراجعة]; consent='refused' so no رضا:فحص; Art. 153 NOT in laws (Change C).",
+    note: "B14-136: أفعال فاحشة + public place → card [فاحشة:مراجعة]; consent='refused' (Commit 44: no counter-claim, no رضا:فحص); Art. 153 NOT in laws (Change C).",
   },
 
   // R62: B14-134 verbatim — حجز غير مشروع → Art. 164, 0 cards (unchanged)
