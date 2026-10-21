@@ -29,6 +29,9 @@ import {
   factsMatchHaddTheftConditions,
   factsMatchDelivery,
   factsMatchWeaponPublicPlace,
+  factsMatchLabPending,
+  factsMatchKnowledgeDisputed,
+  factsMatchConsentDisputed,
   dropAthaIfWound,
   dropBareJurhIfWound,
   SUPPLY_TO_PERSON_KW,
@@ -124,6 +127,9 @@ export type RetrievedAuthority = {
   lawSlug: string | null;
   sourceUrl: string | null;
   force: ForceStatus;
+  /** Raw `legal_status` from the articles table, used for the article badge.
+   * Values: in_force | repealed | amended | disputed | not_yet_in_force | unknown | null */
+  legalStatus: string | null;
   statusNote: string | null;
   matchedTerms: string[];
   rank: number;
@@ -533,7 +539,9 @@ export const CONCEPT_TO_ARTICLES: Record<string, ConceptArticleEntry[]> = {
   "أفعال فاحشة": [
     { lawSlug: "criminal-law-1991", articleNumber: "151" }, // الأفعال الفاحشة والتحرش الجنسي
     { lawSlug: "criminal-law-1991", articleNumber: "152" }, // الأفعال الفاضحة
-    { lawSlug: "criminal-law-1991", articleNumber: "153" }, // المواد والعروض المخلة بالآداب
+    // Art. 153 (المواد والعروض المخلة بالآداب) removed from automatic concept link
+    // (Commit 42 Change C) — the article remains in the DB; only the automatic
+    // link from "أفعال فاحشة" is removed so it no longer surfaces automatically.
   ],
   "دعارة": [
     { lawSlug: "criminal-law-1991", articleNumber: "154" }, // ممارسة الدعارة
@@ -825,6 +833,30 @@ export const DISCUSS_CONCEPT_TO_ARTICLES: Record<string, ConceptArticleEntry[]> 
     { lawSlug: "criminal-law-1991", articleNumber: "167" },
     { lawSlug: "criminal-law-1991", articleNumber: "168" },
   ],
+  // Commit 42: lab pending — substance identity not yet confirmed.
+  "مخدرات:معمل": [
+    { lawSlug: "narcotics-psychotropic-substances-act-1994", articleNumber: "12" },
+  ],
+  // Commit 42: knowledge examination — stolen-goods variant.
+  "علم:فحص:مسروق": [
+    { lawSlug: "criminal-law-1991", articleNumber: "181" },
+  ],
+  // Commit 42: knowledge examination — narcotics variant.
+  "علم:فحص:مخدرات": [
+    { lawSlug: "narcotics-psychotropic-substances-act-1994", articleNumber: "12" },
+    { lawSlug: "narcotics-psychotropic-substances-act-1994", articleNumber: "15" },
+    { lawSlug: "narcotics-psychotropic-substances-act-1994", articleNumber: "20" },
+  ],
+  // Commit 42: consent and coercion examination.
+  "رضا:فحص": [
+    { lawSlug: "criminal-law-1991", articleNumber: "149" },
+    { lawSlug: "criminal-law-1991", articleNumber: "151" },
+  ],
+  // Commit 42: review between Arts. 151 and 152 (obscene acts vs. indecent acts).
+  "فاحشة:مراجعة": [
+    { lawSlug: "criminal-law-1991", articleNumber: "151" },
+    { lawSlug: "criminal-law-1991", articleNumber: "152" },
+  ],
 };
 
 const DISCUSS_CONCEPT_LABEL: Record<string, string> = {
@@ -853,6 +885,11 @@ const DISCUSS_CONCEPT_LABEL: Record<string, string> = {
   "اشتراك:فحص":   "الاشتراك في الجريمة (المادتان ٢١ و٢٢) — نقطة مفتوحة للمحامي",
   "حد:مراجعة":    "مراجعة شروط السرقة الحدية (المادة ١٧٠) — نقطة مفتوحة للمحامي",
   "حرابة:فحص":    "فحص الحرابة (المادة ١٦٧) — نقطة مفتوحة للمحامي",
+  "مخدرات:معمل":  "مادة مشتبه بها قيد الفحص المعملي — نقطة مفتوحة للمحامي",
+  "علم:فحص:مسروق":   "فحص العلم بطبيعة المال أو المادة — نقطة مفتوحة للمحامي",
+  "علم:فحص:مخدرات":  "فحص العلم بطبيعة المال أو المادة — نقطة مفتوحة للمحامي",
+  "رضا:فحص":      "فحص الرضا والإكراه — نقطة مفتوحة للمحامي",
+  "فاحشة:مراجعة": "مراجعة الوصف بين المادتين ١٥١ و١٥٢ — نقطة مفتوحة للمحامي",
 };
 
 const DISCUSS_CONCEPT_DESC: Record<string, string> = {
@@ -882,6 +919,11 @@ const DISCUSS_CONCEPT_DESC: Record<string, string> = {
   "اشتراك:فحص": "ليست هذه تصنيفاً نهائياً. تشير الوقائع إلى احتمال وجود أكثر من مشارك في الجريمة. تحديد دور كل شخص — فاعلاً أصلياً أم شريكاً أم متدخلاً — وإثبات القصد المشترك وفق المادتين ٢١ و٢٢ مهمة المحامي، والفصل فيه للمحكمة.",
   "حد:مراجعة": "ليست هذه تصنيفاً نهائياً. ذكرت الوقائع صراحةً شروط السرقة الحدية الخمسة. تطبيق عقوبة الحد (المادة ١٧٠) يستلزم ثبوتها جميعاً بيقين ودون شبهة، وذلك مهمة المحامي، والفصل فيه للمحكمة. المادة ١٧٢ تُبيّن مسقطات الحد، والمادة ١٧٤ العقوبة التعزيرية عند سقوطه.",
   "حرابة:فحص": "ليست هذه تصنيفاً نهائياً. الوقائع تتضمن نهباً بسلاح في مكان عام، مما يستوجب على المحامي فحص توافر شروط الحرابة وفق المادة ١٦٧. الشرط المحوري هو تعذّر الغوث، أي أن يقع الفعل في موضع لا يستطيع المجني عليه الاستنجاد فيه. إذا لم يثبت هذا الشرط فيبقى الوصف نهباً (المادة ١٧٥). التحقق من ذلك مهمة المحامي، والفصل فيه للمحكمة.",
+  "مخدرات:معمل": "مادة مشتبه بها قيد الفحص المعملي. لا تكفي الوقائع الحالية لإثبات طبيعتها أو علم المتهم بمحتويات الحقيبة. يُرجأ التكييف النهائي لحين ورود نتيجة المعمل واستكمال أدلة العلم والحيازة.",
+  "علم:فحص:مسروق": "لا تكفي حيازة المال أو المادة، أو استلامها أو حفظها لحساب الغير، وحدها لإثبات علم الشخص بمصدرها غير المشروع أو بطبيعتها المحظورة. ويجب فحص ظروف التسليم، وطبيعة المقابل، وتصرفات المستلم، والقرائن التي قد تثبت العلم الفعلي أو إدراك الاحتمال وقبوله، وفق النص القانوني المنطبق. ولا يُستخلص العلم تلقائياً من انخفاض الثمن أو تقاضي أجر أو عدم السؤال عن المحتويات. كما لا يُعد إنكار العلم دليلاً حاسماً على انتفائه. هذه بطاقة فحص وليست حكماً بثبوت الجريمة أو انتفائها. تقدير الأدلة للمحكمة.",
+  "علم:فحص:مخدرات": "لا تكفي حيازة المال أو المادة، أو استلامها أو حفظها لحساب الغير، وحدها لإثبات علم الشخص بمصدرها غير المشروع أو بطبيعتها المحظورة. ويجب فحص ظروف التسليم، وطبيعة المقابل، وتصرفات المستلم، والقرائن التي قد تثبت العلم الفعلي أو إدراك الاحتمال وقبوله، وفق النص القانوني المنطبق. ولا يُستخلص العلم تلقائياً من انخفاض الثمن أو تقاضي أجر أو عدم السؤال عن المحتويات. كما لا يُعد إنكار العلم دليلاً حاسماً على انتفائه. هذه بطاقة فحص وليست حكماً بثبوت الجريمة أو انتفائها. تقدير الأدلة للمحكمة.",
+  "رضا:فحص": "يجب التحقق من توافر الرضا الحر المعتبر قانوناً وقت الفعل، ومن أثر التهديد أو الإكراه أو غيرهما من الظروف المؤثرة فيه. ولا يُفترض الرضا من مجرد وجود علاقة سابقة أو دخول المكان طوعاً، كما لا يُشترط إثبات مقاومة جسدية لإثبات انعدام الرضا. يُبحث الوصف القانوني وفق النص النافذ والأدلة المتاحة، ويظل الفصل في الوقائع للمحكمة.",
+  "فاحشة:مراجعة": "ليست هذه تصنيفاً نهائياً. عُرضت المادة ١٥١ مبدئياً لأن الوقائع تذكر فعلاً مخلاً بالحياء واقعاً على شخص معيّن؛ ووقوعه في مكان عام أو بغير رضا المجني عليه ظرف مشدِّد داخل المادة ١٥١(٢) لا ناقل إلى المادة ١٥٢. تُعرض المادة ١٥٢ للمراجعة لأنها تتعلق بالفعل الفاضح الذي يسبب مضايقة للشعور العام، ولأن حالتها القانونية متنازع فيها بعد تعديل ٢٠٢٠. التحقق من ذلك مهمة المحامي، والفصل فيه للمحكمة.",
 };
 
 /** Evidence items for شروع:* cards — displayed after a bold "قرائن تُفحص:" label. */
@@ -1728,11 +1770,12 @@ async function analyzeCriminalConceptMap(
     id: string; law_id: string; article_number: string | null;
     title_ar: string | null; content_ar: string | null;
     verified: boolean | null; status_note_ar: string | null;
+    legal_status: string | null;
   };
   const { data: articlesData } = lawIds.length
     ? await supabase
         .from("articles")
-        .select("id, law_id, article_number, title_ar, content_ar, verified, status_note_ar")
+        .select("id, law_id, article_number, title_ar, content_ar, verified, status_note_ar, legal_status")
         .in("law_id", lawIds)
     : { data: [] as ArticleRow[] };
 
@@ -1742,6 +1785,7 @@ async function analyzeCriminalConceptMap(
       a,
     ])
   );
+
 
   // Build authority map in concept-map order
   const authorityMap = new Map<string, RetrievedAuthority>();
@@ -1768,6 +1812,7 @@ async function analyzeCriminalConceptMap(
         lawSlug: entry.lawSlug,
         sourceUrl: parentLaw.source_url ?? null,
         force: forceFromLawStatus(parentLaw.status),
+        legalStatus: article.legal_status ?? null,
         statusNote: article.status_note_ar ?? null,
         matchedTerms: [entry.conceptTerm],
         rank: 100,
@@ -1809,12 +1854,13 @@ async function analyzeCriminalConceptMap(
         if (extraLawIds.length) {
           const { data: extraArts } = await supabase
             .from("articles")
-            .select("id, law_id, article_number, title_ar, content_ar, verified, status_note_ar")
+            .select("id, law_id, article_number, title_ar, content_ar, verified, status_note_ar, legal_status")
             .in("law_id", extraLawIds);
           for (const a of (extraArts ?? []) as Array<{
             id: string; law_id: string; article_number: string | null;
             title_ar: string | null; content_ar: string | null;
             verified: boolean | null; status_note_ar: string | null;
+            legal_status: string | null;
           }>) {
             articleByPair.set(`${a.law_id}:${(a.article_number ?? "").trim()}`, a);
           }
@@ -1840,6 +1886,7 @@ async function analyzeCriminalConceptMap(
           lawSlug: entry.lawSlug,
           sourceUrl: parentLaw.source_url ?? null,
           force: forceFromLawStatus(parentLaw.status),
+          legalStatus: article.legal_status ?? null,
           statusNote: entry.statusNoteOverride ?? article.status_note_ar ?? null,
           matchedTerms: [entry.concept],
           rank: 100,
@@ -2404,9 +2451,58 @@ export async function analyzeCase(
     // True when the homicide gate overrode the concept to قتل:وصف.
     const homicideOpenPoint = criminalTerms[0]?.term === "قتل:وصف";
 
+    // Commit 42, Change E — routing gates for new research cards.
+    const NARCOTICS_CONCEPTS = new Set([
+      "مخدرات", "مخدرات:قصد الاتجار", "مخدرات:قصد التعاطي", "مخدرات:تقديم",
+    ]);
+    const isNarcoticsConcept =
+      llmResult.type === "criminal" && NARCOTICS_CONCEPTS.has(llmResult.concept);
+
+    // E1: lab-pending gate — overrides all narcotics routing; no primary law shown.
+    const labPending = isNarcoticsConcept && factsMatchLabPending(input.facts);
+
+    // E2a: stolen-goods knowledge dispute.
+    const stolenGoodsKnowledgeDisputed =
+      llmResult.type === "criminal" &&
+      llmResult.concept === "استلام مسروق" &&
+      factsMatchKnowledgeDisputed(input.facts) === "disputed";
+
+    // E2b: narcotics knowledge dispute (only when lab result IS present, not pending).
+    const narcoticsKnowledgeDisputed =
+      isNarcoticsConcept && !labPending &&
+      factsMatchKnowledgeDisputed(input.facts) === "disputed";
+
+    // E3: consent contested in rape / indecent-acts cases.
+    const _isConsentConcept =
+      llmResult.type === "criminal" &&
+      (llmResult.concept === "اغتصاب" || llmResult.concept === "أفعال فاحشة");
+    const consentContested =
+      _isConsentConcept && factsMatchConsentDisputed(input.facts) === "contested";
+
+    // E4: indecent act in public place → review card.
+    const PUBLIC_PLACE_KW = [
+      "موقف", "الشارع", "الطريق", "السوق", "المحطة", "مكان عام", "أمام الناس",
+    ];
+    const indecencyPublicPlace =
+      llmResult.type === "criminal" &&
+      llmResult.concept === "أفعال فاحشة" &&
+      factsMatchKeywords(input.facts, PUBLIC_PLACE_KW);
+
     // Build discuss concept list for the open-point cards.
     let discussConcepts: string[] | undefined =
-      llmResult.type === "criminal" && llmResult.intentUnknown
+      // E1 (Commit 42): lab-pending overrides all narcotics routing — no primary law.
+      labPending
+        ? ["مخدرات:معمل"]
+      // E2b (Commit 42): narcotics knowledge disputed — suppress intent cards, add knowledge card.
+      : narcoticsKnowledgeDisputed
+        ? [
+            "علم:فحص:مخدرات",
+            ...(llmResult.type === "criminal" && llmResult.concept === "مخدرات" &&
+              factsMatchKeywords(input.facts, SUPPLY_TO_PERSON_KW)
+              ? ["مخدرات:تقديم"] : []),
+            ...filteredDiscuss,
+          ]
+        : llmResult.type === "criminal" && llmResult.intentUnknown
         ? ["مخدرات:قصد الاتجار", "مخدرات:قصد التعاطي"]
         : llmResult.type === "criminal" && homicideOpenPoint
         ? ["قتل:وصف", ...filteredDiscuss]
@@ -2439,7 +2535,15 @@ export async function analyzeCase(
           ))
         ? ["انتحال:موظف", ...filteredDiscuss]
         : llmResult.type === "criminal"
-        ? filteredDiscuss
+        ? [
+            ...filteredDiscuss,
+            // E2a (Commit 42): stolen goods + disputed knowledge → add research card.
+            ...(stolenGoodsKnowledgeDisputed ? ["علم:فحص:مسروق"] : []),
+            // E3 (Commit 42): rape/indecency + contested consent → add consent card.
+            ...(consentContested ? ["رضا:فحص"] : []),
+            // E4 (Commit 42): indecency in public place → add review card.
+            ...(indecencyPublicPlace ? ["فاحشة:مراجعة"] : []),
+          ]
         : undefined;
 
     // Change B (Commit 40): inject participation card for any criminal concept when
@@ -2468,6 +2572,36 @@ export async function analyzeCase(
       supabase, input, caseTypeFull, criminalTerms, excerpt, truncated,
       discussConcepts,
     );
+
+    // E1 (Commit 42): lab pending → show only the مخدرات:معمل card, no primary laws.
+    if (labPending) {
+      return {
+        ...cmResult,
+        laws: [],
+        noConfidentMatch: false,
+        hasAnyResults: true,
+        ...(relatedLawSlugs.length > 0 ? { relatedLaws: relatedLawSlugs } : {}),
+      };
+    }
+
+    // E2b (Commit 42): narcotics knowledge disputed → keep Art. 12 only as primary.
+    if (narcoticsKnowledgeDisputed) {
+      const NARCOTICS = "narcotics-psychotropic-substances-act-1994";
+      const art12Only = cmResult.laws.filter(
+        (l) => l.lawSlug === NARCOTICS && l.articleNumber === "12",
+      );
+      return {
+        ...cmResult,
+        laws: art12Only,
+        issues: cmResult.issues.map((issue) =>
+          issue.topLaw &&
+          !(issue.topLaw.lawSlug === NARCOTICS && issue.topLaw.articleNumber === "12")
+            ? { ...issue, topLaw: art12Only[0] ?? null }
+            : issue,
+        ),
+        ...(relatedLawSlugs.length > 0 ? { relatedLaws: relatedLawSlugs } : {}),
+      };
+    }
 
     if (llmResult.type === "criminal" && llmResult.intentUnknown) {
       const NARCOTICS = "narcotics-psychotropic-substances-act-1994";
@@ -2677,6 +2811,7 @@ export async function analyzeCase(
             lawSlug: row.law_slug ?? null,
             sourceUrl: null,
             force: forceOf(row),
+            legalStatus: row.legal_status ?? null,
             statusNote: row.status_note_ar ?? null,
             matchedTerms: [term],
             rank: row.rank ?? 0,
@@ -2730,6 +2865,7 @@ export async function analyzeCase(
             lawSlug: row.slug,
             sourceUrl: null,
             force: forceOf(row),
+            legalStatus: null,
             statusNote: row.status_note_ar ?? null,
             matchedTerms: [term],
             // v3 ranks are a different scale from v4's; law rows are ordered
