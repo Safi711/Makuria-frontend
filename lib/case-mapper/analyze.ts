@@ -26,6 +26,9 @@ import {
   factsMatchParticipation,
   factsMatchGrossNegligence,
   factsMatchVehicle,
+  factsMatchHaddTheftConditions,
+  factsMatchDelivery,
+  factsMatchWeaponPublicPlace,
   dropAthaIfWound,
   dropBareJurhIfWound,
   SUPPLY_TO_PERSON_KW,
@@ -317,6 +320,12 @@ export type ConceptArticleEntry = {
 export const CONCEPT_TO_ARTICLES: Record<string, ConceptArticleEntry[]> = {
   "خيانة الأمانة": [
     { lawSlug: "criminal-law-1991", articleNumber: "177" }, // REVIEW
+  ],
+  // Commit 41: hadd-primary concept — fires when all five preconditions stated.
+  "سرقة:حدية": [
+    { lawSlug: "criminal-law-1991", articleNumber: "170" }, // السرقة الحدية
+    { lawSlug: "criminal-law-1991", articleNumber: "171" }, // عقوبة السرقة الحدية
+    { lawSlug: "criminal-law-1991", articleNumber: "174" }, // جريمة السرقة (تعزيرية عند سقوط الحد)
   ],
   "سرقة": [
     { lawSlug: "criminal-law-1991", articleNumber: "174" }, // جريمة السرقة — always applicable
@@ -678,6 +687,16 @@ export const CONCEPT_TO_ARTICLES: Record<string, ConceptArticleEntry[]> = {
   "اشتراك:فحص": [],
   // Commit 40: negligence open-point for قتل خطأ — discuss-only (Arts. 16/132 shown via card).
   "إهمال:فحص:قتل": [],
+  // Commit 41: hadd-theft review card — fires when all five preconditions stated explicitly.
+  "حد:مراجعة": [],
+  // Commit 41: hiraba examination card — robbery with weapon in public place.
+  "حرابة:فحص": [],
+  // Commit 41: extortion attempt — delivery did not occur.
+  "شروع:ابتزاز": [
+    { lawSlug: "criminal-law-1991", articleNumber: "20" },
+    { lawSlug: "criminal-law-1991", articleNumber: "176" },
+    { lawSlug: "criminal-law-1991", articleNumber: "19" },
+  ],
 };
 
 // Articles surfaced as open points for the lawyer when the LLM signals a
@@ -795,6 +814,17 @@ export const DISCUSS_CONCEPT_TO_ARTICLES: Record<string, ConceptArticleEntry[]> 
     { lawSlug: "criminal-law-1991", articleNumber: "16" },
     { lawSlug: "criminal-law-1991", articleNumber: "132" },
   ],
+  // Commit 41: hadd-theft review — Arts. 170/172/174 for lawyer examination.
+  "حد:مراجعة": [
+    { lawSlug: "criminal-law-1991", articleNumber: "170" },
+    { lawSlug: "criminal-law-1991", articleNumber: "172" },
+    { lawSlug: "criminal-law-1991", articleNumber: "174" },
+  ],
+  // Commit 41: hiraba examination card — Arts. 167/168.
+  "حرابة:فحص": [
+    { lawSlug: "criminal-law-1991", articleNumber: "167" },
+    { lawSlug: "criminal-law-1991", articleNumber: "168" },
+  ],
 };
 
 const DISCUSS_CONCEPT_LABEL: Record<string, string> = {
@@ -821,6 +851,8 @@ const DISCUSS_CONCEPT_LABEL: Record<string, string> = {
   "إباحة:عرضي":   "لا تظهر جريمة ظاهراً — فحص الحادث العرضي، نقطة مفتوحة للمحامي",
   "إباحة:ضرورة":  "لا تظهر جريمة ظاهراً — فحص الضرورة والتناسب، نقطة مفتوحة للمحامي",
   "اشتراك:فحص":   "الاشتراك في الجريمة (المادتان ٢١ و٢٢) — نقطة مفتوحة للمحامي",
+  "حد:مراجعة":    "مراجعة شروط السرقة الحدية (المادة ١٧٠) — نقطة مفتوحة للمحامي",
+  "حرابة:فحص":    "فحص الحرابة (المادة ١٦٧) — نقطة مفتوحة للمحامي",
 };
 
 const DISCUSS_CONCEPT_DESC: Record<string, string> = {
@@ -848,6 +880,8 @@ const DISCUSS_CONCEPT_DESC: Record<string, string> = {
   "إباحة:عرضي": "ليست هذه تصنيفاً ولا إعلان براءة. لا تذكر الوقائع قصداً جنائياً، وتشير إلى أن الفعل ربما كان حادثاً عرضياً. عُرضت المادة ١٦ (الحادث العرضي) والمادة ١٨٢ (الإتلاف) للمقارنة لا للتكييف. إثبات انعدام القصد أو توافره مهمة المحامي، والفصل فيه للمحكمة.",
   "إباحة:ضرورة": "ليست هذه تصنيفاً ولا إعلان براءة. تذكر الوقائع فعلاً يُعدّ في ذاته إتلافاً، غير أن السياق يشير إلى احتمال الضرورة. عُرضت المادة ١٥ (حالة الضرورة) والمادة ١٨٢ (الإتلاف) للمقارنة لا للتكييف. إثبات شروط الضرورة وتناسب الفعل مع الخطر مهمة المحامي، والفصل فيه للمحكمة.",
   "اشتراك:فحص": "ليست هذه تصنيفاً نهائياً. تشير الوقائع إلى احتمال وجود أكثر من مشارك في الجريمة. تحديد دور كل شخص — فاعلاً أصلياً أم شريكاً أم متدخلاً — وإثبات القصد المشترك وفق المادتين ٢١ و٢٢ مهمة المحامي، والفصل فيه للمحكمة.",
+  "حد:مراجعة": "ليست هذه تصنيفاً نهائياً. ذكرت الوقائع صراحةً شروط السرقة الحدية الخمسة. تطبيق عقوبة الحد (المادة ١٧٠) يستلزم ثبوتها جميعاً بيقين ودون شبهة، وذلك مهمة المحامي، والفصل فيه للمحكمة. المادة ١٧٢ تُبيّن مسقطات الحد، والمادة ١٧٤ العقوبة التعزيرية عند سقوطه.",
+  "حرابة:فحص": "ليست هذه تصنيفاً نهائياً. الوقائع تتضمن نهباً بسلاح في مكان عام، مما يستوجب على المحامي فحص توافر شروط الحرابة وفق المادة ١٦٧. الشرط المحوري هو تعذّر الغوث، أي أن يقع الفعل في موضع لا يستطيع المجني عليه الاستنجاد فيه. إذا لم يثبت هذا الشرط فيبقى الوصف نهباً (المادة ١٧٥). التحقق من ذلك مهمة المحامي، والفصل فيه للمحكمة.",
 };
 
 /** Evidence items for شروع:* cards — displayed after a bold "قرائن تُفحص:" label. */
@@ -2136,6 +2170,15 @@ export async function analyzeCase(
         llmResult = { ...llmResult, concept: "تهديد" };
         criminalTerms = [{ term: "تهديد", origin: "expanded" as const }];
       }
+      // Commit 41: extortion attempt — demand made (kept as ابتزاز above) but delivery
+      // did not occur → شروع:ابتزاز (Arts. 20/176/19). If delivery occurred: Art. 176.
+      if (llmResult.concept === "ابتزاز" && !factsMatchDelivery(input.facts)) {
+        criminalTerms = [{ term: "شروع:ابتزاز", origin: "expanded" as const }];
+      }
+      // Commit 41: hadd upgrade — all five preconditions explicitly stated → سرقة:حدية.
+      if (llmResult.concept === "سرقة" && factsMatchHaddTheftConditions(input.facts)) {
+        criminalTerms = [{ term: "سرقة:حدية", origin: "expanded" as const }];
+      }
       // Commit 38 — damage/trespass concepts: when the context shows necessity or
       // accident (without intent), drop the primary article and show an إباحة card.
       // B12-07 (intentional laptop) and theft+damage cases must remain unchanged.
@@ -2230,6 +2273,8 @@ export async function analyzeCase(
     let filteredDiscuss = rawDiscuss.filter((c) => {
       // Always drop LLM's "قتل عمد" — the deterministic gates below replace it.
       if (c === "قتل عمد") return false;
+      // Always drop LLM's "اشتراك:فحص" — the keyword gate (factsMatchParticipation) owns this.
+      if (c === "اشتراك:فحص") return false;
       // Robbery-with-wound card: LLM proposes + keyword gate both required.
       if (c === "نهب:جرح") return factsMatchWound(input.facts);
       return true;
@@ -2367,12 +2412,15 @@ export async function analyzeCase(
         ? ["قتل:وصف", ...filteredDiscuss]
         : llmResult.type === "criminal" && llmResult.concept === "سرقة"
         ? [
-            "سرقة:حد",
+            // Commit 41: when all hadd conditions stated, use the review card; else standard research card.
+            factsMatchHaddTheftConditions(input.facts) ? "حد:مراجعة" : "سرقة:حد",
             ...(factsMatchParticipation(input.facts) ? ["اشتراك:فحص"] : []),
             ...filteredDiscuss,
           ]
         : llmResult.type === "criminal" && llmResult.concept === "نهب"
         ? [
+            // Commit 41: robbery with weapon in public place → open hiraba examination card.
+            ...(factsMatchWeaponPublicPlace(input.facts) ? ["حرابة:فحص"] : []),
             ...(factsMatchParticipation(input.facts) ? ["اشتراك:فحص"] : []),
             ...filteredDiscuss,
           ]
