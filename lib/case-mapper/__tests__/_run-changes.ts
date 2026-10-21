@@ -595,6 +595,126 @@ const CASES: Case[] = [
     expectedDescNote: null,
     note: "weapon + private place (البيت) → factsMatchWeaponPublicPlace=false → حرابة:فحص must NOT appear.",
   },
+
+  // ══ COMMIT 42 — routing gates (B14) ══════════════════════════════════════
+
+  // R56: B14-131 verbatim — استلام مسروق + علم مُنكَر → Art. 181 + علم:فحص:مسروق card
+  {
+    id: "R56",
+    facts: "ضبط المتهم وبحوزته هاتف مسروق، وقال إنه اشتراه من شخص لا يعرفه ولم يكن يعلم أنه مسروق.",
+    expectedLaws: ["181"],
+    expectedCardCount: 1,
+    expectedCardKeys: ["علم:فحص:مسروق"],
+    expectedDescNote: null,
+    note: "B14-131: استلام مسروق + factsMatchKnowledgeDisputed='disputed' → [181], card [علم:فحص:مسروق].",
+  },
+
+  // R57: B14-137 verbatim — مخدرات + lab pending → laws [], single card مخدرات:معمل
+  {
+    id: "R57",
+    facts: "ضبط المتهم وبحوزته مادة مشتبهاً بها قد تكون مخدرات، أُرسلت للمعمل الجنائي ولا تزال قيد التحليل.",
+    expectedLaws: [],
+    expectedCardCount: 1,
+    expectedCardKeys: ["مخدرات:معمل"],
+    mustNotIncludeCardKeys: ["مخدرات:قصد الاتجار", "مخدرات:قصد التعاطي"],
+    expectedDescNote: null,
+    note: "B14-137: narcotics + factsMatchLabPending=true → laws [], card [مخدرات:معمل]; no قصد cards.",
+  },
+
+  // R58: B14-140 verbatim — مخدرات + lab confirmed + علم مُنكَر → Art. 12 only + علم:فحص:مخدرات
+  {
+    id: "R58",
+    facts: "عثر المحقق على كيس به مادة مخدرة في حقيبة المتهم، وأنكر المتهم علمه بوجود المادة وقال لا يعرف شيئاً عنها.",
+    expectedLaws: ["12"],
+    expectedCardCount: 1,
+    expectedCardKeys: ["علم:فحص:مخدرات"],
+    mustNotIncludeCardKeys: ["مخدرات:قصد الاتجار", "مخدرات:قصد التعاطي"],
+    expectedDescNote: null,
+    note: "B14-140: narcotics + !labPending + factsMatchKnowledgeDisputed='disputed' → [12], card [علم:فحص:مخدرات]; no intent cards, no 15/20.",
+  },
+
+  // R59: B14-138 verbatim — مخدرات + علم مُعترَف به → laws start with 15, 0 knowledge card
+  {
+    id: "R59",
+    facts: "قبض على المتهم وهو يبيع حبوب مخدرة لأشخاص في الحي، وأقر بعلمه بطبيعتها وبنيته الاتجار بها.",
+    expectedLaws: null,
+    expectedCardCount: null,
+    expectedCardKeys: null,
+    mustNotIncludeCardKeys: ["علم:فحص:مخدرات"],
+    expectedDescNote: null,
+    note: "B14-138: narcotics + factsMatchKnowledgeDisputed='admitted' → knowledge gate does NOT fire; no علم:فحص:مخدرات card.",
+  },
+
+  // R60: B14-135 verbatim — اغتصاب + رضا متنازع عليه → Art. 149 + رضا:فحص card
+  {
+    id: "R60",
+    facts: "واقعها المتهم بالقوة وادعى أمام المحقق أن الأمر كان برضاها وبالتراضي.",
+    expectedLaws: ["149"],
+    expectedCardCount: 1,
+    expectedCardKeys: ["رضا:فحص"],
+    expectedDescNote: null,
+    note: "B14-135: اغتصاب + factsMatchConsentDisputed='contested' → [149], card [رضا:فحص].",
+  },
+
+  // R61: B14-136 verbatim — فعل فاضح في مكان عام → [151, 152] NOT 153, card [فاحشة:مراجعة], no رضا:فحص
+  {
+    id: "R61",
+    facts: "تحرش المتهم بامرأة في الشارع أمام الناس بشكل فاضح في وضح النهار، وشهد شخصان الواقعة، ولم يحدث إيلاج.",
+    expectedLaws: null,  // order may vary; checked via mustInclude + mustNotInclude
+    expectedCardCount: 1,
+    expectedCardKeys: ["فاحشة:مراجعة"],
+    mustIncludeCardKeys: ["فاحشة:مراجعة"],
+    mustNotIncludeCardKeys: ["رضا:فحص"],
+    expectedDescNote: null,
+    note: "B14-136: أفعال فاحشة + public place → card [فاحشة:مراجعة]; consent='refused' so no رضا:فحص; Art. 153 NOT in laws (Change C).",
+  },
+
+  // R62: B14-134 verbatim — حجز غير مشروع → Art. 164, 0 cards (unchanged)
+  {
+    id: "R62",
+    facts: "أوثق المتهم شخصاً بالحبال وأغلق عليه الغرفة ساعات عدة دون وجه حق.",
+    expectedLaws: null,
+    mustIncludeCardKeys: [],
+    expectedCardCount: null,
+    expectedCardKeys: null,
+    mustNotIncludeCardKeys: ["علم:فحص:مسروق", "علم:فحص:مخدرات", "رضا:فحص", "فاحشة:مراجعة", "مخدرات:معمل"],
+    expectedDescNote: null,
+    note: "B14-134: حجز غير مشروع → no C42 cards fire (routing unchanged).",
+  },
+
+  // R63: B14-133 verbatim — خيانة أمانة → Art. 177, 0 cards (unchanged)
+  {
+    id: "R63",
+    facts: "استلم المتهم من صاحب المحل مبلغاً لشراء بضاعة، فأنفقه على نفسه وأنكر استلامه.",
+    expectedLaws: ["177"],
+    expectedCardCount: 0,
+    expectedCardKeys: [],
+    expectedDescNote: null,
+    note: "B14-133: خيانة أمانة → [177], 0 cards.",
+  },
+
+  // R64: B14-132 verbatim — احتيال → Art. 178 (unchanged)
+  {
+    id: "R64",
+    facts: "تظاهر المتهم بأنه تاجر معتمد وأخذ بضاعة بالدين من عدة تجار ثم اختفى دون سداد.",
+    expectedLaws: null,
+    expectedCardCount: null,
+    expectedCardKeys: null,
+    mustNotIncludeCardKeys: ["علم:فحص:مسروق", "علم:فحص:مخدرات", "رضا:فحص", "فاحشة:مراجعة", "مخدرات:معمل"],
+    expectedDescNote: null,
+    note: "B14-132: احتيال → no C42 cards fire (routing unchanged).",
+  },
+
+  // R65: B14-139 verbatim — خيانة أمانة → Art. 177 (unchanged)
+  {
+    id: "R65",
+    facts: "سلّم صاحب المحل للمتهم بضاعة لإيصالها للزبون، فباعها لنفسه وأنكر استلامها.",
+    expectedLaws: ["177"],
+    expectedCardCount: 0,
+    expectedCardKeys: [],
+    expectedDescNote: null,
+    note: "B14-139: خيانة أمانة → [177], 0 cards.",
+  },
 ];
 
 interface RunResult {

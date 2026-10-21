@@ -73,6 +73,47 @@ function badgeStatus(force: ForceStatus): string | undefined {
   }
 }
 
+/** Map article-level `legal_status` values to Arabic badge labels. */
+function articleBadgeLabel(legalStatus: string | null | undefined): string {
+  switch (legalStatus) {
+    case "in_force":          return "ساري";
+    case "disputed":          return "يحتاج مراجعة";
+    case "repealed":          return "ملغى";
+    case "amended":           return "معدَّل";
+    case "not_yet_in_force":  return "لم يدخل حيز النفاذ";
+    default:                  return "غير محدد";
+  }
+}
+
+function articleBadgeTone(legalStatus: string | null | undefined) {
+  switch (legalStatus) {
+    case "in_force":   return { fg: "#1F7A3D", bg: "#EEF7EE", border: "#BFE0C6" };
+    case "repealed":   return { fg: "#5E2316", bg: "#F7E6E1", border: "#E3CAC2" };
+    default:           return { fg: "#2E4460", bg: "#E8EEF5", border: "#C9D5E3" };
+  }
+}
+
+function ArticleLegalStatusBadge({
+  legalStatus,
+  force,
+  locale,
+}: {
+  legalStatus: string | null | undefined;
+  force: ForceStatus;
+  locale: Locale;
+}) {
+  if (!legalStatus) return <LawStatusBadge status={badgeStatus(force)} locale={locale} />;
+  const { fg, bg, border } = articleBadgeTone(legalStatus);
+  return (
+    <span
+      className="inline-flex shrink-0 items-center rounded-full border px-2.5 py-0.5 text-xs font-medium"
+      style={{ color: fg, background: bg, borderColor: border }}
+    >
+      {articleBadgeLabel(legalStatus)}
+    </span>
+  );
+}
+
 /** Map internal colon-key concept terms to reader-facing Arabic labels.
  * These keys (e.g. "مخدرات:قصد التعاطي") are vocabulary identifiers in the
  * classifier and must never appear verbatim in the UI. */
@@ -96,6 +137,11 @@ const TERM_DISPLAY_AR: Record<string, string> = {
   "شروع:ابتزاز":        "شروع في الابتزاز — لم يقع التسليم",
   "حد:مراجعة":          "سرقة — مراجعة شروط الحد",
   "حرابة:فحص":          "حرابة — فحص تعذّر الغوث",
+  "مخدرات:معمل":        "مخدرات — نتيجة المعمل معلّقة",
+  "علم:فحص:مسروق":      "علم بالمال المسروق — فحص العلم",
+  "علم:فحص:مخدرات":     "علم بالمادة المخدرة — فحص العلم",
+  "رضا:فحص":            "جرائم الشرف — فحص الرضا والإكراه",
+  "فاحشة:مراجعة":       "فاحشة — مراجعة التكييف والعقوبة",
 };
 function termDisplayAr(term: string): string {
   return TERM_DISPLAY_AR[term] ?? term;
@@ -248,8 +294,9 @@ function LawRow({
           )}
         </p>
         {/* Legal force first. A provision of a repealed law must never read as
-            live authority just because the search matched it. */}
-        <LawStatusBadge status={badgeStatus(law.force)} locale={locale} />
+            live authority just because the search matched it. Article-level
+            legal_status overrides the law-level force badge when present. */}
+        <ArticleLegalStatusBadge legalStatus={law.legalStatus} force={law.force} locale={locale} />
       </div>
 
       <p className="mb-2 text-sm leading-relaxed" style={{ color: "var(--cm-text-2)" }}>
