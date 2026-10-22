@@ -1,5 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { classifyWithLLM } from "./llm-classifier";
+import { classifyPrecedent, type PrecedentRelevance } from "./precedent-relevance";
+import conceptMapJson from "./precedent-concept-map.json";
 import {
   stripTashkeel,
   normalizeForKwMatch,
@@ -155,6 +157,9 @@ export type RetrievedCase = {
   matchedTerms: string[];
   inScope: boolean;
   rank: number;
+  keywords: string[];
+  tags: string[];
+  relevance?: PrecedentRelevance;
 };
 
 export type RetrievedPrinciple = {
@@ -225,6 +230,8 @@ export type CaseMapResult = {
   /** Related legislation slugs — law slugs attached by deterministic rules, not
    *  retrieved by text search. e.g. traffic-law-2010 for vehicle cases. */
   relatedLaws?: string[];
+  /** Breakdown of precedent relevance classification for cases returned. */
+  precedentStats?: { direct: number; conditional: number; hidden: number; unindexed: number };
 };
 
 const MAX_TERMS = 6;
@@ -950,6 +957,22 @@ const DISCUSS_CONCEPT_CAUTION: Record<string, string> = {
  * every alef spelling a lawyer might use. */
 function arabicNormalize(text: string): string {
   return stripTashkeel(text).replace(/[أإآٱ]/g, "ا");
+}
+
+/** Parse a DB column that may be text[], jsonb array, or comma-separated string
+ * into a clean string array. Handles null/undefined safely. */
+function parseKwArr(v: unknown): string[] {
+  if (!v) return [];
+  if (Array.isArray(v)) return (v as unknown[]).map(String).filter(Boolean);
+  if (typeof v === "string") {
+    try {
+      const p: unknown = JSON.parse(v);
+      return Array.isArray(p) ? (p as unknown[]).map(String).filter(Boolean) : (v ? [v] : []);
+    } catch {
+      return v.split(",").map((s) => s.trim()).filter(Boolean);
+    }
+  }
+  return [];
 }
 
 /** Replaces Arabic in-word punctuation (،؛؟) and ASCII period with a space
@@ -1956,6 +1979,8 @@ async function analyzeCriminalConceptMap(
           matchedTerms: [term],
           inScope: false,
           rank: row.rank ?? 0,
+          keywords: [],
+          tags: [],
         });
       }
     }
@@ -1968,11 +1993,12 @@ async function analyzeCriminalConceptMap(
     court_id: string | null; year: number | null; judgment_date: string | null;
     case_number: string | null; citation_ar: string | null;
     principle_ar: string | null; source_url: string | null; category_id: string | null;
+    keywords: unknown; tags: unknown;
   };
   const { data: casesDetail } = caseIds.length
     ? await supabase
         .from("cases")
-        .select("id, verified, authority_status, court_id, year, judgment_date, case_number, citation_ar, principle_ar, source_url, category_id")
+        .select("id, verified, authority_status, court_id, year, judgment_date, case_number, citation_ar, principle_ar, source_url, category_id, keywords, tags")
         .in("id", caseIds)
     : { data: [] as CaseDetailRow[] };
 
@@ -2001,29 +2027,35 @@ async function analyzeCriminalConceptMap(
     c.sourceUrl = d.source_url ?? null;
     c.authority = caseAuthority(d);
     c.inScope = Boolean(caseTypeFull.categoryId && d.category_id === caseTypeFull.categoryId);
+    c.keywords = parseKwArr(d.keywords);
+    c.tags = parseKwArr(d.tags);
   }
 
-  // Only include in-scope cases (primary criminal category)
-  const expandedTermSet = new Set(allConceptTerms);
-  const caseExpandedMatchIds = new Set(
-    [...caseMap.values()]
-      .filter((c) => c.inScope && caseMatchesExpandedTerms(c, expandedTermSet))
-      .map((c) => c.id)
-  );
+  // Classify each in-scope case by precedent relevance; keep only direct/conditional.
+  const activeConcepts = [...allConceptTerms, ...(discussConcepts ?? [])];
   const authorityOrder: Record<AuthorityLevel, number> = {
     verified: 0, unverified: 1, needs_review: 2, overruled: 3,
   };
-  const caseList = [...caseMap.values()]
-    .filter((c) => c.inScope)
-    .sort((a, b) => {
-      const aEM = caseExpandedMatchIds.has(a.id);
-      const bEM = caseExpandedMatchIds.has(b.id);
-      if (aEM !== bEM) return aEM ? -1 : 1;
-      if (authorityOrder[a.authority] !== authorityOrder[b.authority]) {
-        return authorityOrder[a.authority] - authorityOrder[b.authority];
-      }
-      return b.rank - a.rank;
-    });
+  const precedentStats = { direct: 0, conditional: 0, hidden: 0, unindexed: 0 };
+  const classifiedCases: RetrievedCase[] = [];
+  for (const c of caseMap.values()) {
+    if (!c.inScope) continue;
+    const rel = classifyPrecedent([...c.keywords, ...c.tags], activeConcepts, conceptMapJson);
+    c.relevance = rel;
+    precedentStats[rel.outcome]++;
+    if (rel.outcome === "direct" || rel.outcome === "conditional") {
+      classifiedCases.push(c);
+    }
+  }
+  const caseList = classifiedCases.sort((a, b) => {
+    const aD = a.relevance!.outcome === "direct";
+    const bD = b.relevance!.outcome === "direct";
+    if (aD !== bD) return aD ? -1 : 1;
+    if (authorityOrder[a.authority] !== authorityOrder[b.authority]) {
+      return authorityOrder[a.authority] - authorityOrder[b.authority];
+    }
+    return b.rank - a.rank;
+  });
 
   // Principles: concept terms only, no laws (replaced by map above)
   const v3Results = await Promise.all(
@@ -2088,6 +2120,7 @@ async function analyzeCriminalConceptMap(
     hasAnyResults: mappedLawList.length > 0 || caseList.length > 0 || principleList.length > 0
       || (discussItems?.length ?? 0) > 0,
     ...(discussItems?.length ? { discuss: discussItems } : {}),
+    precedentStats,
   };
 }
 
@@ -2879,6 +2912,8 @@ export async function analyzeCase(
             matchedTerms: [term],
             inScope: false,
             rank: row.rank ?? 0,
+            keywords: [],
+            tags: [],
           });
         }
         termsWithHits.add(term);
@@ -2948,13 +2983,13 @@ export async function analyzeCase(
     caseIds.length
       ? supabase
           .from("cases")
-          .select("id, verified, authority_status, court_id, year, judgment_date, case_number, citation_ar, principle_ar, source_url, category_id")
+          .select("id, verified, authority_status, court_id, year, judgment_date, case_number, citation_ar, principle_ar, source_url, category_id, keywords, tags")
           .in("id", caseIds)
       : Promise.resolve({ data: [] as Array<{
           id: string; verified: boolean | null; authority_status: string | null; court_id: string | null;
           year: number | null; judgment_date: string | null; case_number: string | null;
           citation_ar: string | null; principle_ar: string | null; source_url: string | null;
-          category_id: string | null;
+          category_id: string | null; keywords: unknown; tags: unknown;
         }> }),
   ]);
 
@@ -3015,6 +3050,8 @@ export async function analyzeCase(
     c.sourceUrl = d.source_url ?? null;
     c.authority = caseAuthority(d);
     c.inScope = Boolean(caseTypeFull && d.category_id === caseTypeFull.categoryId);
+    c.keywords = parseKwArr(d.keywords);
+    c.tags = parseKwArr(d.tags);
   }
 
   // ── Ranking boosts derived from expanded statutory terms ─────────────────
@@ -3033,12 +3070,6 @@ export async function analyzeCase(
   const definitionsArticleIds = new Set(
     [...authorityMap.values()].filter(isDefinitionsArticle).map((e) => e.id)
   );
-  const caseExpandedMatchIds = new Set(
-    [...caseMap.values()]
-      .filter((c) => caseMatchesExpandedTerms(c, expandedTermSet))
-      .map((c) => c.id)
-  );
-
   // Ordering. In-scope results (primary category + companion laws) come first.
   // Within each band, in-force provisions precede repealed ones, then by rank.
   const forceOrder: Record<ForceStatus, number> = {
@@ -3069,18 +3100,48 @@ export async function analyzeCase(
     needs_review: 2,
     overruled: 3,
   };
-  const caseList = [...caseMap.values()].sort((a, b) => {
-    if (a.inScope !== b.inScope) return a.inScope ? -1 : 1;
-    // Cases whose text names the expanded statutory term outrank those that
-    // only share a category tag.
-    const aEM = caseExpandedMatchIds.has(a.id);
-    const bEM = caseExpandedMatchIds.has(b.id);
-    if (aEM !== bEM) return aEM ? -1 : 1;
-    if (authorityOrder[a.authority] !== authorityOrder[b.authority]) {
-      return authorityOrder[a.authority] - authorityOrder[b.authority];
+
+  // When criminal terms fired (criminal case falling through to text-search),
+  // apply precedent relevance classification — keep only direct/conditional.
+  // For non-criminal cases (activeConcepts empty), retain the old sort ordering.
+  const tsActiveConcepts = criminalTerms.map((t) => t.term);
+  let caseList: RetrievedCase[];
+  if (tsActiveConcepts.length > 0) {
+    const tsClassified: RetrievedCase[] = [];
+    for (const c of caseMap.values()) {
+      const rel = classifyPrecedent([...c.keywords, ...c.tags], tsActiveConcepts, conceptMapJson);
+      c.relevance = rel;
+      if (rel.outcome === "direct" || rel.outcome === "conditional") {
+        tsClassified.push(c);
+      }
     }
-    return b.rank - a.rank;
-  });
+    caseList = tsClassified.sort((a, b) => {
+      if (a.inScope !== b.inScope) return a.inScope ? -1 : 1;
+      const aD = a.relevance!.outcome === "direct";
+      const bD = b.relevance!.outcome === "direct";
+      if (aD !== bD) return aD ? -1 : 1;
+      if (authorityOrder[a.authority] !== authorityOrder[b.authority]) {
+        return authorityOrder[a.authority] - authorityOrder[b.authority];
+      }
+      return b.rank - a.rank;
+    });
+  } else {
+    const caseExpandedMatchIds = new Set(
+      [...caseMap.values()]
+        .filter((c) => caseMatchesExpandedTerms(c, expandedTermSet))
+        .map((c) => c.id)
+    );
+    caseList = [...caseMap.values()].sort((a, b) => {
+      if (a.inScope !== b.inScope) return a.inScope ? -1 : 1;
+      const aEM = caseExpandedMatchIds.has(a.id);
+      const bEM = caseExpandedMatchIds.has(b.id);
+      if (aEM !== bEM) return aEM ? -1 : 1;
+      if (authorityOrder[a.authority] !== authorityOrder[b.authority]) {
+        return authorityOrder[a.authority] - authorityOrder[b.authority];
+      }
+      return b.rank - a.rank;
+    });
+  }
 
   const principleList = [...principleMap.values()].sort((a, b) => b.rank - a.rank);
 

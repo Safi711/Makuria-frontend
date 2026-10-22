@@ -371,6 +371,13 @@ function CaseRow({ locale, c }: { locale: Locale; c: RetrievedCase }) {
       <MetaLine>
         {t(locale, "cmMatchedOn")}: {c.matchedTerms.map(termDisplayAr).join("، ")}
       </MetaLine>
+      {c.relevance && (c.relevance.outcome === "direct" || c.relevance.outcome === "conditional") && (
+        <MetaLine>
+          {c.relevance.outcome === "direct"
+            ? `صلة قانونية: ${c.relevance.concept} — عبر «${c.relevance.via}»`
+            : `صلة مشروطة: ${c.relevance.concept} — المسألة الرابطة «${c.relevance.via}»`}
+        </MetaLine>
+      )}
 
       {c.slug && (
         <FullTextLink
