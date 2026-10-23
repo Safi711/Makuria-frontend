@@ -35,6 +35,8 @@ import {
   factsMatchLabPending,
   factsMatchKnowledgeDisputed,
   factsMatchConsentDisputed,
+  factsMatchEntrustment,
+  factsMatchContractualDefence,
   dropAthaIfWound,
   dropBareJurhIfWound,
   SUPPLY_TO_PERSON_KW,
@@ -334,6 +336,10 @@ export type ConceptArticleEntry = {
 export const CONCEPT_TO_ARTICLES: Record<string, ConceptArticleEntry[]> = {
   "خيانة الأمانة": [
     { lawSlug: "criminal-law-1991", articleNumber: "177" }, // REVIEW
+  ],
+  // Commit 46: civil/abstain + entrustment facts → Art. 177 as research-only open point.
+  "أمانة:مدني": [
+    { lawSlug: "criminal-law-1991", articleNumber: "177", statusNoteOverride: "معروضة للبحث، لا للتصنيف" },
   ],
   // Commit 41: hadd-primary concept — fires when all five preconditions stated.
   "سرقة:حدية": [
@@ -865,6 +871,10 @@ export const DISCUSS_CONCEPT_TO_ARTICLES: Record<string, ConceptArticleEntry[]> 
     { lawSlug: "criminal-law-1991", articleNumber: "151" },
     { lawSlug: "criminal-law-1991", articleNumber: "152" },
   ],
+  // Commit 46: civil/abstain + entrustment → Art. 177 as research-only open point.
+  "أمانة:مدني": [
+    { lawSlug: "criminal-law-1991", articleNumber: "177", statusNoteOverride: "معروضة للبحث، لا للتصنيف" },
+  ],
 };
 
 const DISCUSS_CONCEPT_LABEL: Record<string, string> = {
@@ -898,6 +908,7 @@ const DISCUSS_CONCEPT_LABEL: Record<string, string> = {
   "علم:فحص:مخدرات":  "فحص العلم بطبيعة المال أو المادة — نقطة مفتوحة للمحامي",
   "رضا:فحص":      "فحص الرضا والإكراه — نقطة مفتوحة للمحامي",
   "فاحشة:مراجعة": "مراجعة الوصف بين المادتين ١٥١ و١٥٢ — نقطة مفتوحة للمحامي",
+  "أمانة:مدني": "خيانة الأمانة أم نزاع تعاقدي — نقطة مفتوحة للمحامي",
 };
 
 const DISCUSS_CONCEPT_DESC: Record<string, string> = {
@@ -932,6 +943,7 @@ const DISCUSS_CONCEPT_DESC: Record<string, string> = {
   "علم:فحص:مخدرات": "لا تكفي حيازة المال أو المادة، أو استلامها أو حفظها لحساب الغير، وحدها لإثبات علم الشخص بمصدرها غير المشروع أو بطبيعتها المحظورة. ويجب فحص ظروف التسليم، وطبيعة المقابل، وتصرفات المستلم، والقرائن التي قد تثبت العلم الفعلي أو إدراك الاحتمال وقبوله، وفق النص القانوني المنطبق. ولا يُستخلص العلم تلقائياً من انخفاض الثمن أو تقاضي أجر أو عدم السؤال عن المحتويات. كما لا يُعد إنكار العلم دليلاً حاسماً على انتفائه. هذه بطاقة فحص وليست حكماً بثبوت الجريمة أو انتفائها. تقدير الأدلة للمحكمة.",
   "رضا:فحص": "يجب التحقق من توافر الرضا الحر المعتبر قانوناً وقت الفعل، ومن أثر التهديد أو الإكراه أو غيرهما من الظروف المؤثرة فيه. ولا يُفترض الرضا من مجرد وجود علاقة سابقة أو دخول المكان طوعاً، كما لا يُشترط إثبات مقاومة جسدية لإثبات انعدام الرضا. يُبحث الوصف القانوني وفق النص النافذ والأدلة المتاحة، ويظل الفصل في الوقائع للمحكمة.",
   "فاحشة:مراجعة": "ليست هذه تصنيفاً نهائياً. عُرضت المادة ١٥١ مبدئياً لأن الوقائع تذكر فعلاً مخلاً بالحياء واقعاً على شخص معيّن؛ ووقوعه في مكان عام أو بغير رضا المجني عليه ظرف مشدِّد داخل المادة ١٥١(٢) لا ناقل إلى المادة ١٥٢. تُعرض المادة ١٥٢ للمراجعة لأنها تتعلق بالفعل الفاضح الذي يسبب مضايقة للشعور العام، ولأن حالتها القانونية متنازع فيها بعد تعديل ٢٠٢٠. التحقق من ذلك مهمة المحامي، والفصل فيه للمحكمة.",
+  "أمانة:مدني": "ليست هذه تصنيفاً ولا تقريراً بقيام جريمة. تذكر الوقائع تسليم مال أو شيء لغرض محدد، وعدم رده أو التصرف فيه. تُبحث خيانة الأمانة وفق المادة ١٧٧ إذا ثبت أن المال سُلّم على سبيل الائتمان، وأن المستلم تصرف فيه بسوء قصد بالمخالفة للغرض الذي سُلّم من أجله، أو أنكر استلامه في ظروف قد تدل على الاستيلاء عليه. أما إذا هلك المال أو خسر أثناء تنفيذ الاتفاق دون تصرف مخالف أو قصد جنائي، فقد يكون النزاع تعاقدياً مدنياً، ولا يكفي مجرد عدم الرد لإثبات خيانة الأمانة. الفاصل ليس عدم الرد وحده، بل طبيعة التسليم، وحدود التصرف المأذون به، وتوافر القصد الجنائي. والتحقق من ذلك مهمة المحامي، والفصل فيه للمحكمة.",
 };
 
 /** Evidence items for شروع:* cards — displayed after a bold "قرائن تُفحص:" label. */
@@ -2159,7 +2171,8 @@ export async function analyzeCase(
     const propRescue  = propDmg && factsMatchRescueNecessity(input.facts);
     const propAccident = propDmg && factsMatchAccidentMarker(input.facts);
     const fire        = factsMatchFireDamage(input.facts);
-    if (!assaultDeath && !propRescue && !propAccident && !fire) {
+    const entrust     = factsMatchEntrustment(input.facts);
+    if (!assaultDeath && !propRescue && !propAccident && !fire && !entrust) {
       return {
         factsExcerpt: excerpt, factsIsTruncated: truncated,
         caseTypeLens: null, inferredCaseType: null,
@@ -2183,6 +2196,13 @@ export async function analyzeCase(
         type: "criminal" as const,
         concept: "إباحة:عرضي",
         discuss: ["إباحة:عرضي"],
+      };
+    } else if (entrust) {
+      // (e) Entrustment: Art. 177 research-only + open-point card.
+      llmResult = {
+        type: "criminal" as const,
+        concept: "أمانة:مدني",
+        discuss: ["أمانة:مدني"],
       };
     } else {
       // (d) Fire damage: discuss-only path — Art. 182 lives in the إتلاف:بيّنة card,
@@ -2217,6 +2237,15 @@ export async function analyzeCase(
         discuss: ["إباحة:عرضي"],
       };
     }
+  }
+  // Commit 46: civil LLM + entrustment facts → Art. 177 research-only + open-point card.
+  // Must run BEFORE the civil-clear block so the criminal path is not suppressed.
+  if (llmResult.type === "civil" && factsMatchEntrustment(input.facts)) {
+    llmResult = {
+      type: "criminal" as const,
+      concept: "أمانة:مدني",
+      discuss: ["أمانة:مدني"],
+    };
   }
   if (llmResult.type === "civil") {
     // Suppress criminal path — civil text search runs below
@@ -2638,6 +2667,17 @@ export async function analyzeCase(
       !discussConcepts.includes("فاحشة:مراجعة")
     ) {
       discussConcepts = [...discussConcepts, "فاحشة:مراجعة"];
+    }
+
+    // Commit 46: خيانة الأمانة (LLM direct) + contractual-defence marker → also add card
+    if (
+      llmResult.type === "criminal" &&
+      discussConcepts !== undefined &&
+      llmResult.concept === "خيانة الأمانة" &&
+      !discussConcepts.includes("أمانة:مدني") &&
+      factsMatchContractualDefence(input.facts)
+    ) {
+      discussConcepts = [...discussConcepts, "أمانة:مدني"];
     }
 
     // Change C (Commit 40): attach traffic-law-2010 as related legislation when the

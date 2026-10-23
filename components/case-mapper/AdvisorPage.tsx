@@ -142,6 +142,7 @@ const TERM_DISPLAY_AR: Record<string, string> = {
   "علم:فحص:مخدرات":     "علم بالمادة المخدرة — فحص العلم",
   "رضا:فحص":            "جرائم الشرف — فحص الرضا والإكراه",
   "فاحشة:مراجعة":       "فاحشة — مراجعة التكييف والعقوبة",
+  "أمانة:مدني":         "خيانة الأمانة — جنائي أم تعاقدي",
 };
 function termDisplayAr(term: string): string {
   return TERM_DISPLAY_AR[term] ?? term;
