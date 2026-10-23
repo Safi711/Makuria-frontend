@@ -715,6 +715,55 @@ const CASES: Case[] = [
     expectedDescNote: null,
     note: "B14-139: خيانة أمانة → [177], 0 cards.",
   },
+
+  // ══ COMMIT 46 — breach-of-trust civil/abstain fallback ════════════════════
+
+  // R66: lawyer fact verbatim — entrustment + contractual-defence → [177] + card regardless of LLM verdict
+  {
+    id: "R66",
+    facts: "تقدمت الشاكية فاطمة ببلاغ أفادت فيه بأنها سلمت المتهم أحمد مبلغ خمسة ملايين جنيه سوداني لشراء بضائع لحسابها، بموجب اتفاق بينهما على تسليم البضائع خلال أسبوعين. وبعد انقضاء المدة، لم يسلم المتهم البضائع ولم يرد المبلغ. وعند مطالبته، أفاد بأن الأموال استُخدمت في معاملات تجارية أخرى، وأنه لا يستطيع إعادتها حالياً. وقدمت الشاكية إيصال تحويل مصرفي ومراسلات عبر تطبيق واتساب تتضمن الاتفاق ومطالبتها باسترداد الأموال. أنكر المتهم ارتكاب أي جريمة، ودفع بأن العلاقة تجارية وأن المبلغ تعرض للخسارة أثناء تنفيذ الاتفاق.",
+    expectedLaws: ["177"],
+    expectedCardCount: 1,
+    expectedCardKeys: ["أمانة:مدني"],
+    expectedDescNote: null,
+    note: "Commit 46: lawyer fact — entrustment + contractual-defence → [177] + card [أمانة:مدني]; passes for civil/abstain/خيانة الأمانة LLM outputs.",
+  },
+
+  // R67: B14-133 verbatim — خيانة أمانة (LLM direct), no contractual-defence marker → [177], 0 cards
+  {
+    id: "R67",
+    facts: "استلم المتهم من صاحب المحل مبلغاً لشراء بضاعة، فأنفقه على نفسه وأنكر استلامه.",
+    expectedLaws: ["177"],
+    expectedCardCount: 0,
+    expectedCardKeys: [],
+    mustNotIncludeCardKeys: ["أمانة:مدني"],
+    expectedDescNote: null,
+    note: "B14-133 verbatim: خيانة أمانة (LLM direct), no contractual-defence → [177], 0 cards.",
+  },
+
+  // R68: E1 verbatim — ordinary bank deposit → no entrustment gate, no 177, no card
+  {
+    id: "R68",
+    facts: "أودع العميل أموالاً في البنك وتعذر عليه سحبها",
+    expectedLaws: null,
+    expectedCardCount: null,
+    expectedCardKeys: null,
+    mustNotIncludeCardKeys: ["أمانة:مدني"],
+    expectedDescNote: null,
+    note: "E1: ordinary bank deposit — bank guard fires → no entrustment → no 177, no card.",
+  },
+
+  // R69: partnership loss — civil, no entrustment → no 177, no card
+  {
+    id: "R69",
+    facts: "اتفقا على شراكة تجارية وخسرت الشركة فطالبه بنصيبه",
+    expectedLaws: null,
+    expectedCardCount: null,
+    expectedCardKeys: null,
+    mustNotIncludeCardKeys: ["أمانة:مدني"],
+    expectedDescNote: null,
+    note: "partnership loss: no entrustment → stays civil, no أمانة:مدني card.",
+  },
 ];
 
 interface RunResult {
