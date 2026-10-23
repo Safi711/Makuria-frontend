@@ -38,12 +38,16 @@ function resolveEntry(key: string, map: ConceptMap): ConceptEntry | null {
  * @param activeConcepts  Keys from the concept map that the engine fired
  *   (union of criminalTerms[].term and discussConcepts[]).
  * @param map  The parsed precedent-concept-map.json object.
+ * @param metadata  Optional case metadata. When metadata.engine_eligible === false
+ *   the case is library-only and must never surface in engine results.
  */
 export function classifyPrecedent(
   caseKwTags: string[],
   activeConcepts: string[],
-  map: ConceptMap
+  map: ConceptMap,
+  metadata?: { engine_eligible?: boolean } | null
 ): PrecedentRelevance {
+  if (metadata?.engine_eligible === false) return { outcome: "hidden" };
   if (caseKwTags.length === 0) return { outcome: "unindexed" };
 
   const normKws = caseKwTags.map((k) => arabicNormalize(k.trim()));
