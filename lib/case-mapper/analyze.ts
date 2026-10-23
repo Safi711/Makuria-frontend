@@ -2005,12 +2005,12 @@ async function analyzeCriminalConceptMap(
     court_id: string | null; year: number | null; judgment_date: string | null;
     case_number: string | null; citation_ar: string | null;
     principle_ar: string | null; source_url: string | null; category_id: string | null;
-    keywords: unknown; tags: unknown;
+    keywords: unknown; tags: unknown; metadata: unknown;
   };
   const { data: casesDetail } = caseIds.length
     ? await supabase
         .from("cases")
-        .select("id, verified, authority_status, court_id, year, judgment_date, case_number, citation_ar, principle_ar, source_url, category_id, keywords, tags")
+        .select("id, verified, authority_status, court_id, year, judgment_date, case_number, citation_ar, principle_ar, source_url, category_id, keywords, tags, metadata")
         .in("id", caseIds)
     : { data: [] as CaseDetailRow[] };
 
@@ -2052,7 +2052,11 @@ async function analyzeCriminalConceptMap(
   const classifiedCases: RetrievedCase[] = [];
   for (const c of caseMap.values()) {
     if (!c.inScope) continue;
-    const rel = classifyPrecedent([...c.keywords, ...c.tags], activeConcepts, conceptMapJson);
+    const cMeta = caseDetailById.get(c.id);
+    const rel = classifyPrecedent(
+      [...c.keywords, ...c.tags], activeConcepts, conceptMapJson,
+      cMeta?.metadata as { engine_eligible?: boolean } | null
+    );
     c.relevance = rel;
     precedentStats[rel.outcome]++;
     if (rel.outcome === "direct" || rel.outcome === "conditional") {
@@ -3023,13 +3027,13 @@ export async function analyzeCase(
     caseIds.length
       ? supabase
           .from("cases")
-          .select("id, verified, authority_status, court_id, year, judgment_date, case_number, citation_ar, principle_ar, source_url, category_id, keywords, tags")
+          .select("id, verified, authority_status, court_id, year, judgment_date, case_number, citation_ar, principle_ar, source_url, category_id, keywords, tags, metadata")
           .in("id", caseIds)
       : Promise.resolve({ data: [] as Array<{
           id: string; verified: boolean | null; authority_status: string | null; court_id: string | null;
           year: number | null; judgment_date: string | null; case_number: string | null;
           citation_ar: string | null; principle_ar: string | null; source_url: string | null;
-          category_id: string | null; keywords: unknown; tags: unknown;
+          category_id: string | null; keywords: unknown; tags: unknown; metadata: unknown;
         }> }),
   ]);
 
@@ -3149,7 +3153,11 @@ export async function analyzeCase(
   if (tsActiveConcepts.length > 0) {
     const tsClassified: RetrievedCase[] = [];
     for (const c of caseMap.values()) {
-      const rel = classifyPrecedent([...c.keywords, ...c.tags], tsActiveConcepts, conceptMapJson);
+      const cMeta = caseDetailById.get(c.id);
+      const rel = classifyPrecedent(
+        [...c.keywords, ...c.tags], tsActiveConcepts, conceptMapJson,
+        cMeta?.metadata as { engine_eligible?: boolean } | null
+      );
       c.relevance = rel;
       if (rel.outcome === "direct" || rel.outcome === "conditional") {
         tsClassified.push(c);
