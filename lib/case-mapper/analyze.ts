@@ -37,6 +37,9 @@ import {
   factsMatchConsentDisputed,
   factsMatchEntrustment,
   factsMatchContractualDefence,
+  factsMatchChequeDishonour,
+  factsMatchChequeBalanceClaim,
+  factsMatchChequeStopCause,
   dropAthaIfWound,
   dropBareJurhIfWound,
   SUPPLY_TO_PERSON_KW,
@@ -591,6 +594,13 @@ export const CONCEPT_TO_ARTICLES: Record<string, ConceptArticleEntry[]> = {
   "صك مردود": [
     { lawSlug: "criminal-law-1991", articleNumber: "179" }, // إعطاء صك مردود
   ],
+  // Commit 48: research-only variants for open-point cards
+  "صك:فحص:رصيد": [
+    { lawSlug: "criminal-law-1991", articleNumber: "179", statusNoteOverride: "معروضة للبحث، لا للتصنيف" },
+  ],
+  "صك:فحص:سبب": [
+    { lawSlug: "criminal-law-1991", articleNumber: "179", statusNoteOverride: "معروضة للبحث، لا للتصنيف" },
+  ],
   // ── State security (treason / espionage-adjacent) ────────────────────────
   "خيانة الدولة": [
     { lawSlug: "criminal-law-1991", articleNumber: "52" },  // التعامل مع دولة معادية
@@ -875,6 +885,13 @@ export const DISCUSS_CONCEPT_TO_ARTICLES: Record<string, ConceptArticleEntry[]> 
   "أمانة:مدني": [
     { lawSlug: "criminal-law-1991", articleNumber: "177", statusNoteOverride: "معروضة للبحث، لا للتصنيف" },
   ],
+  // Commit 48: cheque dishonour open-point cards → Art. 179 research-only.
+  "صك:فحص:رصيد": [
+    { lawSlug: "criminal-law-1991", articleNumber: "179", statusNoteOverride: "معروضة للبحث، لا للتصنيف" },
+  ],
+  "صك:فحص:سبب": [
+    { lawSlug: "criminal-law-1991", articleNumber: "179", statusNoteOverride: "معروضة للبحث، لا للتصنيف" },
+  ],
 };
 
 const DISCUSS_CONCEPT_LABEL: Record<string, string> = {
@@ -909,6 +926,8 @@ const DISCUSS_CONCEPT_LABEL: Record<string, string> = {
   "رضا:فحص":      "فحص الرضا والإكراه — نقطة مفتوحة للمحامي",
   "فاحشة:مراجعة": "مراجعة الوصف بين المادتين ١٥١ و١٥٢ — نقطة مفتوحة للمحامي",
   "أمانة:مدني": "خيانة الأمانة أم نزاع تعاقدي — نقطة مفتوحة للمحامي",
+  "صك:فحص:رصيد": "صك مردود بسبب الرصيد — فحص العلم",
+  "صك:فحص:سبب":  "صك مردود بأمر وقف الصرف — فحص السبب المعقول",
 };
 
 const DISCUSS_CONCEPT_DESC: Record<string, string> = {
@@ -944,6 +963,8 @@ const DISCUSS_CONCEPT_DESC: Record<string, string> = {
   "رضا:فحص": "يجب التحقق من توافر الرضا الحر المعتبر قانوناً وقت الفعل، ومن أثر التهديد أو الإكراه أو غيرهما من الظروف المؤثرة فيه. ولا يُفترض الرضا من مجرد وجود علاقة سابقة أو دخول المكان طوعاً، كما لا يُشترط إثبات مقاومة جسدية لإثبات انعدام الرضا. يُبحث الوصف القانوني وفق النص النافذ والأدلة المتاحة، ويظل الفصل في الوقائع للمحكمة.",
   "فاحشة:مراجعة": "ليست هذه تصنيفاً نهائياً. عُرضت المادة ١٥١ مبدئياً لأن الوقائع تذكر فعلاً مخلاً بالحياء واقعاً على شخص معيّن؛ ووقوعه في مكان عام أو بغير رضا المجني عليه ظرف مشدِّد داخل المادة ١٥١(٢) لا ناقل إلى المادة ١٥٢. تُعرض المادة ١٥٢ للمراجعة لأنها تتعلق بالفعل الفاضح الذي يسبب مضايقة للشعور العام، ولأن حالتها القانونية متنازع فيها بعد تعديل ٢٠٢٠. التحقق من ذلك مهمة المحامي، والفصل فيه للمحكمة.",
   "أمانة:مدني": "ليست هذه تصنيفاً ولا تقريراً بقيام جريمة. تذكر الوقائع تسليم مال أو شيء لغرض محدد، وعدم رده أو التصرف فيه. تُبحث خيانة الأمانة وفق المادة ١٧٧ إذا ثبت أن المال سُلّم على سبيل الائتمان، وأن المستلم تصرف فيه بسوء قصد بالمخالفة للغرض الذي سُلّم من أجله، أو أنكر استلامه في ظروف قد تدل على الاستيلاء عليه. أما إذا هلك المال أو خسر أثناء تنفيذ الاتفاق دون تصرف مخالف أو قصد جنائي، فقد يكون النزاع تعاقدياً مدنياً، ولا يكفي مجرد عدم الرد لإثبات خيانة الأمانة. الفاصل ليس عدم الرد وحده، بل طبيعة التسليم، وحدود التصرف المأذون به، وتوافر القصد الجنائي. والتحقق من ذلك مهمة المحامي، والفصل فيه للمحكمة.",
+  "صك:فحص:رصيد": "ليست هذه تصنيفاً ولا تقريراً بقيام جريمة. تذكر الوقائع صكاً مصرفياً رُدّ بسبب عدم كفاية الرصيد أو عدم قابليته للسحب. ويقتضي بحث المادة ١٧٩(١)(ب) فحص علم الساحب بحالة الرصيد، إلى جانب سائر عناصر الجريمة. فيُراجع سبب الرد المثبت لدى المصرف، وتواريخ تحرير الصك وتسليمه والتاريخ المثبت عليه وتقديمه للصرف، وحركة الحساب والقيود على السحب، وما يثبت علم الساحب بها أو يناقضه. ولا يتعامل المحرك مع مجرد الرد باعتباره إثباتاً حاسماً للعلم، ولا مع قول الساحب إن الرصيد كان موجوداً باعتباره نفياً حاسماً له. هذه بطاقة فحص، والتحقق من الوقائع مهمة المحامي، وتقدير الأدلة والفصل فيها للمحكمة.",
+  "صك:فحص:سبب":  "ليست هذه تصنيفاً ولا تقريراً بقيام جريمة. تذكر الوقائع صكاً مصرفياً رُدّ بسبب أمر بوقف صرفه صادر من الساحب أو ممن ينوب عنه. ويقتضي بحث المادة ١٧٩(١)(ج) التحقق مما إذا كان الوقف دون سبب معقول، إلى جانب سائر عناصر الجريمة. فيُبحث السبب الذي يستند إليه الساحب إن ورد، والأدلة عليه، وصلته بالصك والالتزام المقابل، وتوقيت نشوئه أو اكتشافه وإصدار أمر الوقف، وأي مراسلات بشأنه. ولا يُعامل عيب المبيع أو عدم تنفيذ الالتزام أو النزاع العقدي باعتباره تلقائياً سبباً معقولاً أو غير معقول. كما لا يحسم إخطار المستفيد أو عدم إخطاره هذه المسألة وحده. وقد يوجد نزاع مدني حول العقد إلى جانب البحث الجنائي. هذه بطاقة فحص، والتحقق من الوقائع مهمة المحامي، وتقدير معقولية السبب والفصل فيها للمحكمة.",
 };
 
 /** Evidence items for شروع:* cards — displayed after a bold "قرائن تُفحص:" label. */
@@ -2166,6 +2187,8 @@ export async function analyzeCase(
     input.facts,
     process.env.ANTHROPIC_API_KEY ?? "",
   );
+  // Commit 48: computed once here so blocks (B), (C), and (A) all share the result.
+  const chq = factsMatchChequeDishonour(input.facts);
   if (llmResult.type === "abstain") {
     // Commit 36/38: deterministic fallback when the LLM abstains but keyword detectors
     // identify a recognisable pattern — never asserts intent or guilt.
@@ -2176,7 +2199,7 @@ export async function analyzeCase(
     const propAccident = propDmg && factsMatchAccidentMarker(input.facts);
     const fire        = factsMatchFireDamage(input.facts);
     const entrust     = factsMatchEntrustment(input.facts);
-    if (!assaultDeath && !propRescue && !propAccident && !fire && !entrust) {
+    if (!assaultDeath && !propRescue && !propAccident && !fire && !entrust && chq === null) {
       return {
         factsExcerpt: excerpt, factsIsTruncated: truncated,
         caseTypeLens: null, inferredCaseType: null,
@@ -2207,6 +2230,13 @@ export async function analyzeCase(
         type: "criminal" as const,
         concept: "أمانة:مدني",
         discuss: ["أمانة:مدني"],
+      };
+    } else if (chq !== null) {
+      // (f) Cheque dishonour: Art. 179 research-only + open-point card.
+      llmResult = {
+        type: "criminal" as const,
+        concept: chq === "balance" ? "صك:فحص:رصيد" : "صك:فحص:سبب",
+        discuss: [chq === "balance" ? "صك:فحص:رصيد" : "صك:فحص:سبب"],
       };
     } else {
       // (d) Fire damage: discuss-only path — Art. 182 lives in the إتلاف:بيّنة card,
@@ -2249,6 +2279,15 @@ export async function analyzeCase(
       type: "criminal" as const,
       concept: "أمانة:مدني",
       discuss: ["أمانة:مدني"],
+    };
+  }
+  // Commit 48 block (C): civil LLM + cheque dishonour → Art. 179 research-only + card.
+  // After this conversion llmResult.type is "criminal" so the civil text search does NOT run.
+  if (llmResult.type === "civil" && chq !== null) {
+    llmResult = {
+      type: "criminal" as const,
+      concept: chq === "balance" ? "صك:فحص:رصيد" : "صك:فحص:سبب",
+      discuss: [chq === "balance" ? "صك:فحص:رصيد" : "صك:فحص:سبب"],
     };
   }
   if (llmResult.type === "civil") {
@@ -2682,6 +2721,28 @@ export async function analyzeCase(
       factsMatchContractualDefence(input.facts)
     ) {
       discussConcepts = [...discussConcepts, "أمانة:مدني"];
+    }
+
+    // Commit 48 block (A): صك مردود primary + dishonour detector → swap to research-only card.
+    // Uses the same criminalTerms-reassignment mechanism as L2282-2292.
+    if (
+      llmResult.type === "criminal" &&
+      discussConcepts !== undefined &&
+      (llmResult.concept === "صك مردود" || criminalTerms[0]?.term === "صك مردود")
+    ) {
+      if (chq === "balance" && factsMatchChequeBalanceClaim(input.facts)) {
+        criminalTerms = [{ term: "صك:فحص:رصيد", origin: "expanded" as const }];
+        if (!discussConcepts.includes("صك:فحص:رصيد")) {
+          discussConcepts = [...discussConcepts, "صك:فحص:رصيد"];
+        }
+      } else if (chq === "stop" && factsMatchChequeStopCause(input.facts)) {
+        criminalTerms = [{ term: "صك:فحص:سبب", origin: "expanded" as const }];
+        if (!discussConcepts.includes("صك:فحص:سبب")) {
+          discussConcepts = [...discussConcepts, "صك:فحص:سبب"];
+        }
+      }
+      // chq fired but no matching claim → no change (absence of defence is not admission).
+      // chq === null → no change.
     }
 
     // Change C (Commit 40): attach traffic-law-2010 as related legislation when the

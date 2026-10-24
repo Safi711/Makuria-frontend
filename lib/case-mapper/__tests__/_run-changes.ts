@@ -764,6 +764,84 @@ const CASES: Case[] = [
     expectedDescNote: null,
     note: "partnership loss: no entrustment → stays civil, no أمانة:مدني card.",
   },
+
+  // ══ COMMIT 48 — deterministic cheque gate (Art. 179) ═════════════════════
+
+  // R70: B15-144 — balance dishonour + balance claim → 179 research-only + صك:فحص:رصيد card
+  {
+    id: "R70",
+    facts: "اشترى خالد بضائع من تاجر بمبلغ ١٢ مليون جنيه، وسلمه شيكاً بالمبلغ مستحق الدفع بعد شهر. وعند حلول الموعد أعاد البنك الشيك لعدم كفاية الرصيد. قال خالد إن حسابه كان يحتوي على المبلغ يوم تحرير الشيك، لكن أحد عملائه سحب تحويلاً متوقعاً قبل موعد الدفع، فلم يتمكن من تغطية الشيك.",
+    expectedLaws: ["179"],
+    expectedCardCount: null,
+    expectedCardKeys: null,
+    mustIncludeCardKeys: ["صك:فحص:رصيد"],
+    mustNotIncludeCardKeys: ["صك:فحص:سبب"],
+    expectedDescNote: null,
+    note: "B15-144: balance dishonour + balance claim → [179 research-only] + card [صك:فحص:رصيد].",
+  },
+
+  // R71: B15-146 — stop dishonour + stop cause → 179 research-only + صك:فحص:سبب card
+  {
+    id: "R71",
+    facts: "استلمت سارة شيكاً من محمد مقابل بيع سيارة. وعندما قدمته للبنك أعيد بسبب أمر سابق من محمد بإيقاف الصرف. أوضح محمد أنه أصدر الأمر بعدما اكتشف عيباً جوهرياً في السيارة، وأنه أبلغ سارة بذلك قبل تقديم الشيك. تؤكد سارة أن السيارة بيعت بالحالة التي عاينها محمد وأنه تسلمها واستعملها أسبوعين.",
+    expectedLaws: ["179"],
+    expectedCardCount: null,
+    expectedCardKeys: null,
+    mustIncludeCardKeys: ["صك:فحص:سبب"],
+    mustNotIncludeCardKeys: ["صك:فحص:رصيد"],
+    expectedDescNote: null,
+    note: "B15-146: stop dishonour + stop cause → [179 research-only] + card [صك:فحص:سبب].",
+  },
+
+  // R72: stop order but cheque not presented → no صك:فحص:* card (reportOnly on laws)
+  {
+    id: "R72",
+    facts: "أصدر عمر شيكاً لصالح المورد ثم أمر البنك بإيقاف صرفه، ولم يُقدَّم الشيك للبنك بعد.",
+    expectedLaws: null,
+    expectedCardCount: null,
+    expectedCardKeys: null,
+    mustNotIncludeCardKeys: ["صك:فحص:رصيد", "صك:فحص:سبب"],
+    expectedDescNote: null,
+    note: "case 3: stop without return → no cheque card.",
+  },
+
+  // R73: cheque paid (negated return) → no صك:فحص:* card (reportOnly on laws)
+  {
+    id: "R73",
+    facts: "قدّم التاجر الشيك للبنك فصُرف ولم يرتد الشيك، ثم نشب خلاف حول جودة البضاعة.",
+    expectedLaws: null,
+    expectedCardCount: null,
+    expectedCardKeys: null,
+    mustNotIncludeCardKeys: ["صك:فحص:رصيد", "صك:فحص:سبب"],
+    expectedDescNote: null,
+    note: "case 4: negated return → no cheque card.",
+  },
+
+  // R74: balance dishonour but no claim (drawer knew) → no card; reportOnly on laws
+  // (statusNote on 179, if it appears, must NOT be the research-only override — manual check)
+  {
+    id: "R74",
+    facts: "ارتد الشيك لعدم كفاية الرصيد، وكان الساحب يعلم أن حسابه فارغ منذ شهر.",
+    expectedLaws: null,
+    expectedCardCount: null,
+    expectedCardKeys: null,
+    mustNotIncludeCardKeys: ["صك:فحص:رصيد", "صك:فحص:سبب"],
+    expectedDescNote: null,
+    note: "case 8: balance + no claim → no card; if 179 appears its statusNote must NOT be research-only (manual check).",
+  },
+
+  // R75: non-withdrawable balance + denied knowledge → 179 research-only + صك:فحص:رصيد card
+  {
+    id: "R75",
+    facts: "ارتد الشيك لأن الرصيد غير قابل للسحب بسبب حجز قضائي على الحساب، وأنكر الساحب علمه بالحجز.",
+    expectedLaws: ["179"],
+    expectedCardCount: null,
+    expectedCardKeys: null,
+    mustIncludeCardKeys: ["صك:فحص:رصيد"],
+    mustNotIncludeCardKeys: ["صك:فحص:سبب"],
+    expectedDescNote: null,
+    note: "case 6: non-withdrawable balance + denied knowledge → [179 research-only] + card [صك:فحص:رصيد].",
+  },
 ];
 
 interface RunResult {
