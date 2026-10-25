@@ -1064,6 +1064,19 @@ const CASES: Case[] = [
     ],
     note: "B13-122 (Commit 51): participation discuss articles 21/22 now research-only; 177 primary research-only; 122/123 absent.",
   },
+
+  // R90: B15-143 verbatim — admin appointment review card must appear; Art. 89 absent from laws and discuss.
+  {
+    id: "R90",
+    facts: "أصدر مدير إحدى المؤسسات الحكومية قراراً بتعيين ابن شقيقه في وظيفة شاغرة دون إعلان أو منافسة. وكان ابن شقيقه مستوفياً للمؤهلات المطلوبة، لكن موظفين آخرين تقدموا بشكوى لأن إجراءات التعيين خالفت لائحة المؤسسة. لم يثبت أن المدير تلقى مالاً أو منفعة مادية مقابل القرار.",
+    expectedLaws: null,
+    expectedCardCount: null,
+    expectedCardKeys: null,
+    mustIncludeCardKeys: ["قرار:مشروعية"],
+    mustNotIncludeCardKeys: null,
+    expectedDescNote: null,
+    note: "B15-143 (Commit 52): admin appointment review card appears (articles: []); card is discuss-only, no Art. 89.",
+  },
 ];
 
 interface RunResult {
