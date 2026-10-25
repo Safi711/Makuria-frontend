@@ -888,15 +888,20 @@ export async function AdvisorPage({
               {item.negationNote && (
                 <Muted className="mb-4">{item.negationNote}</Muted>
               )}
-              <ul className="space-y-3">
-                {item.articles.map((law) => (
-                  <LawRow
-                    key={law.id}
-                    locale={locale}
-                    law={law}
-                  />
-                ))}
-              </ul>
+              {item.conflictLine && (
+                <Muted className="mb-4">{item.conflictLine}</Muted>
+              )}
+              {item.articles.length > 0 && (
+                <ul className="space-y-3">
+                  {item.articles.map((law) => (
+                    <LawRow
+                      key={law.id}
+                      locale={locale}
+                      law={law}
+                    />
+                  ))}
+                </ul>
+              )}
             </section>
           ))}
         </div>

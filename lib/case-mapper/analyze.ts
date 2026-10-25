@@ -45,6 +45,7 @@ import {
   factsMatchChequeStopCause,
   factsMatchDocumentAlteration,
   factsMatchPublicOfficialFalseEntry,
+  factsMatchAdminAppointmentReview,
   dropAthaIfWound,
   dropBareJurhIfWound,
   SUPPLY_TO_PERSON_KW,
@@ -206,6 +207,8 @@ export type DiscussItem = {
   /** Narrator-level kill-intent negation note, present on قتل:وصف when
    *  factsNegateIntentToKill is true. Rendered as its own paragraph. */
   negationNote?: string;
+  /** Conflict note shown only when the admin-appointment gate returns "conflict". */
+  conflictLine?: string;
   articles: RetrievedAuthority[];
 };
 
@@ -731,6 +734,8 @@ export const CONCEPT_TO_ARTICLES: Record<string, ConceptArticleEntry[]> = {
   "إباحة:ضرورة": [],
   // Commit 39: participation open-point card — discuss-only (Arts. 21/22 shown via card).
   "اشتراك:فحص": [],
+  // Commit 52: admin appointment review card — discuss-only (CARD_ONLY; no primary articles).
+  "قرار:مشروعية": [],
   // Commit 40: negligence open-point for قتل خطأ — discuss-only (Arts. 16/132 shown via card).
   "إهمال:فحص:قتل": [],
   // Commit 41: hadd-theft review card — fires when all five preconditions stated explicitly.
@@ -919,6 +924,8 @@ export const DISCUSS_CONCEPT_TO_ARTICLES: Record<string, ConceptArticleEntry[]> 
   "تزوير:موظف": [
     { lawSlug: "criminal-law-1991", articleNumber: "124", statusNoteOverride: "معروضة للبحث، لا للتصنيف" },
   ],
+  // Commit 52: admin appointment review card — CARD_ONLY, no articles fetched via this map.
+  "قرار:مشروعية": [],
 };
 
 const DISCUSS_CONCEPT_LABEL: Record<string, string> = {
@@ -958,6 +965,7 @@ const DISCUSS_CONCEPT_LABEL: Record<string, string> = {
   "صك:فحص:سبب":  "صك مردود بأمر وقف الصرف — فحص السبب المعقول",
   "تزوير:فحص":   "إكمال محرر أو تغيير مضمونه مع نزاع على الإذن — فحص قانوني",
   "تزوير:موظف":  "تدوين وقائع غير صحيحة أو إغفال وقائع حقيقية بواسطة موظف عام — للبحث",
+  "قرار:مشروعية": "مراجعة مشروعية القرار الإداري — نقطة مفتوحة للمحامي",
 };
 
 const DISCUSS_CONCEPT_DESC: Record<string, string> = {
@@ -996,6 +1004,7 @@ const DISCUSS_CONCEPT_DESC: Record<string, string> = {
   "أمانة:فحص": "ليست هذه تصنيفاً ولا تقريراً بقيام جريمة. تذكر الوقائع تسليم مال أو شيء لغرض محدد وعدم ردّه، دون بيان كافٍ لمصيره أو سبب عدم الرد. ومجرد عدم الرد لا يحسم توافر عناصر المادة ١٧٧. يُفحص أساس الائتمان، وحدود الإذن، وأدلة التسليم، وما آل إليه المال، وظروف الامتناع، وما إذا كانت الوقائع تدل على إحدى الصور الواردة في المادة، والقصد أو الإهمال بحسب الصورة محل البحث. ويُراجع تفسير المستلم في ضوء سائر الأدلة؛ فلا يُفترض سوء القصد من عدم الرد وحده، ولا تُستبعد الجريمة لمجرد غموض مصير المال. هذه بطاقة فحص؛ وفحص الأدلة للمحامي، وتقدير ثبوتها والفصل للمحكمة.",
   "تزوير:فحص": "ليست هذه تصنيفاً ولا تقريراً بقيام جريمة. تذكر الوقائع إكمال محرر أو تغيير مضمونه، مع خلاف حول وجود الإذن أو حدوده. يُبحث مدى انطباق المادة ١٢٢، والعقوبة الواردة بالمادة ١٢٣، بعد التحقق من طبيعة التغيير وجوهريته، وقصد الغش، والغرض من استخدام المحرر لترتيب آثار قانونية. ولا يكفي مجرد تجاوز الإذن لإثبات هذه العناصر.\n\nوتُبحث المادة ١٧٧ بحثاً مشروطاً إذا دلّت الوقائع على ائتمان على حيازة مال أو إدارته وفعل قد يندرج ضمن الأفعال التي يجرّمها النص؛ ولا يُفترض ذلك من مجرد تسليم المحرر أو النزاع على إكماله.\n\nفيُفحص: أصل المحرر، ونطاق الإذن وأدلته، والبيانات التي أُضيفت أو غُيّرت، وتوقيت ذلك، وغرض استخدامه، وتصرفات الأطراف بعده. صحة التوقيع لا تحسم صحة البيانات المضافة، والخلاف حول إذن شفوي لا يثبت الجريمة ولا ينفيها. هذه بطاقة فحص، والتحقق مهمة المحامي، والفصل للمحكمة.",
   "تزوير:موظف": "ليست هذه تصنيفاً ولا تقريراً بقيام جريمة. تتضمن الوقائع ادعاءً بأن موظفاً عاماً أو مكلفاً بخدمة عامة دوّن عند تحرير مستند وقائع غير صحيحة أو أغفل إثبات وقائع حقيقية. تُعرض المادة ١٢٤ للبحث في صفة الشخص، وصلته بتحرير المستند، وحقيقة الوقائع المدونة أو المغفلة، وعلمه بعدم صحتها أو بإغفالها. ولا يُستخلص العلم من مجرد الصفة الوظيفية أو وجود خطأ في المستند، ولا يُنفى بمجرد إنكار الشخص. هذه بطاقة فحص؛ والتحقق من الأدلة للمحامي، والفصل للمحكمة.",
+  "قرار:مشروعية": "تذكر الوقائع تعييناً أو توظيفاً أو ترقيةً لشخص تربطه قرابة بمتخذ القرار، مع الإشارة إلى غياب أحد إجراءات الإعلان أو المنافسة أو المسابقة. تُراجع صلاحية مصدر القرار، والقواعد المنظمة للإجراء، والاستثناءات المقررة فيها، ومدى الالتزام بها. القرابة وحدها لا تحسم عدم المشروعية أو قيام جريمة.",
   "صك:فحص:رصيد": "ليست هذه تصنيفاً ولا تقريراً بقيام جريمة. تذكر الوقائع صكاً مصرفياً رُدّ بسبب عدم كفاية الرصيد أو عدم قابليته للسحب. ويقتضي بحث المادة ١٧٩(١)(ب) فحص علم الساحب بحالة الرصيد، إلى جانب سائر عناصر الجريمة. فيُراجع سبب الرد المثبت لدى المصرف، وتواريخ تحرير الصك وتسليمه والتاريخ المثبت عليه وتقديمه للصرف، وحركة الحساب والقيود على السحب، وما يثبت علم الساحب بها أو يناقضه. ولا يتعامل المحرك مع مجرد الرد باعتباره إثباتاً حاسماً للعلم، ولا مع قول الساحب إن الرصيد كان موجوداً باعتباره نفياً حاسماً له. هذه بطاقة فحص، والتحقق من الوقائع مهمة المحامي، وتقدير الأدلة والفصل فيها للمحكمة.",
   "صك:فحص:سبب":  "ليست هذه تصنيفاً ولا تقريراً بقيام جريمة. تذكر الوقائع صكاً مصرفياً رُدّ بسبب أمر بوقف صرفه صادر من الساحب أو ممن ينوب عنه. ويقتضي بحث المادة ١٧٩(١)(ج) التحقق مما إذا كان الوقف دون سبب معقول، إلى جانب سائر عناصر الجريمة. فيُبحث السبب الذي يستند إليه الساحب إن ورد، والأدلة عليه، وصلته بالصك والالتزام المقابل، وتوقيت نشوئه أو اكتشافه وإصدار أمر الوقف، وأي مراسلات بشأنه. ولا يُعامل عيب المبيع أو عدم تنفيذ الالتزام أو النزاع العقدي باعتباره تلقائياً سبباً معقولاً أو غير معقول. كما لا يحسم إخطار المستفيد أو عدم إخطاره هذه المسألة وحده. وقد يوجد نزاع مدني حول العقد إلى جانب البحث الجنائي. هذه بطاقة فحص، والتحقق من الوقائع مهمة المحامي، وتقدير معقولية السبب والفصل فيها للمحكمة.",
 };
@@ -1008,6 +1017,7 @@ const DISCUSS_CONCEPT_EVIDENCE: Record<string, string> = {
   "شروع:حرق":   "موضع الحرق، واتساعه، وهل منع الجاني المجني عليه من النجاة.",
   "شروع:إغراق": "تعمّد إبقاء المجني عليه تحت الماء، وظروف إنقاذه.",
   "شروع:ذبح":   "موضع الإصابة، والأداة، والقصد.",
+  "قرار:مشروعية": "تُفحص لائحة التعيين، وقرار التعيين وأسبابه، ومستندات الإعلان والمفاضلة أو سند الاستثناء، والمراسلات المتصلة بالاختيار. وإذا ظهرت قرائن إضافية على مخالفة واجب قانوني بقصد الإضرار أو تحقيق مصلحة غير مشروعة، تُبحث المادة ٨٩ بحسب عناصرها، دون اشتراط مقابل مالي ودون استنتاج القصد من القرابة وحدها.",
 };
 
 /** Caution sentences for شروع:* cards that carry one ("ولا يُجزم…" / "ولا يُستنتج…").
@@ -1015,7 +1025,14 @@ const DISCUSS_CONCEPT_EVIDENCE: Record<string, string> = {
 const DISCUSS_CONCEPT_CAUTION: Record<string, string> = {
   "شروع:سلاح":  "ولا يُستنتج الشروع من السلاح أو الجرح وحدهما.",
   "شروع:خنق":   "ولا يُجزم بقصد القتل من فقدان الوعي وحده.",
+  "قرار:مشروعية": "هذه بطاقة فحص، وليست حكماً ببطلان القرار أو بثبوت جريمة أو انتفائها. لا تُعرض المادة ٨٩ تلقائياً بسبب هذه البطاقة، ولا يتحول المسار إلى جنائي بمجرد ظهورها. تُراجع شروط الطعن والتظلم ومواعيدهما وفق القانون المنطبق؛ والتحقق مهمة المحامي، والفصل للجهة القضائية المختصة.",
 };
+
+const DISCUSS_CONCEPT_CONFLICT_LINE: Record<string, string> = {
+  "قرار:مشروعية": "تتعارض الوقائع في إثبات إجراء الإعلان أو المنافسة أو المسابقة أو نفيه؛ ولا يُرجَّح ذلك آلياً، ويُترك ترجيحه للمحامي.",
+};
+
+const CARD_ONLY_CONCEPTS = new Set<string>(["قرار:مشروعية"]);
 
 /** Builds a DiscussItem for a civil-path research card by fetching all articles
  * listed in DISCUSS_CONCEPT_TO_ARTICLES[concept] from Supabase.
@@ -2079,6 +2096,31 @@ async function analyzeCriminalConceptMap(
         };
       });
     }
+
+    // Commit 52: CARD_ONLY concepts produce a DiscussItem with articles: [] without a DB fetch.
+    const cardOnlyItems: DiscussItem[] = [];
+    for (const concept of discussConcepts) {
+      if (!CARD_ONLY_CONCEPTS.has(concept)) continue;
+      if (concept === "قرار:مشروعية") {
+        const adminResult = factsMatchAdminAppointmentReview(input.facts);
+        if (adminResult === null) continue;
+        const conflLine = adminResult === "conflict"
+          ? DISCUSS_CONCEPT_CONFLICT_LINE[concept]
+          : undefined;
+        cardOnlyItems.push({
+          concept,
+          label: DISCUSS_CONCEPT_LABEL[concept] ?? concept,
+          ...(DISCUSS_CONCEPT_DESC[concept]     ? { description:  DISCUSS_CONCEPT_DESC[concept]     } : {}),
+          ...(DISCUSS_CONCEPT_EVIDENCE[concept] ? { evidenceLine: DISCUSS_CONCEPT_EVIDENCE[concept] } : {}),
+          ...(DISCUSS_CONCEPT_CAUTION[concept]  ? { cautionLine:  DISCUSS_CONCEPT_CAUTION[concept]  } : {}),
+          ...(conflLine                         ? { conflictLine: conflLine                          } : {}),
+          articles: [],
+        });
+      }
+    }
+    if (cardOnlyItems.length) {
+      discussItems = [...(discussItems ?? []), ...cardOnlyItems];
+    }
   }
 
   // Case search: concept terms only, filter to primary criminal category
@@ -2528,6 +2570,7 @@ export async function analyzeCase(
   // Commit 49 Blocks C + C-2 (revised per Addendum 3): civil + alt and/or off124 →
   // attach research card(s) WITHOUT converting to criminal or suppressing civil search.
   // Order: تزوير:فحص first (alt), then تزوير:موظف (off124). Deduped by concept.
+  const adminReview = factsMatchAdminAppointmentReview(input.facts);
   const civilDiscussItems: DiscussItem[] = [];
   if (!inferredCriminal) {
     const seen = new Set<string>();
@@ -2538,6 +2581,25 @@ export async function analyzeCase(
     if (off124) {
       const item = await buildCivilDiscussItem("تزوير:موظف", supabase);
       if (item && !seen.has(item.concept)) { seen.add(item.concept); civilDiscussItems.push(item); }
+    }
+    // Commit 52: admin appointment review card — fires on civil/abstain path.
+    if (adminReview !== null) {
+      const concept = "قرار:مشروعية";
+      if (!seen.has(concept)) {
+        seen.add(concept);
+        const conflLine = adminReview === "conflict"
+          ? DISCUSS_CONCEPT_CONFLICT_LINE[concept]
+          : undefined;
+        civilDiscussItems.push({
+          concept,
+          label: DISCUSS_CONCEPT_LABEL[concept],
+          ...(DISCUSS_CONCEPT_DESC[concept]     ? { description:  DISCUSS_CONCEPT_DESC[concept]     } : {}),
+          ...(DISCUSS_CONCEPT_EVIDENCE[concept] ? { evidenceLine: DISCUSS_CONCEPT_EVIDENCE[concept] } : {}),
+          ...(DISCUSS_CONCEPT_CAUTION[concept]  ? { cautionLine:  DISCUSS_CONCEPT_CAUTION[concept]  } : {}),
+          ...(conflLine                         ? { conflictLine: conflLine                          } : {}),
+          articles: [],
+        });
+      }
     }
   }
 
@@ -2932,6 +2994,16 @@ export async function analyzeCase(
       !discussConcepts.includes("تزوير:موظف")
     ) {
       discussConcepts = [...discussConcepts, "تزوير:موظف"];
+    }
+
+    // Commit 52: admin appointment review card — fires on any criminal result when gate matches.
+    if (
+      llmResult.type === "criminal" &&
+      discussConcepts !== undefined &&
+      adminReview !== null &&
+      !discussConcepts.includes("قرار:مشروعية")
+    ) {
+      discussConcepts = [...discussConcepts, "قرار:مشروعية"];
     }
 
     // Change C (Commit 40): attach traffic-law-2010 as related legislation when the
