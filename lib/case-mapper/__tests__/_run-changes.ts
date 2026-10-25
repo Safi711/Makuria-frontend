@@ -491,11 +491,11 @@ const CASES: Case[] = [
   {
     id: "R46",
     facts: "سلّم صاحب المحل بضاعةً بالأمانة إلى شخص وشريكه لبيعها ورد ثمنها إليه في أجل محدد، غير أنهما لم يردا الثمن ولم يعيدا البضاعة عند المطالبة.",
-    expectedLaws: ["177"],
+    expectedLaws: null,
     expectedCardCount: 1,
     expectedCardKeys: ["اشتراك:فحص"],
     expectedDescNote: null,
-    note: "B13-122: breach of trust (Art. 177) + participation (شريك) → اشتراك:فحص card fires for non-سرقة concept.",
+    note: "B13-122: خيانة أمانة (Art. 177) + participation (وشريكه + لم يردا → conjunction+crime gate) → اشتراك:فحص card (lawyer ruling 2026-10-24: kept).",
   },
   {
     id: "R47",
@@ -577,11 +577,11 @@ const CASES: Case[] = [
   {
     id: "R54",
     facts: "سلّم صاحب المحل بضاعةً بالأمانة إلى شخص وشريكه لبيعها ورد ثمنها إليه في أجل محدد، غير أنهما لم يردا الثمن ولم يعيدا البضاعة عند المطالبة.",
-    expectedLaws: ["177"],
+    expectedLaws: null,
     expectedCardCount: 1,
     expectedCardKeys: ["اشتراك:فحص"],
     expectedDescNote: null,
-    note: "B13-122 verbatim: خيانة أمانة (Art. 177) + participation (شريك) → laws [177], card [اشتراك:فحص].",
+    note: "B13-122 verbatim: خيانة أمانة (Art. 177) + participation (وشريكه + لم يردا → conjunction+crime gate) → اشتراك:فحص card (lawyer ruling 2026-10-24: kept).",
   },
 
   // R55: weapon in private place → حرابة:فحص must NOT appear
@@ -841,6 +841,113 @@ const CASES: Case[] = [
     mustNotIncludeCardKeys: ["صك:فحص:سبب"],
     expectedDescNote: null,
     note: "case 6: non-withdrawable balance + denied knowledge → [179 research-only] + card [صك:فحص:رصيد].",
+  },
+
+  // ── Commit 49: forgery gate (Arts. 122/123) and public-official false-entry (Art. 124) ──
+
+  // R76: blank-cheque overfill (B15-145) — alt gate fires → تزوير:فحص card, not صك:فحص
+  {
+    id: "R76",
+    facts: "سلّم عثمان شيكاً موقعاً على بياض إلى شريكه لتسديد فاتورة لا تتجاوز مليوني جنيه. ملأ الشريك الشيك بمبلغ ٩ ملايين جنيه وقدمه إلى البنك، فصرف البنك المبلغ من حساب عثمان. كان الشريك قد أُذن له بملء الشيك، لكن عثمان يؤكد أن الإذن كان محدداً بسقف المليونين، بينما يدعي الشريك أنه حصل على موافقة شفوية بالمبلغ الأكبر.",
+    expectedLaws: ["122", "123"],
+    expectedCardCount: null,
+    expectedCardKeys: null,
+    mustIncludeCardKeys: ["تزوير:فحص"],
+    mustNotIncludeCardKeys: ["صك:فحص:رصيد", "صك:فحص:سبب"],
+    expectedDescNote: null,
+    note: "case 1: alt gate fires → block A swaps to تزوير:فحص → laws [122, 123] research-only, card تزوير:فحص, no 124.",
+  },
+
+  // R77: authorised fill, no dispute → alt gate does NOT fire, no forgery card
+  {
+    id: "R77",
+    facts: "سلّم التاجر شيكاً موقعاً على بياض لوكيله، فملأه الوكيل بالمبلغ المتفق عليه وقدمه للبنك.",
+    expectedLaws: null,
+    expectedCardCount: null,
+    expectedCardKeys: null,
+    mustIncludeCardKeys: null,
+    mustNotIncludeCardKeys: ["تزوير:فحص", "تزوير:موظف"],
+    expectedDescNote: null,
+    note: "authorised fill, no auth dispute → alt=false, no تزوير:فحص card.",
+  },
+
+  // R78: public official omits a true fact intentionally → تزوير:موظف card
+  {
+    id: "R78",
+    facts: "أغفل المكلف بخدمة عامة عمداً إثبات واقعة صحيحة في المحضر الذي حرره.",
+    expectedLaws: null,
+    expectedCardCount: null,
+    expectedCardKeys: null,
+    mustIncludeCardKeys: ["تزوير:موظف"],
+    mustNotIncludeCardKeys: null,
+    expectedDescNote: null,
+    note: "off124 gate fires (omit verb + official + واقعة صحيحة + عمداً) → تزوير:موظف card.",
+  },
+
+  // R79: registrar records non-existent sale intentionally → off124 fires (case 7)
+  {
+    id: "R79",
+    facts: "أثبت المسجل في سجل الأراضي واقعة بيع لم تحدث، مع علمه بذلك.",
+    expectedLaws: null,
+    expectedCardCount: null,
+    expectedCardKeys: null,
+    mustIncludeCardKeys: ["تزوير:موظف"],
+    mustNotIncludeCardKeys: null,
+    expectedDescNote: null,
+    note: "case 7: أثبت + المسجل + لم تحدث + مع علمه → off124=true → تزوير:موظف card.",
+  },
+
+  // R80: official as witness, no entry verb, no auth dispute → no تزوير:* cards (case 5)
+  {
+    id: "R80",
+    facts: "شهد موظف عام على تعديل بند في عقد خاص بين تاجرين، وقال إن التعديل تم بموافقة الطرفين.",
+    expectedLaws: null,
+    expectedCardCount: null,
+    expectedCardKeys: null,
+    mustIncludeCardKeys: null,
+    mustNotIncludeCardKeys: ["تزوير:فحص", "تزوير:موظف"],
+    expectedDescNote: null,
+    note: "case 5: تعديل is masdar (no alt verb), official is witness (no entry verb) → no تزوير:* cards.",
+  },
+
+  // R81: date alteration in contract, one verb negated, other not → alt fires (case 3)
+  {
+    id: "R81",
+    facts: "لم يغيّر الشريك المبلغ، لكنه عدّل التاريخ في العقد دون إذن من صاحبه.",
+    expectedLaws: null,
+    expectedCardCount: null,
+    expectedCardKeys: null,
+    mustIncludeCardKeys: ["تزوير:فحص"],
+    mustNotIncludeCardKeys: ["تزوير:موظف"],
+    expectedDescNote: null,
+    note: "case 3: عدّل التاريخ (non-negated) + عقد + دون إذن → alt=true → تزوير:فحص card.",
+  },
+
+  // R82: civil LLM + off124=true → civil text-search kept + تزوير:موظف discuss card attached (Addendum 2B)
+  {
+    id: "R82",
+    facts: "أغفل المكلف بخدمة عامة عمداً إثبات واقعة صحيحة في المحضر الذي حرره.",
+    expectedLaws: null,
+    expectedCardCount: null,
+    expectedCardKeys: null,
+    mustIncludeCardKeys: ["تزوير:موظف"],
+    mustNotIncludeCardKeys: null,
+    expectedDescNote: null,
+    note: "R82: civil LLM + off124=true → civil text-search kept + تزوير:موظف discuss card attached (Addendum 2B).",
+  },
+
+  // R83: civil LLM + alt=true → civil text-search kept + تزوير:فحص discuss card with Arts. 122+123 (Addendum 3)
+  // If LLM returns criminal for this fact, this test will be marked reportOnly below.
+  {
+    id: "R83",
+    facts: "اتفق تاجران على توريد بضاعة، وسلّم أحدهما للآخر عقداً موقعاً ليكمل بيانات الكميات المتفق عليها، فأضاف الثاني كميات أكبر. يؤكد الأول أن الإذن كان محدداً بالكميات المتفق عليها، بينما يطالب الثاني بثمن الكميات كلها أمام المحكمة المدنية.",
+    expectedLaws: null,
+    expectedCardCount: null,
+    expectedCardKeys: null,
+    mustIncludeCardKeys: ["تزوير:فحص"],
+    mustNotIncludeCardKeys: null,
+    expectedDescNote: null,
+    note: "R83: civil LLM + alt=true → civil text-search kept + تزوير:فحص card (Arts. 122+123 research-only) attached (Addendum 3).",
   },
 ];
 

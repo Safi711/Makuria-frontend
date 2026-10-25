@@ -40,6 +40,8 @@ import {
   factsMatchChequeDishonour,
   factsMatchChequeBalanceClaim,
   factsMatchChequeStopCause,
+  factsMatchDocumentAlteration,
+  factsMatchPublicOfficialFalseEntry,
   dropAthaIfWound,
   dropBareJurhIfWound,
   SUPPLY_TO_PERSON_KW,
@@ -371,7 +373,12 @@ export const CONCEPT_TO_ARTICLES: Record<string, ConceptArticleEntry[]> = {
   "تزوير": [
     { lawSlug: "criminal-law-1991", articleNumber: "122" }, // التزوير في المستندات
     { lawSlug: "criminal-law-1991", articleNumber: "123" }, // عقوبة التزوير في المستندات
-    { lawSlug: "criminal-law-1991", articleNumber: "124" }, // تحريف مستند بواسطة موظف عام
+    // Art. 124 moved to "تزوير:موظف" (Commit 49 — independent gate, never asserted directly)
+  ],
+  // Commit 49: authorization-dispute forgery — research-only, never a primary classification.
+  "تزوير:فحص": [
+    { lawSlug: "criminal-law-1991", articleNumber: "122", statusNoteOverride: "معروضة للبحث، لا للتصنيف" },
+    { lawSlug: "criminal-law-1991", articleNumber: "123", statusNoteOverride: "معروضة للبحث، لا للتصنيف" },
   ],
   // Base "انتحال" is empty; sub-concepts are injected in analyzeCase based on keyword gates.
   "انتحال": [],
@@ -892,6 +899,15 @@ export const DISCUSS_CONCEPT_TO_ARTICLES: Record<string, ConceptArticleEntry[]> 
   "صك:فحص:سبب": [
     { lawSlug: "criminal-law-1991", articleNumber: "179", statusNoteOverride: "معروضة للبحث، لا للتصنيف" },
   ],
+  // Commit 49: authorization-dispute forgery open-point card → Arts. 122/123 research-only.
+  "تزوير:فحص": [
+    { lawSlug: "criminal-law-1991", articleNumber: "122", statusNoteOverride: "معروضة للبحث، لا للتصنيف" },
+    { lawSlug: "criminal-law-1991", articleNumber: "123", statusNoteOverride: "معروضة للبحث، لا للتصنيف" },
+  ],
+  // Commit 49: public-official false-entry open-point card → Art. 124 research-only.
+  "تزوير:موظف": [
+    { lawSlug: "criminal-law-1991", articleNumber: "124", statusNoteOverride: "معروضة للبحث، لا للتصنيف" },
+  ],
 };
 
 const DISCUSS_CONCEPT_LABEL: Record<string, string> = {
@@ -917,7 +933,7 @@ const DISCUSS_CONCEPT_LABEL: Record<string, string> = {
   "تهديد:فحص":    "فحص التهديد: ألفاظه وسياقه — نقطة مفتوحة للمحامي",
   "إباحة:عرضي":   "لا تظهر جريمة ظاهراً — فحص الحادث العرضي، نقطة مفتوحة للمحامي",
   "إباحة:ضرورة":  "لا تظهر جريمة ظاهراً — فحص الضرورة والتناسب، نقطة مفتوحة للمحامي",
-  "اشتراك:فحص":   "الاشتراك في الجريمة (المادتان ٢١ و٢٢) — نقطة مفتوحة للمحامي",
+  "اشتراك:فحص":   "تعدد الأشخاص في الواقعة (المادتان ٢١ و٢٢) — فحص دور كل شخص",
   "حد:مراجعة":    "مراجعة شروط السرقة الحدية (المادة ١٧٠) — نقطة مفتوحة للمحامي",
   "حرابة:فحص":    "فحص الحرابة (المادة ١٦٧) — نقطة مفتوحة للمحامي",
   "مخدرات:معمل":  "مادة مشتبه بها قيد الفحص المعملي — نقطة مفتوحة للمحامي",
@@ -928,6 +944,8 @@ const DISCUSS_CONCEPT_LABEL: Record<string, string> = {
   "أمانة:مدني": "خيانة الأمانة أم نزاع تعاقدي — نقطة مفتوحة للمحامي",
   "صك:فحص:رصيد": "صك مردود بسبب الرصيد — فحص العلم",
   "صك:فحص:سبب":  "صك مردود بأمر وقف الصرف — فحص السبب المعقول",
+  "تزوير:فحص":   "إكمال محرر أو تغيير مضمونه مع نزاع على الإذن — فحص قانوني",
+  "تزوير:موظف":  "تدوين وقائع غير صحيحة أو إغفال وقائع حقيقية بواسطة موظف عام — للبحث",
 };
 
 const DISCUSS_CONCEPT_DESC: Record<string, string> = {
@@ -954,7 +972,7 @@ const DISCUSS_CONCEPT_DESC: Record<string, string> = {
   "تهديد:فحص": "ليست هذه تصنيفاً نهائياً. عُرضت المادة ١٤٤ مبدئياً لأن الوقائع تذكر تهديداً دون طلب مال أو سند، فاستُبعد مسار الابتزاز (المادة ١٧٦) من التصنيف. إثبات الإرهاب يتوقف على ألفاظ التهديد وسياقها وجدّيتها وأثرها في المهدَّد، وقد لا يتجاوز الفعل حدّ الإساءة (المادة ١٦٠). التحقق من ذلك مهمة المحامي، والفصل فيه للمحكمة.",
   "إباحة:عرضي": "ليست هذه تصنيفاً ولا إعلان براءة. لا تذكر الوقائع قصداً جنائياً، وتشير إلى أن الفعل ربما كان حادثاً عرضياً. عُرضت المادة ١٦ (الحادث العرضي) والمادة ١٨٢ (الإتلاف) للمقارنة لا للتكييف. إثبات انعدام القصد أو توافره مهمة المحامي، والفصل فيه للمحكمة.",
   "إباحة:ضرورة": "ليست هذه تصنيفاً ولا إعلان براءة. تذكر الوقائع فعلاً يُعدّ في ذاته إتلافاً، غير أن السياق يشير إلى احتمال الضرورة. عُرضت المادة ١٥ (حالة الضرورة) والمادة ١٨٢ (الإتلاف) للمقارنة لا للتكييف. إثبات شروط الضرورة وتناسب الفعل مع الخطر مهمة المحامي، والفصل فيه للمحكمة.",
-  "اشتراك:فحص": "ليست هذه تصنيفاً نهائياً. تشير الوقائع إلى احتمال وجود أكثر من مشارك في الجريمة. تحديد دور كل شخص — فاعلاً أصلياً أم شريكاً أم متدخلاً — وإثبات القصد المشترك وفق المادتين ٢١ و٢٢ مهمة المحامي، والفصل فيه للمحكمة.",
+  "اشتراك:فحص": "ليست هذه تصنيفاً ولا تقريراً بقيام جريمة. تنسب الوقائع أفعالاً متصلة بالواقعة إلى أكثر من شخص، ولا يُستنتج من ذلك وجود اتفاق جنائي ولا تساوي المسؤولية. فيُفحص فعل كل شخص على حدة، فعلاً كان أو امتناعاً، وعلمه وقصده، ودوره في التنفيذ أو التحريض أو المعاونة. فإن أُريد بحث المادة ٢١ لزم التحقق من وجود اتفاق جنائي ارتُكبت الجريمة تنفيذاً له؛ وفي غيابه تُبحث مسؤولية كل شخص عن فعله وفق المادة ٢٢. هذه بطاقة فحص؛ والتحقق من الأدلة للمحامي، والفصل للمحكمة.",
   "حد:مراجعة": "ليست هذه تصنيفاً نهائياً. ذكرت الوقائع صراحةً شروط السرقة الحدية الخمسة. تطبيق عقوبة الحد (المادة ١٧٠) يستلزم ثبوتها جميعاً بيقين ودون شبهة، وذلك مهمة المحامي، والفصل فيه للمحكمة. المادة ١٧٢ تُبيّن مسقطات الحد، والمادة ١٧٤ العقوبة التعزيرية عند سقوطه.",
   "حرابة:فحص": "ليست هذه تصنيفاً نهائياً. الوقائع تتضمن نهباً بسلاح في مكان عام، مما يستوجب على المحامي فحص توافر شروط الحرابة وفق المادة ١٦٧. الشرط المحوري هو تعذّر الغوث، أي أن يقع الفعل في موضع لا يستطيع المجني عليه الاستنجاد فيه. إذا لم يثبت هذا الشرط فيبقى الوصف نهباً (المادة ١٧٥). التحقق من ذلك مهمة المحامي، والفصل فيه للمحكمة.",
   "مخدرات:معمل": "مادة مشتبه بها قيد الفحص المعملي. لا تكفي الوقائع الحالية لإثبات طبيعتها أو علم المتهم بمحتويات الحقيبة. يُرجأ التكييف النهائي لحين ورود نتيجة المعمل واستكمال أدلة العلم والحيازة.",
@@ -963,6 +981,8 @@ const DISCUSS_CONCEPT_DESC: Record<string, string> = {
   "رضا:فحص": "يجب التحقق من توافر الرضا الحر المعتبر قانوناً وقت الفعل، ومن أثر التهديد أو الإكراه أو غيرهما من الظروف المؤثرة فيه. ولا يُفترض الرضا من مجرد وجود علاقة سابقة أو دخول المكان طوعاً، كما لا يُشترط إثبات مقاومة جسدية لإثبات انعدام الرضا. يُبحث الوصف القانوني وفق النص النافذ والأدلة المتاحة، ويظل الفصل في الوقائع للمحكمة.",
   "فاحشة:مراجعة": "ليست هذه تصنيفاً نهائياً. عُرضت المادة ١٥١ مبدئياً لأن الوقائع تذكر فعلاً مخلاً بالحياء واقعاً على شخص معيّن؛ ووقوعه في مكان عام أو بغير رضا المجني عليه ظرف مشدِّد داخل المادة ١٥١(٢) لا ناقل إلى المادة ١٥٢. تُعرض المادة ١٥٢ للمراجعة لأنها تتعلق بالفعل الفاضح الذي يسبب مضايقة للشعور العام، ولأن حالتها القانونية متنازع فيها بعد تعديل ٢٠٢٠. التحقق من ذلك مهمة المحامي، والفصل فيه للمحكمة.",
   "أمانة:مدني": "ليست هذه تصنيفاً ولا تقريراً بقيام جريمة. تذكر الوقائع تسليم مال أو شيء لغرض محدد، وعدم رده أو التصرف فيه. تُبحث خيانة الأمانة وفق المادة ١٧٧ إذا ثبت أن المال سُلّم على سبيل الائتمان، وأن المستلم تصرف فيه بسوء قصد بالمخالفة للغرض الذي سُلّم من أجله، أو أنكر استلامه في ظروف قد تدل على الاستيلاء عليه. أما إذا هلك المال أو خسر أثناء تنفيذ الاتفاق دون تصرف مخالف أو قصد جنائي، فقد يكون النزاع تعاقدياً مدنياً، ولا يكفي مجرد عدم الرد لإثبات خيانة الأمانة. الفاصل ليس عدم الرد وحده، بل طبيعة التسليم، وحدود التصرف المأذون به، وتوافر القصد الجنائي. والتحقق من ذلك مهمة المحامي، والفصل فيه للمحكمة.",
+  "تزوير:فحص": "ليست هذه تصنيفاً ولا تقريراً بقيام جريمة. تذكر الوقائع إكمال محرر أو تغيير مضمونه، مع خلاف حول وجود الإذن أو حدوده. يُبحث مدى انطباق المادة ١٢٢، والعقوبة الواردة بالمادة ١٢٣، بعد التحقق من طبيعة التغيير وجوهريته، وقصد الغش، والغرض من استخدام المحرر لترتيب آثار قانونية. ولا يكفي مجرد تجاوز الإذن لإثبات هذه العناصر.\n\nوتُبحث المادة ١٧٧ بحثاً مشروطاً إذا دلّت الوقائع على ائتمان على حيازة مال أو إدارته وفعل قد يندرج ضمن الأفعال التي يجرّمها النص؛ ولا يُفترض ذلك من مجرد تسليم المحرر أو النزاع على إكماله.\n\nفيُفحص: أصل المحرر، ونطاق الإذن وأدلته، والبيانات التي أُضيفت أو غُيّرت، وتوقيت ذلك، وغرض استخدامه، وتصرفات الأطراف بعده. صحة التوقيع لا تحسم صحة البيانات المضافة، والخلاف حول إذن شفوي لا يثبت الجريمة ولا ينفيها. هذه بطاقة فحص، والتحقق مهمة المحامي، والفصل للمحكمة.",
+  "تزوير:موظف": "ليست هذه تصنيفاً ولا تقريراً بقيام جريمة. تتضمن الوقائع ادعاءً بأن موظفاً عاماً أو مكلفاً بخدمة عامة دوّن عند تحرير مستند وقائع غير صحيحة أو أغفل إثبات وقائع حقيقية. تُعرض المادة ١٢٤ للبحث في صفة الشخص، وصلته بتحرير المستند، وحقيقة الوقائع المدونة أو المغفلة، وعلمه بعدم صحتها أو بإغفالها. ولا يُستخلص العلم من مجرد الصفة الوظيفية أو وجود خطأ في المستند، ولا يُنفى بمجرد إنكار الشخص. هذه بطاقة فحص؛ والتحقق من الأدلة للمحامي، والفصل للمحكمة.",
   "صك:فحص:رصيد": "ليست هذه تصنيفاً ولا تقريراً بقيام جريمة. تذكر الوقائع صكاً مصرفياً رُدّ بسبب عدم كفاية الرصيد أو عدم قابليته للسحب. ويقتضي بحث المادة ١٧٩(١)(ب) فحص علم الساحب بحالة الرصيد، إلى جانب سائر عناصر الجريمة. فيُراجع سبب الرد المثبت لدى المصرف، وتواريخ تحرير الصك وتسليمه والتاريخ المثبت عليه وتقديمه للصرف، وحركة الحساب والقيود على السحب، وما يثبت علم الساحب بها أو يناقضه. ولا يتعامل المحرك مع مجرد الرد باعتباره إثباتاً حاسماً للعلم، ولا مع قول الساحب إن الرصيد كان موجوداً باعتباره نفياً حاسماً له. هذه بطاقة فحص، والتحقق من الوقائع مهمة المحامي، وتقدير الأدلة والفصل فيها للمحكمة.",
   "صك:فحص:سبب":  "ليست هذه تصنيفاً ولا تقريراً بقيام جريمة. تذكر الوقائع صكاً مصرفياً رُدّ بسبب أمر بوقف صرفه صادر من الساحب أو ممن ينوب عنه. ويقتضي بحث المادة ١٧٩(١)(ج) التحقق مما إذا كان الوقف دون سبب معقول، إلى جانب سائر عناصر الجريمة. فيُبحث السبب الذي يستند إليه الساحب إن ورد، والأدلة عليه، وصلته بالصك والالتزام المقابل، وتوقيت نشوئه أو اكتشافه وإصدار أمر الوقف، وأي مراسلات بشأنه. ولا يُعامل عيب المبيع أو عدم تنفيذ الالتزام أو النزاع العقدي باعتباره تلقائياً سبباً معقولاً أو غير معقول. كما لا يحسم إخطار المستفيد أو عدم إخطاره هذه المسألة وحده. وقد يوجد نزاع مدني حول العقد إلى جانب البحث الجنائي. هذه بطاقة فحص، والتحقق من الوقائع مهمة المحامي، وتقدير معقولية السبب والفصل فيها للمحكمة.",
 };
@@ -983,6 +1003,68 @@ const DISCUSS_CONCEPT_CAUTION: Record<string, string> = {
   "شروع:سلاح":  "ولا يُستنتج الشروع من السلاح أو الجرح وحدهما.",
   "شروع:خنق":   "ولا يُجزم بقصد القتل من فقدان الوعي وحده.",
 };
+
+/** Builds a DiscussItem for a civil-path research card by fetching all articles
+ * listed in DISCUSS_CONCEPT_TO_ARTICLES[concept] from Supabase.
+ * Returns undefined if the concept has no entries or no DB rows are found. */
+async function buildCivilDiscussItem(
+  concept: string,
+  sbClient: SupabaseClient,
+): Promise<DiscussItem | undefined> {
+  const entries = DISCUSS_CONCEPT_TO_ARTICLES[concept] ?? [];
+  if (!entries.length) return undefined;
+
+  const lawSlugs = [...new Set(entries.map((e) => e.lawSlug))];
+  const { data: lawRows } = await sbClient
+    .from("laws")
+    .select("id,slug,title_ar,source_url,verified,status")
+    .in("slug", lawSlugs);
+  type LawRow = { id: string; slug: string; title_ar: string | null; source_url: string | null; verified: boolean | null; status?: string | null };
+  const lawBySlugLocal = new Map<string, LawRow>(
+    ((lawRows ?? []) as LawRow[]).map((l) => [l.slug, l]),
+  );
+
+  const lawIds = [...lawBySlugLocal.values()].map((l) => l.id);
+  const artNums = [...new Set(entries.map((e) => e.articleNumber))];
+  const { data: artRows } = await sbClient
+    .from("articles")
+    .select("id,law_id,article_number,title_ar,content_ar,verified,status_note_ar,legal_status")
+    .in("law_id", lawIds)
+    .in("article_number", artNums);
+  type ArtRow = { id: string; law_id: string; article_number: string | null; title_ar: string | null; content_ar: string | null; verified: boolean | null; status_note_ar: string | null; legal_status: string | null };
+  const artByPair = new Map<string, ArtRow>(
+    ((artRows ?? []) as ArtRow[]).map((a) => [`${a.law_id}:${(a.article_number ?? "").trim()}`, a]),
+  );
+
+  const articles: RetrievedAuthority[] = [];
+  for (const entry of entries) {
+    const parentLaw = lawBySlugLocal.get(entry.lawSlug);
+    if (!parentLaw) continue;
+    const art = artByPair.get(`${parentLaw.id}:${entry.articleNumber}`);
+    if (!art) continue;
+    articles.push({
+      id: art.id, type: "article", title: art.title_ar ?? "",
+      lawTitle: parentLaw.title_ar ?? null,
+      articleNumber: art.article_number,
+      excerptHtml: wordTrunc(art.content_ar ?? "", 2000),
+      verified: Boolean(art.verified), slug: null,
+      lawSlug: entry.lawSlug,
+      sourceUrl: parentLaw.source_url ?? null,
+      force: forceFromLawStatus(parentLaw.status),
+      legalStatus: art.legal_status ?? null,
+      statusNote: entry.statusNoteOverride ?? art.status_note_ar ?? null,
+      matchedTerms: [concept], rank: 100, inScope: true,
+    });
+  }
+
+  if (!articles.length) return undefined;
+  return {
+    concept,
+    label: DISCUSS_CONCEPT_LABEL[concept] ?? concept,
+    description: DISCUSS_CONCEPT_DESC[concept],
+    articles,
+  };
+}
 
 /** Strips tashkeel AND folds alef variants (أ إ آ ٱ) to bare alef.
  * quick_search_v4 does the same on the DB side; mirroring it here lets
@@ -2187,8 +2269,10 @@ export async function analyzeCase(
     input.facts,
     process.env.ANTHROPIC_API_KEY ?? "",
   );
-  // Commit 48: computed once here so blocks (B), (C), and (A) all share the result.
-  const chq = factsMatchChequeDishonour(input.facts);
+  // Commit 48/49: computed once here so blocks (B), (C), and (A) all share the results.
+  const chq    = factsMatchChequeDishonour(input.facts);
+  const alt    = factsMatchDocumentAlteration(input.facts);
+  const off124 = factsMatchPublicOfficialFalseEntry(input.facts);
   if (llmResult.type === "abstain") {
     // Commit 36/38: deterministic fallback when the LLM abstains but keyword detectors
     // identify a recognisable pattern — never asserts intent or guilt.
@@ -2199,7 +2283,7 @@ export async function analyzeCase(
     const propAccident = propDmg && factsMatchAccidentMarker(input.facts);
     const fire        = factsMatchFireDamage(input.facts);
     const entrust     = factsMatchEntrustment(input.facts);
-    if (!assaultDeath && !propRescue && !propAccident && !fire && !entrust && chq === null) {
+    if (!assaultDeath && !propRescue && !propAccident && !fire && !entrust && chq === null && !alt) {
       return {
         factsExcerpt: excerpt, factsIsTruncated: truncated,
         caseTypeLens: null, inferredCaseType: null,
@@ -2238,6 +2322,13 @@ export async function analyzeCase(
         concept: chq === "balance" ? "صك:فحص:رصيد" : "صك:فحص:سبب",
         discuss: [chq === "balance" ? "صك:فحص:رصيد" : "صك:فحص:سبب"],
       };
+    } else if (alt) {
+      // (g) Document alteration with authorization dispute: Arts. 122/123 research-only.
+      llmResult = {
+        type: "criminal" as const,
+        concept: "تزوير:فحص",
+        discuss: ["تزوير:فحص"],
+      };
     } else {
       // (d) Fire damage: discuss-only path — Art. 182 lives in the إتلاف:بيّنة card,
       // not in the primary laws array (CONCEPT_TO_ARTICLES["إتلاف:بيّنة"] = []).
@@ -2274,6 +2365,7 @@ export async function analyzeCase(
   }
   // Commit 46: civil LLM + entrustment facts → Art. 177 research-only + open-point card.
   // Must run BEFORE the civil-clear block so the criminal path is not suppressed.
+  // TODO: Lawyer 2026-10-24: civil must not be suppressed — unify in a later commit (civil + card).
   if (llmResult.type === "civil" && factsMatchEntrustment(input.facts)) {
     llmResult = {
       type: "criminal" as const,
@@ -2283,6 +2375,7 @@ export async function analyzeCase(
   }
   // Commit 48 block (C): civil LLM + cheque dishonour → Art. 179 research-only + card.
   // After this conversion llmResult.type is "criminal" so the civil text search does NOT run.
+  // TODO: Lawyer 2026-10-24: civil must not be suppressed — unify in a later commit (civil + card).
   if (llmResult.type === "civil" && chq !== null) {
     llmResult = {
       type: "criminal" as const,
@@ -2409,6 +2502,23 @@ export async function analyzeCase(
   }
 
   const inferredCriminal = anyFired;
+
+  // Commit 49 Blocks C + C-2 (revised per Addendum 3): civil + alt and/or off124 →
+  // attach research card(s) WITHOUT converting to criminal or suppressing civil search.
+  // Order: تزوير:فحص first (alt), then تزوير:موظف (off124). Deduped by concept.
+  const civilDiscussItems: DiscussItem[] = [];
+  if (!inferredCriminal) {
+    const seen = new Set<string>();
+    if (alt) {
+      const item = await buildCivilDiscussItem("تزوير:فحص", supabase);
+      if (item && !seen.has(item.concept)) { seen.add(item.concept); civilDiscussItems.push(item); }
+    }
+    if (off124) {
+      const item = await buildCivilDiscussItem("تزوير:موظف", supabase);
+      if (item && !seen.has(item.concept)) { seen.add(item.concept); civilDiscussItems.push(item); }
+    }
+  }
+
   const caseTypeFull = await resolveCaseTypeFull(
     supabase,
     anyFired ? undefined : input.caseType,
@@ -2745,6 +2855,43 @@ export async function analyzeCase(
       // chq === null → no change.
     }
 
+    // Commit 49 block (A): LLM says تزوير AND alt detector fires → swap to research-only card.
+    // LLM تزوير WITHOUT alt → unchanged (122+123 as the LLM produced, no card injected).
+    if (
+      llmResult.type === "criminal" &&
+      discussConcepts !== undefined &&
+      (llmResult.concept === "تزوير" || criminalTerms[0]?.term === "تزوير")
+    ) {
+      if (alt) {
+        criminalTerms = [{ term: "تزوير:فحص", origin: "expanded" as const }];
+        if (!discussConcepts.includes("تزوير:فحص")) {
+          discussConcepts = [...discussConcepts, "تزوير:فحص"];
+        }
+      }
+    }
+
+    // Commit 49 block (A) case 3: alt fires on a non-تزوير criminal concept → card only, no swap.
+    if (
+      llmResult.type === "criminal" &&
+      discussConcepts !== undefined &&
+      alt &&
+      criminalTerms[0]?.term !== "تزوير:فحص" &&
+      !discussConcepts.includes("تزوير:فحص")
+    ) {
+      discussConcepts = [...discussConcepts, "تزوير:فحص"];
+    }
+
+    // Commit 49 block (D): independent post-chain gate — public-official false entry (Art. 124).
+    // Fires on ANY criminal result regardless of the LLM concept; never touches primary laws.
+    if (
+      llmResult.type === "criminal" &&
+      discussConcepts !== undefined &&
+      off124 &&
+      !discussConcepts.includes("تزوير:موظف")
+    ) {
+      discussConcepts = [...discussConcepts, "تزوير:موظف"];
+    }
+
     // Change C (Commit 40): attach traffic-law-2010 as related legislation when the
     // original LLM concept is قتل خطأ or جرح خطأ and facts mention a vehicle.
     const relatedLawSlugs: string[] = [];
@@ -2901,6 +3048,7 @@ export async function analyzeCase(
       inferredCaseType: null,
       issues: [], laws: [], cases: [], principles: [],
       outOfScopeCount: 0, noConfidentMatch: true, hasAnyResults: false,
+      ...(civilDiscussItems.length > 0 ? { discuss: civilDiscussItems } : {}),
     };
   }
 
@@ -2930,6 +3078,7 @@ export async function analyzeCase(
       issues: [],
       laws: [], cases: [], principles: [],
       outOfScopeCount: 0, noConfidentMatch: true, hasAnyResults: false,
+      ...(civilDiscussItems.length > 0 ? { discuss: civilDiscussItems } : {}),
     };
   }
 
@@ -3295,6 +3444,7 @@ export async function analyzeCase(
       : null,
     inferredCaseType: caseTypeFull?.inferred ? (caseTypeFull.categoryNameAr ?? "جنائي") : null,
     issues,
+    ...(civilDiscussItems.length > 0 ? { discuss: civilDiscussItems } : {}),
     // noConfidentMatch: case type was resolved but no result from the primary
     // category was found. Companion-law results (criminal-procedure, evidence)
     // count toward confidence only when matched by a non-extracted term — an
