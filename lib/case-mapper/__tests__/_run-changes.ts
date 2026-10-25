@@ -496,11 +496,13 @@ const CASES: Case[] = [
   {
     id: "R46",
     facts: "سلّم صاحب المحل بضاعةً بالأمانة إلى شخص وشريكه لبيعها ورد ثمنها إليه في أجل محدد، غير أنهما لم يردا الثمن ولم يعيدا البضاعة عند المطالبة.",
-    expectedLaws: null,
-    expectedCardCount: 1,
-    expectedCardKeys: ["اشتراك:فحص"],
+    expectedLaws: ["177"],
+    expectedCardCount: null,
+    expectedCardKeys: null,
+    mustIncludeCardKeys: ["اشتراك:فحص", "أمانة:فحص"],
+    primaryNoteChecks: [{ articleNumber: "177", noteStartsWith: "معروضة للبحث، لا للتصنيف" }],
     expectedDescNote: null,
-    note: "B13-122: خيانة أمانة (Art. 177) + participation (وشريكه + لم يردا → conjunction+crime gate) → اشتراك:فحص card (lawyer ruling 2026-10-24: kept).",
+    note: "B13-122 (Commit 50): mere non-return → أمانة:فحص swap; participation card kept → laws [177 research-only], cards include [اشتراك:فحص, أمانة:فحص].",
   },
   {
     id: "R47",
@@ -582,11 +584,13 @@ const CASES: Case[] = [
   {
     id: "R54",
     facts: "سلّم صاحب المحل بضاعةً بالأمانة إلى شخص وشريكه لبيعها ورد ثمنها إليه في أجل محدد، غير أنهما لم يردا الثمن ولم يعيدا البضاعة عند المطالبة.",
-    expectedLaws: null,
-    expectedCardCount: 1,
-    expectedCardKeys: ["اشتراك:فحص"],
+    expectedLaws: ["177"],
+    expectedCardCount: null,
+    expectedCardKeys: null,
+    mustIncludeCardKeys: ["اشتراك:فحص", "أمانة:فحص"],
+    primaryNoteChecks: [{ articleNumber: "177", noteStartsWith: "معروضة للبحث، لا للتصنيف" }],
     expectedDescNote: null,
-    note: "B13-122 verbatim: خيانة أمانة (Art. 177) + participation (وشريكه + لم يردا → conjunction+crime gate) → اشتراك:فحص card (lawyer ruling 2026-10-24: kept).",
+    note: "B13-122 verbatim (Commit 50): mere non-return → أمانة:فحص swap; participation card kept → laws [177 research-only], cards include [اشتراك:فحص, أمانة:فحص].",
   },
 
   // R55: weapon in private place → حرابة:فحص must NOT appear
@@ -972,6 +976,74 @@ const CASES: Case[] = [
     ],
     expectedDescNote: null,
     note: "R83: civil LLM + alt=true → civil text-search kept + تزوير:فحص card (Arts. 122+123 research-only). Discuss article statusNotes must carry override.",
+  },
+
+  // ══ COMMIT 50 — mere non-return → أمانة:فحص research-only card ════════════
+
+  // R84: T2 — refusal to return, receipt admitted — LLM consistently returns خيانة الأمانة → strict
+  {
+    id: "R84",
+    facts: "سلّم التاجر لعامله مبلغاً ليشتري به بضاعة، فأقرّ العامل باستلامه لكنه رفض ردّه عند المطالبة.",
+    expectedLaws: ["177"],
+    expectedCardCount: null,
+    expectedCardKeys: null,
+    mustIncludeCardKeys: ["أمانة:فحص"],
+    mustNotIncludeCardKeys: null,
+    expectedDescNote: null,
+    primaryNoteChecks: [{ articleNumber: "177", noteStartsWith: "معروضة للبحث، لا للتصنيف" }],
+    note: "T2 (Commit 50): disposal=false, denial=null, LLM خيانة الأمانة → [177 research-only] + أمانة:فحص.",
+  },
+
+  // R85: T3 — denial with receipt evidence → 177 primary (no swap), no أمانة:فحص
+  {
+    id: "R85",
+    facts: "سلّم أحمد صديقه مبلغاً على سبيل الأمانة، فأنكر الصديق استلامه، وقدّم أحمد إيصالاً موقعاً منه بالاستلام.",
+    expectedLaws: null,
+    expectedCardCount: null,
+    expectedCardKeys: null,
+    mustNotIncludeCardKeys: ["أمانة:فحص"],
+    expectedDescNote: null,
+    note: "T3 (Commit 50): denial=supported → block does NOT fire → 177 ordinary primary, no أمانة:فحص.",
+  },
+
+  // R86: T4 — bare denial (claim-only handover, negated support) — reportOnly because LLM decides
+  {
+    id: "R86",
+    facts: "يدعي أحمد أنه سلّم صديقه مبلغاً على سبيل الأمانة، وينكر الصديق أنه استلم شيئاً، ولا يوجد إيصال أو شهود.",
+    expectedLaws: null,
+    expectedCardCount: null,
+    expectedCardKeys: null,
+    mustIncludeCardKeys: null,
+    mustNotIncludeCardKeys: null,
+    expectedDescNote: null,
+    reportOnly: true,
+    note: "T4 (Commit 50): disposal=false, denial=bare — if LLM خيانة الأمانة → [177 research-only] + أمانة:فحص; else reportOnly.",
+  },
+
+  // R87: T6 — explicit disposal (استخدمه في سداد دين) → 177 primary, no أمانة:فحص
+  {
+    id: "R87",
+    facts: "سلّم صاحب المحل موظفه مبلغاً لإيداعه في البنك، فاستخدمه الموظف في سداد دين على شقيقه ووعد بردّه.",
+    expectedLaws: null,
+    expectedCardCount: null,
+    expectedCardKeys: null,
+    mustNotIncludeCardKeys: ["أمانة:فحص"],
+    expectedDescNote: null,
+    note: "T6 (Commit 50): disposal=true → block does NOT fire → 177 ordinary primary, no أمانة:فحص.",
+  },
+
+  // R88: T7 — gross-negligence gap (ضاعت منه); disposal=false; reportOnly — assert not a plain 177 primary
+  {
+    id: "R88",
+    facts: "سلّم التاجر وكيله بضاعة ليبيعها، فلم يرد الثمن، وقال إن البضاعة ضاعت منه أثناء النقل.",
+    expectedLaws: null,
+    expectedCardCount: null,
+    expectedCardKeys: null,
+    mustIncludeCardKeys: null,
+    mustNotIncludeCardKeys: null,
+    expectedDescNote: null,
+    reportOnly: true,
+    note: "T7 (Commit 50): gross-negligence gap — disposal=false; factsMatchEntrustment likely false (ليبيعها not a purpose KW). Report what the engine returns.",
   },
 ];
 

@@ -37,6 +37,9 @@ import {
   factsMatchConsentDisputed,
   factsMatchEntrustment,
   factsMatchContractualDefence,
+  factsMatchTrustDisposal,
+  factsMatchTrustDenial,
+  factsMatchTrustNonReturn,
   factsMatchChequeDishonour,
   factsMatchChequeBalanceClaim,
   factsMatchChequeStopCause,
@@ -344,6 +347,10 @@ export const CONCEPT_TO_ARTICLES: Record<string, ConceptArticleEntry[]> = {
   ],
   // Commit 46: civil/abstain + entrustment facts → Art. 177 as research-only open point.
   "أمانة:مدني": [
+    { lawSlug: "criminal-law-1991", articleNumber: "177", statusNoteOverride: "معروضة للبحث، لا للتصنيف" },
+  ],
+  // Commit 50: criminal + entrustment + mere non-return (no disposal, no supported denial) → research-only.
+  "أمانة:فحص": [
     { lawSlug: "criminal-law-1991", articleNumber: "177", statusNoteOverride: "معروضة للبحث، لا للتصنيف" },
   ],
   // Commit 41: hadd-primary concept — fires when all five preconditions stated.
@@ -892,6 +899,10 @@ export const DISCUSS_CONCEPT_TO_ARTICLES: Record<string, ConceptArticleEntry[]> 
   "أمانة:مدني": [
     { lawSlug: "criminal-law-1991", articleNumber: "177", statusNoteOverride: "معروضة للبحث، لا للتصنيف" },
   ],
+  // Commit 50: mere non-return examine card → Art. 177 research-only.
+  "أمانة:فحص": [
+    { lawSlug: "criminal-law-1991", articleNumber: "177", statusNoteOverride: "معروضة للبحث، لا للتصنيف" },
+  ],
   // Commit 48: cheque dishonour open-point cards → Art. 179 research-only.
   "صك:فحص:رصيد": [
     { lawSlug: "criminal-law-1991", articleNumber: "179", statusNoteOverride: "معروضة للبحث، لا للتصنيف" },
@@ -942,6 +953,7 @@ const DISCUSS_CONCEPT_LABEL: Record<string, string> = {
   "رضا:فحص":      "فحص الرضا والإكراه — نقطة مفتوحة للمحامي",
   "فاحشة:مراجعة": "مراجعة الوصف بين المادتين ١٥١ و١٥٢ — نقطة مفتوحة للمحامي",
   "أمانة:مدني": "خيانة الأمانة أم نزاع تعاقدي — نقطة مفتوحة للمحامي",
+  "أمانة:فحص": "عدم ردّ مال مسلَّم لغرض محدد — فحص عناصر خيانة الأمانة",
   "صك:فحص:رصيد": "صك مردود بسبب الرصيد — فحص العلم",
   "صك:فحص:سبب":  "صك مردود بأمر وقف الصرف — فحص السبب المعقول",
   "تزوير:فحص":   "إكمال محرر أو تغيير مضمونه مع نزاع على الإذن — فحص قانوني",
@@ -981,6 +993,7 @@ const DISCUSS_CONCEPT_DESC: Record<string, string> = {
   "رضا:فحص": "يجب التحقق من توافر الرضا الحر المعتبر قانوناً وقت الفعل، ومن أثر التهديد أو الإكراه أو غيرهما من الظروف المؤثرة فيه. ولا يُفترض الرضا من مجرد وجود علاقة سابقة أو دخول المكان طوعاً، كما لا يُشترط إثبات مقاومة جسدية لإثبات انعدام الرضا. يُبحث الوصف القانوني وفق النص النافذ والأدلة المتاحة، ويظل الفصل في الوقائع للمحكمة.",
   "فاحشة:مراجعة": "ليست هذه تصنيفاً نهائياً. عُرضت المادة ١٥١ مبدئياً لأن الوقائع تذكر فعلاً مخلاً بالحياء واقعاً على شخص معيّن؛ ووقوعه في مكان عام أو بغير رضا المجني عليه ظرف مشدِّد داخل المادة ١٥١(٢) لا ناقل إلى المادة ١٥٢. تُعرض المادة ١٥٢ للمراجعة لأنها تتعلق بالفعل الفاضح الذي يسبب مضايقة للشعور العام، ولأن حالتها القانونية متنازع فيها بعد تعديل ٢٠٢٠. التحقق من ذلك مهمة المحامي، والفصل فيه للمحكمة.",
   "أمانة:مدني": "ليست هذه تصنيفاً ولا تقريراً بقيام جريمة. تذكر الوقائع تسليم مال أو شيء لغرض محدد، وعدم رده أو التصرف فيه. تُبحث خيانة الأمانة وفق المادة ١٧٧ إذا ثبت أن المال سُلّم على سبيل الائتمان، وأن المستلم تصرف فيه بسوء قصد بالمخالفة للغرض الذي سُلّم من أجله، أو أنكر استلامه في ظروف قد تدل على الاستيلاء عليه. أما إذا هلك المال أو خسر أثناء تنفيذ الاتفاق دون تصرف مخالف أو قصد جنائي، فقد يكون النزاع تعاقدياً مدنياً، ولا يكفي مجرد عدم الرد لإثبات خيانة الأمانة. الفاصل ليس عدم الرد وحده، بل طبيعة التسليم، وحدود التصرف المأذون به، وتوافر القصد الجنائي. والتحقق من ذلك مهمة المحامي، والفصل فيه للمحكمة.",
+  "أمانة:فحص": "ليست هذه تصنيفاً ولا تقريراً بقيام جريمة. تذكر الوقائع تسليم مال أو شيء لغرض محدد وعدم ردّه، دون بيان كافٍ لمصيره أو سبب عدم الرد. ومجرد عدم الرد لا يحسم توافر عناصر المادة ١٧٧. يُفحص أساس الائتمان، وحدود الإذن، وأدلة التسليم، وما آل إليه المال، وظروف الامتناع، وما إذا كانت الوقائع تدل على إحدى الصور الواردة في المادة، والقصد أو الإهمال بحسب الصورة محل البحث. ويُراجع تفسير المستلم في ضوء سائر الأدلة؛ فلا يُفترض سوء القصد من عدم الرد وحده، ولا تُستبعد الجريمة لمجرد غموض مصير المال. هذه بطاقة فحص؛ وفحص الأدلة للمحامي، وتقدير ثبوتها والفصل للمحكمة.",
   "تزوير:فحص": "ليست هذه تصنيفاً ولا تقريراً بقيام جريمة. تذكر الوقائع إكمال محرر أو تغيير مضمونه، مع خلاف حول وجود الإذن أو حدوده. يُبحث مدى انطباق المادة ١٢٢، والعقوبة الواردة بالمادة ١٢٣، بعد التحقق من طبيعة التغيير وجوهريته، وقصد الغش، والغرض من استخدام المحرر لترتيب آثار قانونية. ولا يكفي مجرد تجاوز الإذن لإثبات هذه العناصر.\n\nوتُبحث المادة ١٧٧ بحثاً مشروطاً إذا دلّت الوقائع على ائتمان على حيازة مال أو إدارته وفعل قد يندرج ضمن الأفعال التي يجرّمها النص؛ ولا يُفترض ذلك من مجرد تسليم المحرر أو النزاع على إكماله.\n\nفيُفحص: أصل المحرر، ونطاق الإذن وأدلته، والبيانات التي أُضيفت أو غُيّرت، وتوقيت ذلك، وغرض استخدامه، وتصرفات الأطراف بعده. صحة التوقيع لا تحسم صحة البيانات المضافة، والخلاف حول إذن شفوي لا يثبت الجريمة ولا ينفيها. هذه بطاقة فحص، والتحقق مهمة المحامي، والفصل للمحكمة.",
   "تزوير:موظف": "ليست هذه تصنيفاً ولا تقريراً بقيام جريمة. تتضمن الوقائع ادعاءً بأن موظفاً عاماً أو مكلفاً بخدمة عامة دوّن عند تحرير مستند وقائع غير صحيحة أو أغفل إثبات وقائع حقيقية. تُعرض المادة ١٢٤ للبحث في صفة الشخص، وصلته بتحرير المستند، وحقيقة الوقائع المدونة أو المغفلة، وعلمه بعدم صحتها أو بإغفالها. ولا يُستخلص العلم من مجرد الصفة الوظيفية أو وجود خطأ في المستند، ولا يُنفى بمجرد إنكار الشخص. هذه بطاقة فحص؛ والتحقق من الأدلة للمحامي، والفصل للمحكمة.",
   "صك:فحص:رصيد": "ليست هذه تصنيفاً ولا تقريراً بقيام جريمة. تذكر الوقائع صكاً مصرفياً رُدّ بسبب عدم كفاية الرصيد أو عدم قابليته للسحب. ويقتضي بحث المادة ١٧٩(١)(ب) فحص علم الساحب بحالة الرصيد، إلى جانب سائر عناصر الجريمة. فيُراجع سبب الرد المثبت لدى المصرف، وتواريخ تحرير الصك وتسليمه والتاريخ المثبت عليه وتقديمه للصرف، وحركة الحساب والقيود على السحب، وما يثبت علم الساحب بها أو يناقضه. ولا يتعامل المحرك مع مجرد الرد باعتباره إثباتاً حاسماً للعلم، ولا مع قول الساحب إن الرصيد كان موجوداً باعتباره نفياً حاسماً له. هذه بطاقة فحص، والتحقق من الوقائع مهمة المحامي، وتقدير الأدلة والفصل فيها للمحكمة.",
@@ -2831,7 +2844,8 @@ export async function analyzeCase(
       discussConcepts = [...discussConcepts, "فاحشة:مراجعة"];
     }
 
-    // Commit 46: خيانة الأمانة (LLM direct) + contractual-defence marker → also add card
+    // Commit 46: خيانة الأمانة (LLM direct) + contractual-defence marker → swap to research-only + add card.
+    // Swapping criminalTerms ensures 177 always carries statusNoteOverride regardless of LLM type.
     if (
       llmResult.type === "criminal" &&
       discussConcepts !== undefined &&
@@ -2839,7 +2853,26 @@ export async function analyzeCase(
       !discussConcepts.includes("أمانة:مدني") &&
       factsMatchContractualDefence(input.facts)
     ) {
+      criminalTerms = [{ term: "أمانة:مدني", origin: "expanded" as const }];
       discussConcepts = [...discussConcepts, "أمانة:مدني"];
+    }
+
+    // Commit 50 block (A): خيانة الأمانة + entrustment + mere non-return → swap to research-only.
+    // Fires only when no disposal act and no supported denial; bare denial or no denial both qualify.
+    // Contractual-defence card (أمانة:مدني) already says mere non-return is insufficient, so skip.
+    if (
+      llmResult.type === "criminal" &&
+      discussConcepts !== undefined &&
+      (llmResult.concept === "خيانة الأمانة" || criminalTerms[0]?.term === "خيانة الأمانة") &&
+      factsMatchTrustNonReturn(input.facts) &&
+      !factsMatchTrustDisposal(input.facts) &&
+      factsMatchTrustDenial(input.facts) !== "supported" &&
+      !discussConcepts.includes("أمانة:مدني")
+    ) {
+      criminalTerms = [{ term: "أمانة:فحص", origin: "expanded" as const }];
+      if (!discussConcepts.includes("أمانة:فحص")) {
+        discussConcepts = [...discussConcepts, "أمانة:فحص"];
+      }
     }
 
     // Commit 48 block (A): صك مردود primary + dishonour detector → swap to research-only card.
