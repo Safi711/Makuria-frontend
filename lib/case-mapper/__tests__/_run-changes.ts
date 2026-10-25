@@ -22,6 +22,9 @@ const supabase = createClient(
 const RUNS = 3;
 const NEGATE_KILL_APPEND_FRAGMENT = "ورد في الوقائع نفيٌ لقصد القتل";
 
+interface PrimaryNoteCheck { articleNumber: string; noteStartsWith: string | null; }
+interface DiscussNoteCheck { concept: string; articleNumber: string; noteStartsWith: string; }
+
 interface Case {
   id: string;
   facts: string;
@@ -31,6 +34,8 @@ interface Case {
   mustIncludeCardKeys?: string[];      // all must appear in got (subset); ignored when reportOnly
   mustNotIncludeCardKeys?: string[];   // none may appear in got; ignored when reportOnly
   expectedDescNote: "yes" | "no" | null; // null = don't check
+  primaryNoteChecks?: PrimaryNoteCheck[];     // null noteStartsWith → must be null; string → must start with
+  discussArticleNoteChecks?: DiscussNoteCheck[];
   reportOnly?: boolean;
   note: string;
 }
@@ -689,8 +694,9 @@ const CASES: Case[] = [
     expectedLaws: ["177"],
     expectedCardCount: 0,
     expectedCardKeys: [],
+    primaryNoteChecks: [{ articleNumber: "177", noteStartsWith: null }],
     expectedDescNote: null,
-    note: "B14-133: خيانة أمانة → [177], 0 cards.",
+    note: "B14-133: خيانة أمانة → [177], 0 cards. 177 is ordinary primary — statusNote must be null.",
   },
 
   // R64: B14-132 verbatim — احتيال → Art. 178 (unchanged)
@@ -712,8 +718,9 @@ const CASES: Case[] = [
     expectedLaws: ["177"],
     expectedCardCount: 0,
     expectedCardKeys: [],
+    primaryNoteChecks: [{ articleNumber: "177", noteStartsWith: null }],
     expectedDescNote: null,
-    note: "B14-139: خيانة أمانة → [177], 0 cards.",
+    note: "B14-139: خيانة أمانة → [177], 0 cards. 177 is ordinary primary — statusNote must be null.",
   },
 
   // ══ COMMIT 46 — breach-of-trust civil/abstain fallback ════════════════════
@@ -725,8 +732,9 @@ const CASES: Case[] = [
     expectedLaws: ["177"],
     expectedCardCount: 1,
     expectedCardKeys: ["أمانة:مدني"],
+    primaryNoteChecks: [{ articleNumber: "177", noteStartsWith: "معروضة للبحث، لا للتصنيف" }],
     expectedDescNote: null,
-    note: "Commit 46: lawyer fact — entrustment + contractual-defence → [177] + card [أمانة:مدني]; passes for civil/abstain/خيانة الأمانة LLM outputs.",
+    note: "Commit 46: lawyer fact — entrustment + contractual-defence → [177] + card [أمانة:مدني]; 177 is research-only primary — statusNote must start with override.",
   },
 
   // R67: B14-133 verbatim — خيانة أمانة (LLM direct), no contractual-defence marker → [177], 0 cards
@@ -737,8 +745,9 @@ const CASES: Case[] = [
     expectedCardCount: 0,
     expectedCardKeys: [],
     mustNotIncludeCardKeys: ["أمانة:مدني"],
+    primaryNoteChecks: [{ articleNumber: "177", noteStartsWith: null }],
     expectedDescNote: null,
-    note: "B14-133 verbatim: خيانة أمانة (LLM direct), no contractual-defence → [177], 0 cards.",
+    note: "B14-133 verbatim: خيانة أمانة (LLM direct), no contractual-defence → [177], 0 cards. 177 ordinary — statusNote must be null.",
   },
 
   // R68: E1 verbatim — ordinary bank deposit → no entrustment gate, no 177, no card
@@ -776,8 +785,9 @@ const CASES: Case[] = [
     expectedCardKeys: null,
     mustIncludeCardKeys: ["صك:فحص:رصيد"],
     mustNotIncludeCardKeys: ["صك:فحص:سبب"],
+    primaryNoteChecks: [{ articleNumber: "179", noteStartsWith: "معروضة للبحث، لا للتصنيف" }],
     expectedDescNote: null,
-    note: "B15-144: balance dishonour + balance claim → [179 research-only] + card [صك:فحص:رصيد].",
+    note: "B15-144: balance dishonour + balance claim → [179 research-only] + card [صك:فحص:رصيد]. 179 statusNote must carry override.",
   },
 
   // R71: B15-146 — stop dishonour + stop cause → 179 research-only + صك:فحص:سبب card
@@ -789,8 +799,9 @@ const CASES: Case[] = [
     expectedCardKeys: null,
     mustIncludeCardKeys: ["صك:فحص:سبب"],
     mustNotIncludeCardKeys: ["صك:فحص:رصيد"],
+    primaryNoteChecks: [{ articleNumber: "179", noteStartsWith: "معروضة للبحث، لا للتصنيف" }],
     expectedDescNote: null,
-    note: "B15-146: stop dishonour + stop cause → [179 research-only] + card [صك:فحص:سبب].",
+    note: "B15-146: stop dishonour + stop cause → [179 research-only] + card [صك:فحص:سبب]. 179 statusNote must carry override.",
   },
 
   // R72: stop order but cheque not presented → no صك:فحص:* card (reportOnly on laws)
@@ -817,8 +828,7 @@ const CASES: Case[] = [
     note: "case 4: negated return → no cheque card.",
   },
 
-  // R74: balance dishonour but no claim (drawer knew) → no card; reportOnly on laws
-  // (statusNote on 179, if it appears, must NOT be the research-only override — manual check)
+  // R74: balance dishonour but no claim (drawer knew) → no card; if 179 appears statusNote must be null
   {
     id: "R74",
     facts: "ارتد الشيك لعدم كفاية الرصيد، وكان الساحب يعلم أن حسابه فارغ منذ شهر.",
@@ -826,8 +836,9 @@ const CASES: Case[] = [
     expectedCardCount: null,
     expectedCardKeys: null,
     mustNotIncludeCardKeys: ["صك:فحص:رصيد", "صك:فحص:سبب"],
+    primaryNoteChecks: [{ articleNumber: "179", noteStartsWith: null }],
     expectedDescNote: null,
-    note: "case 8: balance + no claim → no card; if 179 appears its statusNote must NOT be research-only (manual check).",
+    note: "case 8: balance + no claim → no card; if 179 appears its statusNote must be null (not research-only).",
   },
 
   // R75: non-withdrawable balance + denied knowledge → 179 research-only + صك:فحص:رصيد card
@@ -839,8 +850,9 @@ const CASES: Case[] = [
     expectedCardKeys: null,
     mustIncludeCardKeys: ["صك:فحص:رصيد"],
     mustNotIncludeCardKeys: ["صك:فحص:سبب"],
+    primaryNoteChecks: [{ articleNumber: "179", noteStartsWith: "معروضة للبحث، لا للتصنيف" }],
     expectedDescNote: null,
-    note: "case 6: non-withdrawable balance + denied knowledge → [179 research-only] + card [صك:فحص:رصيد].",
+    note: "case 6: non-withdrawable balance + denied knowledge → [179 research-only] + card [صك:فحص:رصيد]. 179 statusNote must carry override.",
   },
 
   // ── Commit 49: forgery gate (Arts. 122/123) and public-official false-entry (Art. 124) ──
@@ -854,8 +866,12 @@ const CASES: Case[] = [
     expectedCardKeys: null,
     mustIncludeCardKeys: ["تزوير:فحص"],
     mustNotIncludeCardKeys: ["صك:فحص:رصيد", "صك:فحص:سبب"],
+    primaryNoteChecks: [
+      { articleNumber: "122", noteStartsWith: "معروضة للبحث، لا للتصنيف" },
+      { articleNumber: "123", noteStartsWith: "معروضة للبحث، لا للتصنيف" },
+    ],
     expectedDescNote: null,
-    note: "case 1: alt gate fires → block A swaps to تزوير:فحص → laws [122, 123] research-only, card تزوير:فحص, no 124.",
+    note: "case 1: alt gate fires → block A swaps to تزوير:فحص → laws [122, 123] research-only, statusNote must carry override.",
   },
 
   // R77: authorised fill, no dispute → alt gate does NOT fire, no forgery card
@@ -867,8 +883,12 @@ const CASES: Case[] = [
     expectedCardKeys: null,
     mustIncludeCardKeys: null,
     mustNotIncludeCardKeys: ["تزوير:فحص", "تزوير:موظف"],
+    primaryNoteChecks: [
+      { articleNumber: "122", noteStartsWith: null },
+      { articleNumber: "123", noteStartsWith: null },
+    ],
     expectedDescNote: null,
-    note: "authorised fill, no auth dispute → alt=false, no تزوير:فحص card.",
+    note: "authorised fill, no auth dispute → alt=false, no تزوير:فحص card. If 122/123 appear as ordinary, statusNote must be null.",
   },
 
   // R78: public official omits a true fact intentionally → تزوير:موظف card
@@ -946,8 +966,12 @@ const CASES: Case[] = [
     expectedCardKeys: null,
     mustIncludeCardKeys: ["تزوير:فحص"],
     mustNotIncludeCardKeys: null,
+    discussArticleNoteChecks: [
+      { concept: "تزوير:فحص", articleNumber: "122", noteStartsWith: "معروضة للبحث، لا للتصنيف" },
+      { concept: "تزوير:فحص", articleNumber: "123", noteStartsWith: "معروضة للبحث، لا للتصنيف" },
+    ],
     expectedDescNote: null,
-    note: "R83: civil LLM + alt=true → civil text-search kept + تزوير:فحص card (Arts. 122+123 research-only) attached (Addendum 3).",
+    note: "R83: civil LLM + alt=true → civil text-search kept + تزوير:فحص card (Arts. 122+123 research-only). Discuss article statusNotes must carry override.",
   },
 ];
 
@@ -957,6 +981,8 @@ interface RunResult {
   cardCount: number;
   cardKeys: string[];
   descNote: boolean; // whether the نفي-append line appears in قتل:وصف description
+  primaryNotes: Record<string, string | null>;
+  discussArticleNotes: Record<string, Record<string, string | null>>;
 }
 
 async function runOnce(facts: string): Promise<RunResult> {
@@ -964,12 +990,26 @@ async function runOnce(facts: string): Promise<RunResult> {
   const laws = r.laws.map((l) => l.articleNumber ?? "?");
   const cards = r.discuss ?? [];
   const qatlCard = cards.find((d: any) => d.concept === "قتل:وصف");
+  const primaryNotes: Record<string, string | null> = {};
+  for (const l of r.laws) {
+    primaryNotes[l.articleNumber ?? "?"] = (l as any).statusNote ?? null;
+  }
+  const discussArticleNotes: Record<string, Record<string, string | null>> = {};
+  for (const card of cards) {
+    const key = (card as any).concept ?? "?";
+    discussArticleNotes[key] = {};
+    for (const art of ((card as any).articles ?? [])) {
+      discussArticleNotes[key][(art as any).articleNumber ?? "?"] = (art as any).statusNote ?? null;
+    }
+  }
   return {
     rawConcept: (r as any)._debug?.llmConcept ?? "—",
     laws,
     cardCount: cards.length,
     cardKeys: cards.map((d: any) => d.concept ?? "?"),
     descNote: Boolean(qatlCard?.negationNote?.includes(NEGATE_KILL_APPEND_FRAGMENT)),
+    primaryNotes,
+    discussArticleNotes,
   };
 }
 
@@ -1036,6 +1076,31 @@ async function main() {
         if (r0.descNote !== wantDesc) {
           ok = false;
           failReasons.push(`desc-note: expected ${c.expectedDescNote} got ${r0.descNote ? "yes" : "no"}`);
+        }
+      }
+      if (c.primaryNoteChecks) {
+        for (const check of c.primaryNoteChecks) {
+          const got = r0.primaryNotes[check.articleNumber] ?? null;
+          if (check.noteStartsWith === null) {
+            if (got !== null) {
+              ok = false;
+              failReasons.push(`primaryNote[${check.articleNumber}]: expected null, got "${got}"`);
+            }
+          } else {
+            if (!got?.startsWith(check.noteStartsWith)) {
+              ok = false;
+              failReasons.push(`primaryNote[${check.articleNumber}]: expected starts-with "${check.noteStartsWith}", got "${got ?? "null"}"`);
+            }
+          }
+        }
+      }
+      if (c.discussArticleNoteChecks) {
+        for (const check of c.discussArticleNoteChecks) {
+          const got = r0.discussArticleNotes[check.concept]?.[check.articleNumber] ?? null;
+          if (!got?.startsWith(check.noteStartsWith)) {
+            ok = false;
+            failReasons.push(`discussNote[${check.concept}/${check.articleNumber}]: expected starts-with "${check.noteStartsWith}", got "${got ?? "null"}"`);
+          }
         }
       }
       if (!lawsConsist)  failReasons.push(`INCONSISTENT laws`);
