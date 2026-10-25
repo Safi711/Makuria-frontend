@@ -1940,7 +1940,14 @@ async function analyzeCriminalConceptMap(
     const existing = authorityMap.get(article.id);
     if (existing) {
       addTerm(existing.matchedTerms, entry.conceptTerm);
+      if (entry.statusNoteOverride != null) {
+        const dbNote = article.status_note_ar ?? null;
+        existing.statusNote = dbNote
+          ? `${entry.statusNoteOverride} — ${dbNote}`
+          : entry.statusNoteOverride;
+      }
     } else {
+      const _dbNote = article.status_note_ar ?? null;
       authorityMap.set(article.id, {
         id: article.id,
         type: "article",
@@ -1954,7 +1961,9 @@ async function analyzeCriminalConceptMap(
         sourceUrl: parentLaw.source_url ?? null,
         force: forceFromLawStatus(parentLaw.status),
         legalStatus: article.legal_status ?? null,
-        statusNote: article.status_note_ar ?? null,
+        statusNote: entry.statusNoteOverride != null
+          ? (_dbNote ? `${entry.statusNoteOverride} — ${_dbNote}` : entry.statusNoteOverride)
+          : _dbNote,
         matchedTerms: [entry.conceptTerm],
         rank: 100,
         inScope: true,

@@ -893,7 +893,6 @@ export async function AdvisorPage({
                     key={law.id}
                     locale={locale}
                     law={law}
-                    matchedTermsOverride="معروضة للبحث، لا للتصنيف"
                   />
                 ))}
               </ul>
