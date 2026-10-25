@@ -852,8 +852,8 @@ export const DISCUSS_CONCEPT_TO_ARTICLES: Record<string, ConceptArticleEntry[]> 
   ],
   // Commit 39: participation — Arts. 21 (criminal participation) and 22 (accessory).
   "اشتراك:فحص": [
-    { lawSlug: "criminal-law-1991", articleNumber: "21" },
-    { lawSlug: "criminal-law-1991", articleNumber: "22" },
+    { lawSlug: "criminal-law-1991", articleNumber: "21", statusNoteOverride: "معروضة للبحث، لا للتصنيف" },
+    { lawSlug: "criminal-law-1991", articleNumber: "22", statusNoteOverride: "معروضة للبحث، لا للتصنيف" },
   ],
   // Commit 40: negligence / causation open point for قتل خطأ — Art. 16 (accident) + Art. 132.
   "إهمال:فحص:قتل": [
