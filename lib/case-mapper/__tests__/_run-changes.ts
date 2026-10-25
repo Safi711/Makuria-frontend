@@ -1045,6 +1045,25 @@ const CASES: Case[] = [
     reportOnly: true,
     note: "T7 (Commit 50): gross-negligence gap — disposal=false; factsMatchEntrustment likely false (ليبيعها not a purpose KW). Report what the engine returns.",
   },
+
+  // R89: B13-122 verbatim — participation discuss articles 21/22 carry research-only note;
+  //       177 research-only primary; 122/123 absent from primary laws.
+  {
+    id: "R89",
+    facts: "سلّم صاحب المحل بضاعةً بالأمانة إلى شخص وشريكه لبيعها ورد ثمنها إليه في أجل محدد، غير أنهما لم يردا الثمن ولم يعيدا البضاعة عند المطالبة.",
+    expectedLaws: ["177"],
+    expectedCardCount: null,
+    expectedCardKeys: null,
+    mustIncludeCardKeys: ["اشتراك:فحص", "أمانة:فحص"],
+    mustNotIncludeCardKeys: null,
+    expectedDescNote: null,
+    primaryNoteChecks: [{ articleNumber: "177", noteStartsWith: "معروضة للبحث، لا للتصنيف" }],
+    discussArticleNoteChecks: [
+      { concept: "اشتراك:فحص", articleNumber: "21", noteStartsWith: "معروضة للبحث، لا للتصنيف" },
+      { concept: "اشتراك:فحص", articleNumber: "22", noteStartsWith: "معروضة للبحث، لا للتصنيف" },
+    ],
+    note: "B13-122 (Commit 51): participation discuss articles 21/22 now research-only; 177 primary research-only; 122/123 absent.",
+  },
 ];
 
 interface RunResult {
