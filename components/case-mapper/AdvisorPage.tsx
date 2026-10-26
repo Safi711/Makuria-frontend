@@ -565,6 +565,7 @@ function ClarificationPanel({
   if (!groups.length) return null;
 
   const ar = locale === "ar";
+  const panelTitle = ar ? "أسئلة لاستكمال الوقائع" : "Questions to complete the facts";
   let n = 0;
   return (
     <section
@@ -579,7 +580,7 @@ function ClarificationPanel({
     >
       <CardTag>{ar ? "أسئلة استيضاحية" : "Clarifying questions"}</CardTag>
       <h2 id="clarify-title" className="mb-2 text-base font-semibold sm:text-lg">
-        {ar ? "أسئلة لاستكمال الوقائع" : "Questions to complete the facts"}
+        {panelTitle}
       </h2>
       <Muted className="mb-5">
         {ar
@@ -596,11 +597,16 @@ function ClarificationPanel({
             <input key={k} type="hidden" name={k} value={v} />
           ))}
 
+        {/* Plain elements, not <fieldset>/<legend>: Safari draws the legend
+            inside a fieldset with its own box and position, which showed as
+            an empty field above the first question. */}
         {groups.map((g) => (
-          <fieldset key={g.key} className="space-y-3">
-            <legend className="mb-1 text-sm font-semibold" style={{ color: "var(--cm-text-2)" }}>
-              {g.titleAr}
-            </legend>
+          <div key={g.key} role="group" aria-labelledby={`grp-${g.key}`} className="space-y-3">
+            {g.titleAr !== panelTitle && (
+              <p id={`grp-${g.key}`} className="mb-1 text-sm font-semibold" style={{ color: "var(--cm-text-2)" }}>
+                {g.titleAr}
+              </p>
+            )}
             {g.questions.map((q) => {
               const id = `ca-${n++}`;
               return (
@@ -624,7 +630,7 @@ function ClarificationPanel({
                 </div>
               );
             })}
-          </fieldset>
+          </div>
         ))}
 
         <button
