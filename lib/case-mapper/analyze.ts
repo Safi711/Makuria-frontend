@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { classifyWithLLM } from "./llm-classifier";
 import { classifyPrecedent, type PrecedentRelevance } from "./precedent-relevance";
 import conceptMapJson from "./precedent-concept-map.json";
+import { buildClarification, isTruncatedShort, type Clarification } from "./clarification";
 import {
   stripTashkeel,
   normalizeForKwMatch,
@@ -245,6 +246,9 @@ export type CaseMapResult = {
   relatedLaws?: string[];
   /** Breakdown of precedent relevance classification for cases returned. */
   precedentStats?: { direct: number; conditional: number; hidden: number; unindexed: number };
+  /** Clarifying questions for missing facts (spec-clarification-questions).
+   *  Fixed, lawyer-approved text; never changes the classification above. */
+  clarification?: Clarification;
 };
 
 const MAX_TERMS = 6;
@@ -1033,6 +1037,35 @@ const DISCUSS_CONCEPT_CONFLICT_LINE: Record<string, string> = {
 };
 
 const CARD_ONLY_CONCEPTS = new Set<string>(["قرار:مشروعية"]);
+
+/** PostgREST caps every response at 1,000 rows. Fetching all articles of
+ * several laws in one request silently drops everything past row 1,000
+ * once those laws together exceed it (e.g. civil-transactions-1984 alone
+ * has 819 articles). This reads the same rows page by page, in a stable
+ * order, until a short page signals the end. */
+const ARTICLE_PAGE_SIZE = 1000;
+const ARTICLE_COLUMNS =
+  "id, law_id, article_number, title_ar, content_ar, verified, status_note_ar, legal_status";
+
+async function fetchAllArticlesForLaws<T>(
+  supabase: SupabaseClient,
+  lawIds: string[],
+): Promise<T[]> {
+  if (!lawIds.length) return [];
+  const rows: T[] = [];
+  for (let from = 0; ; from += ARTICLE_PAGE_SIZE) {
+    const { data, error } = await supabase
+      .from("articles")
+      .select(ARTICLE_COLUMNS)
+      .in("law_id", lawIds)
+      .order("id", { ascending: true })
+      .range(from, from + ARTICLE_PAGE_SIZE - 1);
+    if (error || !data) break;
+    rows.push(...(data as T[]));
+    if (data.length < ARTICLE_PAGE_SIZE) break;
+  }
+  return rows;
+}
 
 /** Builds a DiscussItem for a civil-path research card by fetching all articles
  * listed in DISCUSS_CONCEPT_TO_ARTICLES[concept] from Supabase.
@@ -1943,12 +1976,7 @@ async function analyzeCriminalConceptMap(
     verified: boolean | null; status_note_ar: string | null;
     legal_status: string | null;
   };
-  const { data: articlesData } = lawIds.length
-    ? await supabase
-        .from("articles")
-        .select("id, law_id, article_number, title_ar, content_ar, verified, status_note_ar, legal_status")
-        .in("law_id", lawIds)
-    : { data: [] as ArticleRow[] };
+  const articlesData = await fetchAllArticlesForLaws<ArticleRow>(supabase, lawIds);
 
   const articleByPair = new Map<string, ArticleRow>(
     ((articlesData ?? []) as ArticleRow[]).map((a) => [
@@ -2032,11 +2060,13 @@ async function analyzeCriminalConceptMap(
         const extraLawIds = extraLawRows.map((l) => l.id);
         extraLawRows.forEach((l) => lawBySlug.set(l.slug, l));
         if (extraLawIds.length) {
-          const { data: extraArts } = await supabase
-            .from("articles")
-            .select("id, law_id, article_number, title_ar, content_ar, verified, status_note_ar, legal_status")
-            .in("law_id", extraLawIds);
-          for (const a of (extraArts ?? []) as Array<{
+          const extraArts = await fetchAllArticlesForLaws<{
+            id: string; law_id: string; article_number: string | null;
+            title_ar: string | null; content_ar: string | null;
+            verified: boolean | null; status_note_ar: string | null;
+            legal_status: string | null;
+          }>(supabase, extraLawIds);
+          for (const a of extraArts as Array<{
             id: string; law_id: string; article_number: string | null;
             title_ar: string | null; content_ar: string | null;
             verified: boolean | null; status_note_ar: string | null;
@@ -2309,7 +2339,34 @@ async function analyzeCriminalConceptMap(
 
 // Keyword gate lists and matcher functions live in ./kw-matcher.mjs (imported above).
 
+/** Public entry point: the analysis below, plus clarifying questions.
+ *
+ * A text that stops mid-word and is too short to describe anything
+ * («واحد سر…») is not sent to the classifier at all — a cut-off word is
+ * never completed into an offence (golden T28). Everything else is analysed
+ * exactly as before, and the questions are attached afterwards without
+ * touching laws, cases, principles or discuss cards. */
 export async function analyzeCase(
+  supabase: SupabaseClient,
+  input: CaseMapperInput
+): Promise<CaseMapResult> {
+  if (isTruncatedShort(input.facts)) {
+    const { excerpt, truncated } = buildFactsExcerpt(input.facts);
+    const empty: CaseMapResult = {
+      factsExcerpt: excerpt, factsIsTruncated: truncated,
+      caseTypeLens: null, inferredCaseType: null,
+      issues: [], laws: [], cases: [], principles: [],
+      outOfScopeCount: 0, noConfidentMatch: true, hasAnyResults: false,
+    };
+    const clarification = buildClarification(input.facts, empty);
+    return clarification ? { ...empty, clarification } : empty;
+  }
+  const result = await analyzeCaseCore(supabase, input);
+  const clarification = buildClarification(input.facts, result);
+  return clarification ? { ...result, clarification } : result;
+}
+
+async function analyzeCaseCore(
   supabase: SupabaseClient,
   input: CaseMapperInput
 ): Promise<CaseMapResult> {

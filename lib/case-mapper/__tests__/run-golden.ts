@@ -69,17 +69,7 @@ for (const t of tests) {
   const { id, category, input, expected } = t;
   const action: string = expected.action;
 
-  // ── Future feature: skip no_reliable_match_and_clarify only ─────────────
-  // classify_and_clarify (T21–T23) is now scored: passes if no criminal article returned.
-  if (expected.clarification_required && action === "no_reliable_match_and_clarify") {
-    futureFeatureIds.push(id);
-    outcomes.push({
-      id, category, action,
-      passed: null, label: "future feature", note: "clarification_required", sourceGap: false, laws0: "—",
-    });
-    console.log(`T${String(id).padStart(2,"0")} [SKIP ] future_feature    action=${action}`);
-    continue;
-  }
+  // Clarification cases (T21–T23, T26–T28) are scored since Commit 54.
 
   let result: CaseMapResult;
   try {
@@ -153,27 +143,38 @@ for (const t of tests) {
     }
 
   // ── action = "classify_and_clarify" ──────────────────────────────────────
-  // Requires correct classification AND a clarification prompt. The prompt is
-  // not yet implemented, so this always fails until the clarification feature
-  // exists — even when classification is correct.
+  // Passes when no criminal article is returned AND the result carries an
+  // administrative or constitutional clarification (Commit 54).
   } else if (action === "classify_and_clarify") {
-    passed = false;
-    label = "missing feature: clarification";
-    const lawsBrief = result.laws.slice(0, 3)
-      .map((l) => `${l.lawTitle ?? l.lawSlug}/${l.articleNumber}`)
-      .join(", ");
-    note = result.noConfidentMatch
-      ? `abstained (no match); clarification prompt missing`
-      : `laws=[${lawsBrief || "—"}]; clarification prompt missing`;
-    missingFeatureClarifyIds.push(id);
+    const criminalHit = result.laws.find((l) => l.lawSlug && CRIMINAL_SLUGS.has(l.lawSlug));
+    const reason = result.clarification?.reason;
+    const domainOk = reason === "administrative" || reason === "constitutional";
+    passed = !criminalHit && domainOk;
+    if (!passed) {
+      label = criminalHit ? "concept map gap" : "missing feature: clarification";
+      note = criminalHit
+        ? `criminal article returned: ${criminalHit.lawSlug}/${criminalHit.articleNumber}`
+        : `clarification=${reason ?? "none"} (want administrative|constitutional)`;
+      if (criminalHit) conceptMapGapIds.push(id); else missingFeatureClarifyIds.push(id);
+    } else {
+      note = `clarification=${reason}`;
+    }
 
   // ── action = "no_reliable_match" | "no_reliable_match_and_clarify" ─────
   } else if (
     action === "no_reliable_match" ||
     action === "no_reliable_match_and_clarify"
   ) {
-    passed = result.noConfidentMatch && !result.hasAnyResults;
-    if (!passed) {
+    const reason = result.clarification?.reason;
+    const needsClarify = action === "no_reliable_match_and_clarify";
+    const clarifyOk = !needsClarify || reason === "ambiguous" || reason === "truncated";
+    passed = result.noConfidentMatch && !result.hasAnyResults && clarifyOk;
+    if (passed && needsClarify) note = `clarification=${reason}`;
+    if (result.noConfidentMatch && !result.hasAnyResults && !clarifyOk) {
+      label = "missing feature: clarification";
+      note  = `clarification=${reason ?? "none"} (want ambiguous|truncated)`;
+      missingFeatureClarifyIds.push(id);
+    } else if (!passed) {
       label = "concept map gap";
       note  = result.hasAnyResults
         ? `articles returned: ${result.laws.length} laws, rank-1=${laws0}`
