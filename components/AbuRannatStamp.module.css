@@ -1,12 +1,25 @@
-.wrap { direction: rtl; display: flex; flex-direction: column; align-items: flex-start; gap: 6px; margin-top: 16px; }
+.wrap { direction: rtl; display: flex; flex-direction: column; align-items: flex-start; gap: 6px; margin-top: 16px; scroll-margin: 120px; }
 .stage { position: relative; width: 120px; height: 120px; }
+
+/* Resting state: hidden, lifted and turned — waiting for .play */
 .stamp { position: absolute; inset: 0; width: 120px; height: 120px; opacity: 0;
-  transform: scale(2.6) rotate(-22deg);
-  animation: hit .55s cubic-bezier(.2,.9,.3,1.2) forwards; }
-.ring { position: absolute; inset: 0; border-radius: 50%; border: 2px solid #E3C06A; opacity: 0;
-  animation: ripple .7s ease-out .33s forwards; }
-.done { margin: 4px 0 0; color: #E3C06A; font-size: 15px; opacity: 0; animation: fade .4s ease-out .6s forwards; }
+  transform: scale(2.6) rotate(-22deg); }
+.ring { position: absolute; inset: 0; border-radius: 50%; border: 2px solid #E3C06A; opacity: 0; }
+.done { display: flex; align-items: center; gap: 8px; margin: 4px 0 0; color: #E3C06A; font-size: 15px; opacity: 0; }
 .note { margin: 0; color: #9FB0CC; font-size: 12px; }
+
+.check { flex-shrink: 0; }
+.checkCircle { fill: none; stroke: #E3C06A; stroke-width: 1.6; stroke-dasharray: 66; stroke-dashoffset: 66; }
+.checkMark { fill: none; stroke: #E3C06A; stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round;
+  stroke-dasharray: 16; stroke-dashoffset: 16; }
+
+/* The seal comes down, the ring ripples, then the ✓ is drawn */
+.play .stamp { animation: hit .55s cubic-bezier(.2,.9,.3,1.2) forwards; }
+.play .ring { animation: ripple .7s ease-out .33s forwards; }
+.play .done { animation: fade .3s ease-out .6s forwards; }
+.play .checkCircle { animation: draw .45s ease-out .7s forwards; }
+.play .checkMark { animation: draw .3s ease-out 1.05s forwards; }
+
 @keyframes hit {
   0% { opacity: 0; transform: scale(2.6) rotate(-22deg); }
   60% { opacity: 1; transform: scale(.92) rotate(-8deg); }
@@ -15,8 +28,11 @@
 }
 @keyframes ripple { 0% { opacity: .8; transform: scale(1); } 100% { opacity: 0; transform: scale(1.7); } }
 @keyframes fade { to { opacity: 1; } }
+@keyframes draw { to { stroke-dashoffset: 0; } }
+
 @media (prefers-reduced-motion: reduce) {
-  .stamp { animation: none; opacity: 1; transform: rotate(-9deg); }
-  .ring { animation: none; display: none; }
-  .done { animation: none; opacity: 1; }
+  .stamp, .play .stamp { animation: none; opacity: 1; transform: rotate(-9deg); }
+  .ring, .play .ring { animation: none; display: none; }
+  .done, .play .done { animation: none; opacity: 1; }
+  .checkCircle, .checkMark, .play .checkCircle, .play .checkMark { animation: none; stroke-dashoffset: 0; }
 }
