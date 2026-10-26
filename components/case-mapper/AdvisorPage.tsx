@@ -8,6 +8,12 @@ import { sourceNameAr } from "@/lib/site";
 import { AbuRannatSeal } from "@/components/case-mapper/AbuRannatSeal";
 import AbuRannatStamp from "@/components/AbuRannatStamp";
 import { analyzeCase } from "@/lib/case-mapper/analyze";
+import {
+  answeredQuestions,
+  appendClarificationAnswers,
+  MAX_ANSWER_CHARS,
+  type Clarification,
+} from "@/lib/case-mapper/clarification";
 import type {
   CaseMapResult,
   ForceStatus,
@@ -55,6 +61,11 @@ import type {
 function paramStr(v: string | string[] | undefined): string {
   if (Array.isArray(v)) return v[0] ?? "";
   return v ?? "";
+}
+
+function paramAll(v: string | string[] | undefined): string[] {
+  if (Array.isArray(v)) return v;
+  return v === undefined ? [] : [v];
 }
 
 /** Corpus status string that `LawStatusBadge` already labels in both locales.
@@ -526,6 +537,114 @@ function MethodCard({ locale, result }: { locale: Locale; result: CaseMapResult 
 
 /* -------------------------------------------------------------------- page */
 
+/** «أسئلة لاستكمال الوقائع» — the engine's clarifying questions as a form.
+ *
+ * A plain GET form, like the facts form above: no client JavaScript, and the
+ * re-analysed result stays a shareable link. Each question travels as a
+ * hidden `cq` beside its answer `ca`; AdvisorPage appends the answered pairs
+ * to the facts (appendClarificationAnswers) and analyses again. Questions
+ * already answered in these facts are not asked twice. The wording comes
+ * only from the approved bank in lib/case-mapper/clarification.ts. */
+function ClarificationPanel({
+  locale,
+  clarification,
+  facts,
+  basePath,
+  hidden,
+}: {
+  locale: Locale;
+  clarification: Clarification;
+  facts: string;
+  basePath: string;
+  hidden: Record<string, string>;
+}) {
+  const answered = answeredQuestions(facts);
+  const groups = clarification.groups
+    .map((g) => ({ ...g, questions: g.questions.filter((q) => !answered.has(q)) }))
+    .filter((g) => g.questions.length > 0);
+  if (!groups.length) return null;
+
+  const ar = locale === "ar";
+  const panelTitle = ar ? "أسئلة لاستكمال الوقائع" : "Questions to complete the facts";
+  let n = 0;
+  return (
+    <section
+      aria-labelledby="clarify-title"
+      className="mt-6 rounded-2xl border p-5 sm:p-6"
+      style={{
+        background: "var(--cm-surface)",
+        borderColor: "rgba(228,193,67,0.50)",
+        borderInlineStartColor: "var(--cm-gold)",
+        borderInlineStartWidth: "3px",
+      }}
+    >
+      <CardTag>{ar ? "أسئلة استيضاحية" : "Clarifying questions"}</CardTag>
+      <h2 id="clarify-title" className="mb-2 text-base font-semibold sm:text-lg">
+        {panelTitle}
+      </h2>
+      <Muted className="mb-5">
+        {ar
+          ? "أبو رنات لا يفترض ما لم يُذكر. أجب عمّا تعرفه فقط واترك الباقي فارغاً؛ تُضاف إجاباتك إلى الوقائع ويُعاد التحليل."
+          : "Abu Rannat does not assume what was not stated. Answer only what you know and leave the rest blank; your answers are added to the facts and the analysis runs again."}
+      </Muted>
+
+      <form action={basePath} method="get" className="space-y-5">
+        <input type="hidden" name="submitted" value="1" />
+        <input type="hidden" name="facts" value={facts} />
+        {Object.entries(hidden)
+          .filter(([, v]) => v)
+          .map(([k, v]) => (
+            <input key={k} type="hidden" name={k} value={v} />
+          ))}
+
+        {/* Plain elements, not <fieldset>/<legend>: Safari draws the legend
+            inside a fieldset with its own box and position, which showed as
+            an empty field above the first question. */}
+        {groups.map((g) => (
+          <div key={g.key} role="group" aria-labelledby={`grp-${g.key}`} className="space-y-3">
+            {g.titleAr !== panelTitle && (
+              <p id={`grp-${g.key}`} className="mb-1 text-sm font-semibold" style={{ color: "var(--cm-text-2)" }}>
+                {g.titleAr}
+              </p>
+            )}
+            {g.questions.map((q) => {
+              const id = `ca-${n++}`;
+              return (
+                <div key={q}>
+                  <label htmlFor={id} className="mb-1 block text-sm" style={{ color: "var(--cm-text)" }}>
+                    {q}
+                  </label>
+                  <input type="hidden" name="cq" value={q} />
+                  <textarea
+                    id={id}
+                    name="ca"
+                    rows={2}
+                    maxLength={MAX_ANSWER_CHARS}
+                    className="w-full rounded-lg border p-2.5 text-sm leading-relaxed outline-none focus:border-[var(--mk-gold)]"
+                    style={{
+                      background: "var(--cm-surface-2)",
+                      borderColor: "var(--cm-line-2)",
+                      color: "var(--cm-text)",
+                    }}
+                  />
+                </div>
+              );
+            })}
+          </div>
+        ))}
+
+        <button
+          type="submit"
+          className="rounded-xl px-6 py-2.5 text-sm font-bold"
+          style={{ background: "linear-gradient(180deg,#EACC82 0%,#DBB663 100%)", color: "#071226" }}
+        >
+          {ar ? "أعد التحليل بالإجابات" : "Analyse again with answers"}
+        </button>
+      </form>
+    </section>
+  );
+}
+
 export async function AdvisorPage({
   locale,
   searchParams,
@@ -539,7 +658,14 @@ export async function AdvisorPage({
   basePath: string;
 }) {
 
-  const facts = paramStr(searchParams.facts);
+  // Answers to clarifying questions arrive as paired cq/ca params and are
+  // appended to the facts before analysis (see ClarificationPanel).
+  const cq = paramAll(searchParams.cq);
+  const ca = paramAll(searchParams.ca);
+  const facts = appendClarificationAnswers(
+    paramStr(searchParams.facts),
+    cq.map((question, i) => ({ question, answer: ca[i] ?? "" })),
+  );
   const caseType = paramStr(searchParams.case_type);
   const court = paramStr(searchParams.court);
   const jurisdiction = paramStr(searchParams.jurisdiction);
@@ -567,6 +693,10 @@ export async function AdvisorPage({
   }
 
   const hasResult = Boolean(result);
+  // Vague or cut-off facts: the questions take the place of the
+  // «no confident match» notice. Otherwise they sit under the results.
+  const isNoMatchClarify =
+    result?.clarification?.reason === "ambiguous" || result?.clarification?.reason === "truncated";
 
   return (
     <div
@@ -754,7 +884,23 @@ export async function AdvisorPage({
           </p>
         )}
 
-        {result?.noConfidentMatch && (
+        {result?.clarification && isNoMatchClarify && (
+          <ClarificationPanel
+            locale={locale}
+            clarification={result.clarification}
+            facts={facts}
+            basePath={basePath}
+            hidden={{
+              case_type: caseType,
+              court,
+              jurisdiction,
+              incident_date: incidentDate,
+              keywords,
+            }}
+          />
+        )}
+
+        {result?.noConfidentMatch && !isNoMatchClarify && (
           <p
             className="mt-6 rounded-xl border px-4 py-3 text-sm leading-relaxed"
             style={{
@@ -905,6 +1051,22 @@ export async function AdvisorPage({
             </section>
           ))}
         </div>
+
+        {result?.clarification && !isNoMatchClarify && (
+          <ClarificationPanel
+            locale={locale}
+            clarification={result.clarification}
+            facts={facts}
+            basePath={basePath}
+            hidden={{
+              case_type: caseType,
+              court,
+              jurisdiction,
+              incident_date: incidentDate,
+              keywords,
+            }}
+          />
+        )}
 
         {result && !errored && result.hasAnyResults && <AbuRannatStamp />}
 

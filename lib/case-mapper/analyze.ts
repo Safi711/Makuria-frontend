@@ -2,7 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { classifyWithLLM } from "./llm-classifier";
 import { classifyPrecedent, type PrecedentRelevance } from "./precedent-relevance";
 import conceptMapJson from "./precedent-concept-map.json";
-import { buildClarification, isTruncatedShort, type Clarification } from "./clarification";
+import { buildClarification, factsForAnalysis, isTruncatedShort, type Clarification } from "./clarification";
 import {
   stripTashkeel,
   normalizeForKwMatch,
@@ -2350,6 +2350,9 @@ export async function analyzeCase(
   supabase: SupabaseClient,
   input: CaseMapperInput
 ): Promise<CaseMapResult> {
+  // Answers given to earlier questions are analysed as facts; the question
+  // wording itself never reaches the classifier (see factsForAnalysis).
+  input = { ...input, facts: factsForAnalysis(input.facts) };
   if (isTruncatedShort(input.facts)) {
     const { excerpt, truncated } = buildFactsExcerpt(input.facts);
     const empty: CaseMapResult = {

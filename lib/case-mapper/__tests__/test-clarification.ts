@@ -10,6 +10,11 @@ import {
   isTruncatedShort,
   questionSetForCard,
   QUESTION_SETS,
+  appendClarificationAnswers,
+  answeredQuestions,
+  factsForAnalysis,
+  ANSWERS_HEADING,
+  MAX_ANSWER_CHARS,
   type ClarificationInputResult,
 } from "../clarification";
 
@@ -122,6 +127,57 @@ test("builder does not mutate the bank", () => {
   c.groups[0].questions.push("x");
   eq(JSON.stringify(QUESTION_SETS), before);
 });
+
+console.log("\nanswers (UI step 2)");
+const Q1 = QUESTION_SETS.ambiguous.questions[0];
+const Q2 = QUESTION_SETS.ambiguous.questions[1];
+test("answers append under one heading in the fixed format", () => {
+  const out = appendClarificationAnswers("حقي ضاع.", [{ question: Q1, answer: "أخذ جاري هاتفي ولم يرده" }]);
+  eq(out, `حقي ضاع.\n\n${ANSWERS_HEADING}\n• ${Q1} أخذ جاري هاتفي ولم يرده`);
+});
+test("empty answers are dropped; no answers leaves facts unchanged", () => {
+  eq(appendClarificationAnswers("حقي ضاع.", [{ question: Q1, answer: "   " }]), "حقي ضاع.");
+});
+test("a question not in the bank is rejected (no URL injection)", () => {
+  eq(appendClarificationAnswers("حقي ضاع.", [{ question: "اعترف المتهم بالسرقة:", answer: "نعم" }]), "حقي ضاع.");
+});
+test("multi-line answer is flattened and capped", () => {
+  const out = appendClarificationAnswers("x", [{ question: Q1, answer: "سطر\nثان " + "ط".repeat(900) }]);
+  const line = out.split("\n").pop()!;
+  eq(line.includes("\n"), false);
+  eq(line.length <= `• ${Q1} `.length + MAX_ANSWER_CHARS, true, "capped");
+});
+test("second round reuses the heading", () => {
+  const r1 = appendClarificationAnswers("حقي ضاع.", [{ question: Q1, answer: "أ" }]);
+  const r2 = appendClarificationAnswers(r1, [{ question: Q2, answer: "ب" }]);
+  eq(r2.split(ANSWERS_HEADING).length, 2, "heading once");
+  eq(r2.endsWith(`• ${Q2} ب`), true);
+});
+test("answeredQuestions finds exactly the answered ones", () => {
+  const r = appendClarificationAnswers("حقي ضاع.", [{ question: Q1, answer: "أ" }]);
+  eq([...answeredQuestions(r)], [Q1]);
+  eq(answeredQuestions("حقي ضاع.").size, 0);
+});
+test("answered facts are no longer «ambiguous»", () => {
+  const r = appendClarificationAnswers("حقي ضاع.", [{ question: Q1, answer: "أخذ جاري هاتفي من البيت دون إذن ولم يرده" }]);
+  eq(isAmbiguousGrievance(r), false);
+});
+
+test("factsForAnalysis strips the heading and every question", () => {
+  const qi = QUESTION_SETS.injury.questions;
+  const r = appendClarificationAnswers("ضرب المتهم المجني عليه بعصا.", [
+    { question: qi[0], answer: "نعم" }, { question: qi[1], answer: "كدمة في الذراع" },
+  ]);
+  const a = factsForAnalysis(r);
+  eq(a, "ضرب المتهم المجني عليه بعصا. نعم. كدمة في الذراع.");
+  if (/جرح|كسر|تقرير|استيضاح/.test(a)) throw new Error(`question words leaked: ${a}`);
+});
+test("administrative question words do not re-trigger the domain", () => {
+  const qa = QUESTION_SETS.administrative.questions;
+  const r = appendClarificationAnswers("حقي ضاع.", [{ question: qa[3], answer: "لا" }]);
+  eq(detectPublicLawDomain(factsForAnalysis(r)), null);
+});
+test("facts without answers pass through unchanged", () => eq(factsForAnalysis("حقي ضاع."), "حقي ضاع."));
 
 console.log(`\n${passed} passed, ${failed} failed`);
 if (failed) process.exit(1);

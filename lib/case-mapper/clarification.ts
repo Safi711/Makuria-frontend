@@ -299,3 +299,83 @@ export function buildClarification(
   if (cards.length) return { reason: "open_points", groups: cards };
   return null;
 }
+
+// ── Answers (UI step 2) ─────────────────────────────────────────────────────
+
+/** Heading line that separates the user's own facts from their answers. */
+export const ANSWERS_HEADING = "— إجابات الاستيضاح —";
+export const MAX_ANSWER_CHARS = 500;
+const MAX_ANSWERS = 12;
+
+function answerLine(question: string, answer: string): string {
+  return `• ${question} ${answer}`;
+}
+
+/** Appends answered questions to the facts in one fixed, readable format:
+ *
+ *   <facts>
+ *
+ *   — إجابات الاستيضاح —
+ *   • <question> <answer>
+ *
+ * Only questions from the fixed bank are accepted (a hand-edited URL cannot
+ * inject text dressed as a question), empty answers are dropped, each answer
+ * is cut to MAX_ANSWER_CHARS and flattened to one line. A second round adds
+ * its lines under the same heading instead of repeating it. */
+export function appendClarificationAnswers(
+  facts: string,
+  pairs: Array<{ question: string; answer: string }>,
+): string {
+  const bank = new Set(Object.values(QUESTION_SETS).flatMap((s) => s.questions));
+  const lines = pairs
+    .filter((p) => bank.has(p.question))
+    .map((p) => ({ q: p.question, a: p.answer.replace(/\s+/g, " ").trim().slice(0, MAX_ANSWER_CHARS) }))
+    .filter((p) => p.a.length > 0)
+    .slice(0, MAX_ANSWERS)
+    .map((p) => answerLine(p.q, p.a));
+  if (!lines.length) return facts;
+  const base = facts.replace(/\s+$/, "");
+  return base.includes(ANSWERS_HEADING)
+    ? `${base}\n${lines.join("\n")}`
+    : `${base}\n\n${ANSWERS_HEADING}\n${lines.join("\n")}`;
+}
+
+/** Questions already answered in these facts — the panel does not ask them
+ * again on the next round. */
+export function answeredQuestions(facts: string): Set<string> {
+  const out = new Set<string>();
+  if (!facts.includes(ANSWERS_HEADING)) return out;
+  for (const q of Object.values(QUESTION_SETS).flatMap((s) => s.questions)) {
+    if (facts.includes(`• ${q} `)) out.add(q);
+  }
+  return out;
+}
+
+/** The text the engine analyses: the user's facts and answers only.
+ *
+ * Question wording must never reach the classifier — «جرح مفتوح، كسر» in
+ * the injury question or «قرار»/«إدارياً» in the administrative ones would
+ * otherwise read as facts and change the classification. The heading line
+ * and every bank question are removed; each answer stays as its own
+ * sentence. Facts without the heading are returned unchanged. */
+export function factsForAnalysis(facts: string): string {
+  if (!facts.includes(ANSWERS_HEADING)) return facts;
+  const [own, ...rest] = facts.split(ANSWERS_HEADING);
+  const questions = Object.values(QUESTION_SETS)
+    .flatMap((s) => s.questions)
+    .sort((a, b) => b.length - a.length);
+  const answers = rest
+    .join("\n")
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line.startsWith("•"))
+    .map((line) => {
+      let body = line.replace(/^•\s*/, "");
+      const q = questions.find((x) => body.startsWith(x));
+      if (q) body = body.slice(q.length);
+      return body.trim();
+    })
+    .filter(Boolean)
+    .map((a) => (/[.؟!]$/.test(a) ? a : `${a}.`));
+  return [own.trim(), ...answers].join(" ").trim();
+}
