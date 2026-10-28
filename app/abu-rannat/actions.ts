@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { randomBytes } from "node:crypto";
 import { createClient } from "@/lib/supabase/server";
 import { analyzeCase } from "@/lib/case-mapper/analyze";
+import { redactPII } from "@/lib/case-mapper/redact-pii.mjs";
 import {
   ADVISOR_COOKIE,
   ADVISOR_COOKIE_MAX_AGE,
@@ -80,10 +81,16 @@ export async function createShareLink(): Promise<void> {
   const secret = process.env.ABU_RANNAT_SHARE_SECRET;
   if (!secret) redirect("/abu-rannat?share_error=1");
 
+  // A share link is public to whoever receives it, so the facts excerpt it
+  // carries goes through the same redaction as the copy sent to the model:
+  // names, phone/ID numbers and emails become [اسم] / [رقم] / [بريد].
+  // (The excerpt is the only field of the result that echoes the facts.)
+  const shared = { ...result, factsExcerpt: redactPII(result.factsExcerpt) };
+
   const token = randomBytes(9).toString("base64url"); // 12 URL-safe chars
   const { error } = await supabase.rpc("abu_rannat_share_create", {
     p_token: token,
-    p_result: result,
+    p_result: shared,
     p_secret: secret,
   });
   if (error) redirect("/abu-rannat?share_error=1");
