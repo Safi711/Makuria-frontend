@@ -8,6 +8,9 @@ import { sourceNameAr } from "@/lib/site";
 import { AbuRannatSeal } from "@/components/case-mapper/AbuRannatSeal";
 import AbuRannatStamp from "@/components/AbuRannatStamp";
 import { analyzeCase } from "@/lib/case-mapper/analyze";
+import { MAX_FACTS_CHARS, type AdvisorInput } from "@/lib/case-mapper/advisor-input";
+import { submitAnalysis, clearAnalysis, createShareLink } from "@/app/abu-rannat/actions";
+import { AdvisorSubmitButton } from "@/components/case-mapper/AdvisorSubmitButton";
 import type {
   CaseMapResult,
   ForceStatus,
@@ -43,8 +46,11 @@ import type {
  *    terms, and the link to the full text — every one of those is a claim a
  *    lawyer checks, and the design sheet keeps room for all of them.
  *
- * 3. THE FORM IS A PLAIN GET FORM. No client component, no JavaScript needed
- *    to run an analysis, and every analysis is a shareable URL. The design
+ * 3. THE FORM POSTS TO A SERVER ACTION (since 2026-10-27; it was a GET form
+ *    before). The facts never enter the URL — they sit for ten minutes in an
+ *    httpOnly cookie (lib/case-mapper/advisor-input.ts). It still works with
+ *    no JavaScript. Sharing is an explicit button that saves the result and
+ *    opens /abu-rannat/s/<token>; old ?facts= links still work. The design
  *    sheet shows only the facts box, so the other engine inputs (case type as
  *    a ranking lens, court, jurisdiction, date, keywords) live in a collapsed
  *    `<details>` — present, one line to remove, and they round-trip from the
@@ -52,10 +58,6 @@ import type {
  */
 
 
-function paramStr(v: string | string[] | undefined): string {
-  if (Array.isArray(v)) return v[0] ?? "";
-  return v ?? "";
-}
 
 /** Corpus status string that `LawStatusBadge` already labels in both locales.
  * Same mapping as components/case-mapper/RelatedLaws.tsx — one vocabulary for
@@ -528,29 +530,32 @@ function MethodCard({ locale, result }: { locale: Locale; result: CaseMapResult 
 
 export async function AdvisorPage({
   locale,
-  searchParams,
-  basePath,
+  input = null,
+  shareError = false,
+  sharedResult,
 }: {
   locale: Locale;
-  searchParams: Record<string, string | string[] | undefined>;
-  /** Where the form posts back to. Both «/» and «/abu-rannat» render this
-   * component, and each must submit to itself so the address bar keeps
-   * showing the page the visitor is actually on. */
-  basePath: string;
+  /** The visitor's input: from the short-lived cookie the form action set, or
+   * from a legacy ?facts= link. Null when nothing has been submitted. */
+  input?: AdvisorInput | null;
+  shareError?: boolean;
+  /** Set only on /abu-rannat/s/<token>: a saved result, shown as-is with no
+   * new analysis and no model call. */
+  sharedResult?: CaseMapResult;
 }) {
+  const isShared = Boolean(sharedResult);
+  const facts = input?.facts ?? "";
+  const caseType = input?.caseType ?? "";
+  const court = input?.court ?? "";
+  const jurisdiction = input?.jurisdiction ?? "";
+  const incidentDate = input?.incidentDate ?? "";
+  const keywords = input?.keywords ?? "";
+  const submitted = input !== null && !isShared;
 
-  const facts = paramStr(searchParams.facts);
-  const caseType = paramStr(searchParams.case_type);
-  const court = paramStr(searchParams.court);
-  const jurisdiction = paramStr(searchParams.jurisdiction);
-  const incidentDate = paramStr(searchParams.incident_date);
-  const keywords = paramStr(searchParams.keywords);
-  const submitted = paramStr(searchParams.submitted) === "1";
-
-  let result: CaseMapResult | null = null;
+  let result: CaseMapResult | null = sharedResult ?? null;
   let errored = false;
 
-  if (submitted && facts.trim()) {
+  if (!isShared && submitted && facts.trim()) {
     try {
       const supabase = await createClient();
       result = await analyzeCase(supabase, {
@@ -634,8 +639,17 @@ export async function AdvisorPage({
             <CardTitle>{t(locale, "cmFactsCardTitle")}</CardTitle>
             <Muted className="mb-4">{t(locale, "cmFactsCardSub")}</Muted>
 
-            <form action={basePath} method="get">
-              <input type="hidden" name="submitted" value="1" />
+            {isShared && (
+              <p
+                className="mb-4 rounded-xl border px-4 py-3 text-xs leading-relaxed"
+                style={{ borderColor: "rgba(228,193,67,0.40)", background: "rgba(228,193,67,0.08)", color: "var(--cm-text-2)" }}
+              >
+                {locale === "ar"
+                  ? "هذا تحليل شاركه أحد مستخدمي أبو رنات. اكتب وقائعك أدناه لتحليل جديد."
+                  : "This analysis was shared by an Abu Rannat user. Enter your own facts below for a new analysis."}
+              </p>
+            )}
+            <form action={submitAnalysis}>
 
               <label htmlFor="facts" className="sr-only">
                 {t(locale, "cmFactsLabel")}
@@ -644,6 +658,7 @@ export async function AdvisorPage({
                 id="facts"
                 name="facts"
                 rows={9}
+                maxLength={MAX_FACTS_CHARS}
                 defaultValue={facts}
                 placeholder={t(locale, "cmFactsPlaceholder2")}
                 className="w-full rounded-xl border p-3 text-sm leading-relaxed outline-none focus:border-[var(--mk-gold)]"
@@ -702,16 +717,10 @@ export async function AdvisorPage({
               </details>
 
               <div className="mt-5 flex flex-wrap items-center gap-3">
-                <button
-                  type="submit"
-                  className="rounded-xl px-7 py-3 text-sm font-bold"
-                  style={{
-                    background: "linear-gradient(180deg,#EACC82 0%,#DBB663 100%)",
-                    color: "#071226",
-                  }}
-                >
-                  {t(locale, "cmAnalyzeBtn2")}
-                </button>
+                <AdvisorSubmitButton
+                  label={t(locale, "cmAnalyzeBtn2")}
+                  pendingLabel={locale === "ar" ? "أبو رنات يحلل الوقائع…" : "Analysing…"}
+                />
                 <span className="text-xs font-medium" style={{ color: "var(--cm-gold)" }}>
                   {t(locale, "cmGuidanceNote")}
                 </span>
@@ -907,6 +916,43 @@ export async function AdvisorPage({
         </div>
 
         {result && !errored && result.hasAnyResults && <AbuRannatStamp />}
+
+        {/* ----------------------------------------------------------- share
+            Opt-in. Nothing is saved unless the visitor presses this. */}
+        {shareError && (
+          <p
+            className="mt-6 rounded-xl border px-4 py-3 text-sm"
+            style={{ borderColor: "#7F2A22", background: "rgba(127,42,34,0.18)", color: "#F3C9C2" }}
+          >
+            {locale === "ar" ? "تعذّر إنشاء رابط المشاركة. حاول مرة أخرى." : "Could not create the share link. Please try again."}
+          </p>
+        )}
+        {result && !errored && !isShared && submitted && (
+          <div
+            className="mt-6 flex flex-wrap items-center gap-3 rounded-2xl border p-4"
+            style={{ borderColor: "var(--cm-line)", background: "var(--cm-surface)" }}
+          >
+            <form action={createShareLink}>
+              <AdvisorSubmitButton
+                variant="secondary"
+                label={locale === "ar" ? "مشاركة التحليل" : "Share this analysis"}
+                pendingLabel={locale === "ar" ? "جارٍ إنشاء الرابط…" : "Creating link…"}
+              />
+            </form>
+            <form action={clearAnalysis}>
+              <AdvisorSubmitButton
+                variant="secondary"
+                label={locale === "ar" ? "تحليل جديد" : "New analysis"}
+                pendingLabel={locale === "ar" ? "…" : "…"}
+              />
+            </form>
+            <Muted className="w-full">
+              {locale === "ar"
+                ? "المشاركة اختيارية: يُنشأ رابط قصير يعرض هذه النتيجة ومقتطفًا من الوقائع لمن يفتحه. لا يُحفظ شيء ما لم تضغط الزر."
+                : "Sharing is optional: it creates a short link showing this result and an excerpt of the facts. Nothing is saved unless you press the button."}
+            </Muted>
+          </div>
+        )}
 
         <p
           className="mt-10 rounded-xl border px-4 py-3 text-xs leading-relaxed"
