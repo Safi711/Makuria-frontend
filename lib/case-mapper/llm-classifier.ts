@@ -3,7 +3,11 @@
  * Classifies facts into a closed concept list, "civil", or "abstain".
  * Article numbers come ONLY from CONCEPT_TO_ARTICLES in analyze.ts — never from the LLM.
  * API key must be passed by the caller; never log facts text.
+ * The facts are passed through redactPII before they leave the server, so
+ * names, phone/ID numbers and emails never reach the external model.
  */
+
+import { redactPII } from "./redact-pii.mjs";
 
 export type LLMClassification =
   | { type: "criminal"; concept: string; discuss?: string[]; intentUnknown?: true }
@@ -133,7 +137,7 @@ export async function classifyWithLLM(
       max_tokens: 64,
       temperature: 0,
       system: SYSTEM_PROMPT,
-      messages: [{ role: "user", content: `الوقائع:\n${facts}` }],
+      messages: [{ role: "user", content: `الوقائع:\n${redactPII(facts)}` }],
     }),
   });
 
