@@ -23,6 +23,8 @@ import {
   factsMatchFireDamage,
   factsMatchMoneyDemand,
   factsMatchQadhfImputation,
+  factsMatchBluntInstrument,
+  factsStateIntentWords,
   factsMatchPropertyDamage,
   factsMatchAccidentMarker,
   factsMatchRescueNecessity,
@@ -938,6 +940,11 @@ export const DISCUSS_CONCEPT_TO_ARTICLES: Record<string, ConceptArticleEntry[]> 
   "قذف:تحويل": [
     { lawSlug: "criminal-law-1991", articleNumber: "159", statusNoteOverride: "معروضة للبحث، لا للتصنيف" },
   ],
+  // Case 3 fix: blunt instrument + no stated intent → عمد vs شبه عمد is open.
+  "جراح:قصد": [
+    { lawSlug: "criminal-law-1991", articleNumber: "139", statusNoteOverride: "معروضة للبحث، لا للتصنيف" },
+    { lawSlug: "criminal-law-1991", articleNumber: "140", statusNoteOverride: "معروضة للبحث، لا للتصنيف" },
+  ],
 };
 
 const DISCUSS_CONCEPT_LABEL: Record<string, string> = {
@@ -950,6 +957,7 @@ const DISCUSS_CONCEPT_LABEL: Record<string, string> = {
   "نهب:جرح": "الجرح المصاحب للنهب (المادة ١٣٩) — نقطة مفتوحة للمحامي",
   "سرقة:حد": "السرقة الحدية — تطبيق المادة 170 رهنٌ بثبوت شروط الحد",
   "قذف:شروط": "القذف الحدي — تطبيق المادة 157 رهنٌ بثبوت شروطه",
+  "جراح:قصد": "وصف الجرح: عمد أم شبه عمد — نقطة مفتوحة للمحامي",
   "قذف:تحويل": "إشانة السمعة (المادة 159) — بديل يُفحص، ولا قذف حدي",
   "شروع:سلاح":  "احتمال الشروع في القتل — نقطة مفتوحة للمحامي",
   "شروع:خنق":   "احتمال الشروع في القتل — نقطة مفتوحة للمحامي",
@@ -993,6 +1001,7 @@ const DISCUSS_CONCEPT_DESC: Record<string, string> = {
   "سرقة:حد": "الوقائع تثبت السرقة. تطبيق عقوبة الحد (المادة 170) مشروط بثبوت شروطه، ومنها أخذ المال خفية من حرزه وبلوغه النصاب — وإثبات ذلك أو نفيه مهمة المحامي، والفصل فيه للمحكمة.",
   "قذف:شروط": "ليست هذه تصنيفاً ولا تقريراً بثبوت القذف. تذكر الوقائع رمياً قد يدخل في المادة 157، وتطبيق الحد مشروط بثبوت: أن الرمي كان بالزنا أو اللواط أو نفي النسب صراحةً أو دلالةً، وأنه كذب، وأن المقذوف عفيف بمفهوم البند (2) من المادة، وثبوت صدور القول بالبينة. وتُراجع مسقطات العقوبة في المادة 158 (التقاذف، والعفو، واللعان، وكون المقذوف فرعاً للقاذف)؛ فإن سقط الحد أو لم تكتمل شروطه تُبحث إشانة السمعة (المادة 159). الإثبات والنفي مهمة المحامي، والفصل للمحكمة.",
   "قذف:تحويل": "لم تُعرض المادة 157 (القذف الحدي) لأن الوقائع لا تذكر رمياً بالزنا أو اللواط أو نفي النسب، وهذه وحدها محل حد القذف؛ فوصف شخص بالسرقة أو الكذب أو نحوهما ليس قذفاً. عُرضت المادة 160 (الإساءة والسباب) للبحث، وتُفحص المادة 159 (إشانة السمعة) إذا ثبت أن الجاني نسب إلى المجني عليه واقعة معينة أمام الغير قاصداً الإضرار بسمعته. التكييف والإثبات مهمة المحامي، والفصل للمحكمة.",
+  "جراح:قصد": "ليست هذه تصنيفاً. تفيد الوقائع ضربة بأداة غير قاتلة بطبيعتها نتج عنها جرح، دون ما يبيّن القصد. ويكون الجرح عمداً أو شبه عمد بحسب ما يُراعى في التمييز بين أنواع القتل (المادة ١٣٨/٢): القصد، وطبيعة الأداة، وموضع الضربة، وشدتها، وتكرارها. فتُعرض المادة ١٣٩ (الجراح العمد) والمادة ١٤٠ (الجراح شبه العمد) للبحث، ويُستعان بالتقرير الطبي في تحديد الجرح ونوعه. إثبات ذلك أو نفيه مهمة المحامي، والفصل فيه للمحكمة.",
   // ── Attempted-murder open-point cards: base paragraph only (no evidence line) ──
   "شروع:سلاح":  "ليست هذه تصنيفاً. استعمال وسيلة قاتلة بطبيعتها يفتح باب فحص الشروع في القتل ولا يثبته. لا بد من فحص القصد وبدء التنفيذ والأدلة المحيطة بالفعل. إثبات ذلك أو نفيه مهمة المحامي، والتكييف النهائي من اختصاص المحكمة.",
   "شروع:خنق":   "ليست هذه تصنيفاً. استعمال وسيلة قاتلة بطبيعتها يفتح باب فحص الشروع في القتل ولا يثبته. لا بد من فحص القصد وبدء التنفيذ والأدلة المحيطة بالفعل. إثبات ذلك أو نفيه مهمة المحامي، والتكييف النهائي من اختصاص المحكمة.",
@@ -2807,6 +2816,22 @@ export async function analyzeCase(
     ) {
       criminalTerms = [{ term: "جرح:وصف", origin: "expanded" as const }];
       filteredDiscuss = [...filteredDiscuss, "إصابة:وصف"];
+    }
+
+    // Case 3 fix: a blow with a blunt, non-lethal instrument (عكاز/عصا/حجر) that
+    // opened a wound does not settle intent. Unless the facts state intent in words,
+    // primary becomes Art. 138 only and Arts. 139/140 move to an open-point card.
+    if (
+      !seriousInjuryGateFired &&
+      llmResult.type === "criminal" &&
+      criminalTerms[0]?.term === "جرح عمد" &&
+      factsMatchBluntInstrument(input.facts) &&
+      !factsMatchLethalWeapon(input.facts) &&
+      !factsStateIntentWords(input.facts) &&
+      !factsMatchIntentToKill(input.facts)
+    ) {
+      criminalTerms = [{ term: "جرح:وصف", origin: "expanded" as const }];
+      if (!filteredDiscuss.includes("جراح:قصد")) filteredDiscuss = [...filteredDiscuss, "جراح:قصد"];
     }
 
     // Commit 37: تهديد (direct LLM or overridden from ابتزاز without money demand)
