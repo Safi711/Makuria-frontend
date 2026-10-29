@@ -22,6 +22,7 @@ import {
   factsMatchDeath,
   factsMatchFireDamage,
   factsMatchMoneyDemand,
+  factsMatchQadhfImputation,
   factsMatchPropertyDamage,
   factsMatchAccidentMarker,
   factsMatchRescueNecessity,
@@ -926,6 +927,17 @@ export const DISCUSS_CONCEPT_TO_ARTICLES: Record<string, ConceptArticleEntry[]> 
   ],
   // Commit 52: admin appointment review card — CARD_ONLY, no articles fetched via this map.
   "قرار:مشروعية": [],
+  // Case 7 fix: qadhf kept (facts impute zina/liwat/lineage) → conditions card with
+  // the remission grounds (Art. 158) and the reputation alternative (Art. 159).
+  "قذف:شروط": [
+    { lawSlug: "criminal-law-1991", articleNumber: "158", statusNoteOverride: "معروضة للبحث، لا للتصنيف" },
+    { lawSlug: "criminal-law-1991", articleNumber: "159", statusNoteOverride: "معروضة للبحث، لا للتصنيف" },
+  ],
+  // Case 7 fix: LLM said قذف but the facts carry no such imputation → Art. 157 dropped,
+  // primary becomes Art. 160; Art. 159 shown as the alternative to examine.
+  "قذف:تحويل": [
+    { lawSlug: "criminal-law-1991", articleNumber: "159", statusNoteOverride: "معروضة للبحث، لا للتصنيف" },
+  ],
 };
 
 const DISCUSS_CONCEPT_LABEL: Record<string, string> = {
@@ -937,6 +949,8 @@ const DISCUSS_CONCEPT_LABEL: Record<string, string> = {
   "قتل:وصف": "وصف القتل: عمد أم شبه عمد — نقطة مفتوحة للمحامي",
   "نهب:جرح": "الجرح المصاحب للنهب (المادة ١٣٩) — نقطة مفتوحة للمحامي",
   "سرقة:حد": "السرقة الحدية — تطبيق المادة 170 رهنٌ بثبوت شروط الحد",
+  "قذف:شروط": "القذف الحدي — تطبيق المادة 157 رهنٌ بثبوت شروطه",
+  "قذف:تحويل": "إشانة السمعة (المادة 159) — بديل يُفحص، ولا قذف حدي",
   "شروع:سلاح":  "احتمال الشروع في القتل — نقطة مفتوحة للمحامي",
   "شروع:خنق":   "احتمال الشروع في القتل — نقطة مفتوحة للمحامي",
   "شروع:سم":    "احتمال الشروع في القتل — نقطة مفتوحة للمحامي",
@@ -977,6 +991,8 @@ const DISCUSS_CONCEPT_DESC: Record<string, string> = {
   "قتل:وصف": "ليست هذه تصنيفاً. تفيد الوقائع وقوع وفاة نتيجة فعل المتهم دون ما يبيّن قصد القتل. يكون القتل عمداً إذا قصده الجاني أو قصد الفعل وكان الموت نتيجة راجحة له (المادة ١٣٠)، وشبه عمد إذا لم يقصد القتل ولم يكن الموت نتيجة راجحة لفعله (المادة ١٣١). تحديد الوصف بحسب ما يثبت من القصد والأداة وموضع الإصابة مهمة المحامي، والفصل فيه للمحكمة.",
   "نهب:جرح": "تفيد الوقائع أن النهب صاحبه جرح. الوصف الأساسي هو النهب (المادة ١٧٥)، وبندها الثاني يجعل عقوبته «بالإضافة إلى أي عقوبة أخرى مقررة لما يترتب على فعله»، فقد تنطبق المادتان معاً. إثبات الجرح وتحديد وصفه مهمة المحامي، والفصل فيه للمحكمة.",
   "سرقة:حد": "الوقائع تثبت السرقة. تطبيق عقوبة الحد (المادة 170) مشروط بثبوت شروطه، ومنها أخذ المال خفية من حرزه وبلوغه النصاب — وإثبات ذلك أو نفيه مهمة المحامي، والفصل فيه للمحكمة.",
+  "قذف:شروط": "ليست هذه تصنيفاً ولا تقريراً بثبوت القذف. تذكر الوقائع رمياً قد يدخل في المادة 157، وتطبيق الحد مشروط بثبوت: أن الرمي كان بالزنا أو اللواط أو نفي النسب صراحةً أو دلالةً، وأنه كذب، وأن المقذوف عفيف بمفهوم البند (2) من المادة، وثبوت صدور القول بالبينة. وتُراجع مسقطات العقوبة في المادة 158 (التقاذف، والعفو، واللعان، وكون المقذوف فرعاً للقاذف)؛ فإن سقط الحد أو لم تكتمل شروطه تُبحث إشانة السمعة (المادة 159). الإثبات والنفي مهمة المحامي، والفصل للمحكمة.",
+  "قذف:تحويل": "لم تُعرض المادة 157 (القذف الحدي) لأن الوقائع لا تذكر رمياً بالزنا أو اللواط أو نفي النسب، وهذه وحدها محل حد القذف؛ فوصف شخص بالسرقة أو الكذب أو نحوهما ليس قذفاً. عُرضت المادة 160 (الإساءة والسباب) للبحث، وتُفحص المادة 159 (إشانة السمعة) إذا ثبت أن الجاني نسب إلى المجني عليه واقعة معينة أمام الغير قاصداً الإضرار بسمعته. التكييف والإثبات مهمة المحامي، والفصل للمحكمة.",
   // ── Attempted-murder open-point cards: base paragraph only (no evidence line) ──
   "شروع:سلاح":  "ليست هذه تصنيفاً. استعمال وسيلة قاتلة بطبيعتها يفتح باب فحص الشروع في القتل ولا يثبته. لا بد من فحص القصد وبدء التنفيذ والأدلة المحيطة بالفعل. إثبات ذلك أو نفيه مهمة المحامي، والتكييف النهائي من اختصاص المحكمة.",
   "شروع:خنق":   "ليست هذه تصنيفاً. استعمال وسيلة قاتلة بطبيعتها يفتح باب فحص الشروع في القتل ولا يثبته. لا بد من فحص القصد وبدء التنفيذ والأدلة المحيطة بالفعل. إثبات ذلك أو نفيه مهمة المحامي، والتكييف النهائي من اختصاص المحكمة.",
@@ -2355,6 +2371,7 @@ export async function analyzeCase(
   // concept or abstain when a required offence element is missing from the facts.
   // Required for B2-018 (correction) and B2-020 (abstention despite theft trigger).
   // Article numbers never come from the LLM — only CONCEPT_TO_ARTICLES is used.
+  let qadhfDowngraded = false;
   let llmResult = await classifyWithLLM(
     input.facts,
     process.env.ANTHROPIC_API_KEY ?? "",
@@ -2502,6 +2519,13 @@ export async function analyzeCase(
       }
     } else {
       criminalTerms = [{ term: llmResult.concept, origin: "expanded" as const }];
+      // Case 7 fix: Art. 157 (hadd qadhf) only for an imputation of zina, liwat or
+      // denial of lineage. Any other insult ("حرامي") → Art. 160, with Art. 159 card.
+      if (llmResult.concept === "قذف" && !factsMatchQadhfImputation(input.facts)) {
+        llmResult = { ...llmResult, concept: "إساءة وسباب" };
+        criminalTerms = [{ term: "إساءة وسباب", origin: "expanded" as const }];
+        qadhfDowngraded = true;
+      }
       // Commit 37 — B12-02: extortion without a money/document demand is not Art. 176.
       // Override to تهديد (Art. 144); the فحص card is injected below.
       if (llmResult.concept === "ابتزاز" && !factsMatchMoneyDemand(input.facts)) {
@@ -2920,6 +2944,17 @@ export async function analyzeCase(
       !discussConcepts.includes("رضا:فحص")
     ) {
       discussConcepts = [...discussConcepts, "رضا:فحص"];
+    }
+
+    // Case 7 fix: qadhf cards — conditions card when Art. 157 is kept,
+    // reputation-alternative card when it was dropped.
+    if (llmResult.type === "criminal" && discussConcepts !== undefined) {
+      const qCard = qadhfDowngraded
+        ? "قذف:تحويل"
+        : llmResult.concept === "قذف" ? "قذف:شروط" : null;
+      if (qCard && !discussConcepts.includes(qCard)) {
+        discussConcepts = [qCard, ...discussConcepts.filter((c) => c !== "قذف" && c !== "إشانة سمعة")];
+      }
     }
 
     // E4: indecency in public place → فاحشة:مراجعة
