@@ -3170,10 +3170,11 @@ export async function analyzeCase(
   // The text search below drops every term that does not concentrate in one law,
   // so civil and rent facts used to return nothing at all. Semantic search
   // (rewrite → embed → match → rerank; 90% top-5 on the 30 approved cases)
-  // answers first. The criminal path above is untouched. On any failure it
+  // answers first (top 7: on the approved cases the correct civil-service
+  // articles sit at ranks 6–7). The criminal path above is untouched. On any failure it
   // returns null and the text search below runs exactly as before.
   if (!input.keywords?.trim()) {
-    const sem = await semanticSearch(supabase, input.facts, 5);
+    const sem = await semanticSearch(supabase, input.facts, 7);
     if (sem && sem.hits.length > 0) {
       const ids = sem.hits.map((h) => h.articleId);
       const { data: metaRows } = await supabase
