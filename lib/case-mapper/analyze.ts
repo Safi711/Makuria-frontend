@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { classifyWithLLM } from "./llm-classifier";
+import { semanticSearch } from "./semantic-search";
 import { classifyPrecedent, type PrecedentRelevance } from "./precedent-relevance";
 import conceptMapJson from "./precedent-concept-map.json";
 import {
@@ -3163,6 +3164,53 @@ export async function analyzeCase(
     }
 
     return relatedLawSlugs.length > 0 ? { ...cmResult, relatedLaws: relatedLawSlugs } : cmResult;
+  }
+
+  // ── Phase 0.9: semantic search (civil, rent, administrative, unclassified) ──
+  // The text search below drops every term that does not concentrate in one law,
+  // so civil and rent facts used to return nothing at all. Semantic search
+  // (rewrite → embed → match → rerank; 90% top-5 on the 30 approved cases)
+  // answers first. The criminal path above is untouched. On any failure it
+  // returns null and the text search below runs exactly as before.
+  if (!input.keywords?.trim()) {
+    const sem = await semanticSearch(supabase, input.facts, 5);
+    if (sem && sem.hits.length > 0) {
+      const ids = sem.hits.map((h) => h.articleId);
+      const { data: metaRows } = await supabase
+        .from("articles")
+        .select("id,verified,status_note_ar,laws(source_url,status)")
+        .in("id", ids);
+      type Meta = { id: string; verified: boolean | null; status_note_ar: string | null;
+        laws: { source_url: string | null; status: string | null } | { source_url: string | null; status: string | null }[] | null };
+      const metaById = new Map<string, Meta>(((metaRows ?? []) as Meta[]).map((m) => [m.id, m]));
+      const SEM_TERM = "بحث بالمعنى في متن مكوريا";
+      const laws: RetrievedAuthority[] = sem.hits.map((h, i) => {
+        const m = metaById.get(h.articleId);
+        const law = Array.isArray(m?.laws) ? m?.laws[0] : m?.laws;
+        return {
+          id: h.articleId, type: "article", title: h.titleAr ?? "",
+          lawTitle: h.lawTitle, articleNumber: h.articleNumber,
+          excerptHtml: wordTrunc(h.contentAr, 2000),
+          verified: Boolean(m?.verified), slug: null, lawSlug: h.lawSlug,
+          sourceUrl: law?.source_url ?? null,
+          force: forceFromLawStatus(law?.status),
+          legalStatus: h.legalStatus,
+          statusNote: m?.status_note_ar ?? null,
+          matchedTerms: [SEM_TERM], rank: 100 - i, inScope: true,
+        };
+      });
+      return {
+        factsExcerpt: excerpt,
+        factsIsTruncated: truncated,
+        caseTypeLens: null,
+        inferredCaseType: null,
+        issues: [{ term: SEM_TERM, origin: "expanded", topLaw: laws[0] ?? null,
+          topCase: null, topPrinciple: null, searchedAndEmpty: false }],
+        laws, cases: [], principles: [],
+        outOfScopeCount: 0, noConfidentMatch: false, hasAnyResults: true,
+        ...(civilDiscussItems.length > 0 ? { discuss: civilDiscussItems } : {}),
+      };
+    }
   }
 
   // ── Phase 1: candidates ────────────────────────────────────────────────

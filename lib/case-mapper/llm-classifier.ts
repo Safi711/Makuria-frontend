@@ -119,6 +119,8 @@ const SYSTEM_PROMPT = `أنت محلل قانوني سوداني. مهمتك: ت
    إذا نزاع مدني:                  {"type":"civil"}
    إذا غموض أو امتناع:             {"type":"abstain"}`;
 
+export { SYSTEM_PROMPT as CLASSIFIER_SYSTEM_PROMPT };
+
 export async function classifyWithLLM(
   facts: string,
   apiKey: string,
@@ -136,7 +138,10 @@ export async function classifyWithLLM(
       model: "claude-haiku-4-5-20251001",
       max_tokens: 64,
       temperature: 0,
-      system: SYSTEM_PROMPT,
+      // Prompt caching: the long fixed instructions are read from cache at a
+      // fraction of the input price on repeat calls (Haiku 4.5 caches only
+      // prefixes of 4,096+ tokens; below that the marker is simply ignored).
+      system: [{ type: "text", text: SYSTEM_PROMPT, cache_control: { type: "ephemeral" } }],
       messages: [{ role: "user", content: `الوقائع:\n${redactPII(facts)}` }],
     }),
   });
@@ -148,7 +153,13 @@ export async function classifyWithLLM(
 
   const data = await response.json() as {
     content: Array<{ type: string; text: string }>;
+    usage?: { input_tokens?: number; cache_creation_input_tokens?: number; cache_read_input_tokens?: number };
   };
+  if (process.env.ABU_RANNAT_LOG_USAGE === "1" && data.usage) {
+    // Token counts only — never the facts.
+    const u = data.usage;
+    process.stderr.write(`[llm_usage] input=${u.input_tokens ?? 0} cache_write=${u.cache_creation_input_tokens ?? 0} cache_read=${u.cache_read_input_tokens ?? 0}\n`);
+  }
   const raw = data.content.find((b) => b.type === "text")?.text?.trim() ?? "";
 
   // Strip markdown fences if the model wraps the JSON
