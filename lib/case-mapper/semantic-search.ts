@@ -75,6 +75,10 @@ export async function semanticSearch(
     const query = rewrite ? `${rewrite}\n${facts}` : facts;
 
     const voyageH = { Authorization: `Bearer ${voyageKey}` };
+    // Shape check only (length and prefix) — never the key itself.
+    if (!/^pa-[A-Za-z0-9_-]{20,}$/.test(voyageKey)) {
+      console.error(`[semantic_search] VOYAGE_API_KEY looks wrong: length=${voyageKey.length} starts_with_pa=${voyageKey.startsWith("pa-")} has_space=${/\s/.test(voyageKey)}`);
+    }
     const emb = await postJson("https://api.voyageai.com/v1/embeddings", voyageH, {
       input: [query], model: "voyage-4", input_type: "query", output_dimension: 1024,
     });
