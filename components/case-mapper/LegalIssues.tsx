@@ -5,6 +5,7 @@ const ORIGIN_KEY: Record<IssueLens["origin"], string> = {
   keyword: "cmIssueOriginKeyword",
   expanded: "cmIssueOriginExpanded",
   extracted: "cmIssueOriginExtracted",
+  semantic: "cmIssueOriginSemantic",
 };
 
 export function LegalIssues({
