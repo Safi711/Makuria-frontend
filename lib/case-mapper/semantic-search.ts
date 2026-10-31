@@ -64,7 +64,10 @@ export async function semanticSearch(
 ): Promise<{ hits: SemanticHit[]; rewrite: string } | null> {
   const anthropicKey = process.env.ANTHROPIC_API_KEY ?? "";
   const voyageKey = process.env.VOYAGE_API_KEY ?? "";
-  if (!anthropicKey || !voyageKey) return null;
+  if (!anthropicKey || !voyageKey) {
+    console.error(`[semantic_search] skipped: missing ${!voyageKey ? "VOYAGE_API_KEY" : "ANTHROPIC_API_KEY"}`);
+    return null;
+  }
   try {
     // Names, phone and ID numbers never leave the server.
     const facts = redactPII(rawFacts);
@@ -81,7 +84,10 @@ export async function semanticSearch(
       p_embedding: `[${vec.join(",")}]`,
       p_count: POOL,
     });
-    if (error || !data?.length) return null;
+    if (error || !data?.length) {
+      console.error(`[semantic_search] match_articles_v2: ${error?.message ?? "no rows"}`);
+      return null;
+    }
     type Row = {
       article_id: string; law_slug: string; law_title: string; article_number: string | null;
       title_ar: string | null; content_ar: string | null; legal_status: string | null; similarity: number;
@@ -103,7 +109,9 @@ export async function semanticSearch(
       };
     });
     return { hits, rewrite };
-  } catch {
+  } catch (e) {
+    // Error text only — never the facts.
+    console.error(`[semantic_search] failed: ${String((e as Error)?.message ?? e).slice(0, 200)}`);
     return null;
   }
 }
