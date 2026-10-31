@@ -189,7 +189,7 @@ export type RetrievedPrinciple = {
 
 export type IssueLens = {
   term: string;
-  origin: "keyword" | "expanded" | "extracted";
+  origin: "keyword" | "expanded" | "extracted" | "semantic";
   topLaw: RetrievedAuthority | null;
   topCase: RetrievedCase | null;
   topPrinciple: RetrievedPrinciple | null;
@@ -3204,7 +3204,7 @@ export async function analyzeCase(
         factsIsTruncated: truncated,
         caseTypeLens: null,
         inferredCaseType: null,
-        issues: [{ term: SEM_TERM, origin: "expanded", topLaw: laws[0] ?? null,
+        issues: [{ term: SEM_TERM, origin: "semantic", topLaw: laws[0] ?? null,
           topCase: null, topPrinciple: null, searchedAndEmpty: false }],
         laws, cases: [], principles: [],
         outOfScopeCount: 0, noConfidentMatch: false, hasAnyResults: true,
@@ -3278,6 +3278,7 @@ export async function analyzeCase(
     keyword: 0,
     expanded: 1,
     extracted: 2,
+    semantic: 1,
   };
 
   const scored = probed.map((p) => ({ ...p, concentration: concentrationOf(p.rows) }));

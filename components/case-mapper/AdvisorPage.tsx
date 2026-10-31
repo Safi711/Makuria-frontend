@@ -161,6 +161,8 @@ function originLabel(locale: Locale, origin: IssueLens["origin"]): string {
       return t(locale, "cmIssueOriginKeyword");
     case "expanded":
       return t(locale, "cmIssueOriginExpanded");
+    case "semantic":
+      return t(locale, "cmIssueOriginSemantic");
     default:
       return t(locale, "cmIssueOriginExtracted");
   }
