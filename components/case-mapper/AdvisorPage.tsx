@@ -334,7 +334,7 @@ function LawRow({
           site-wide on 2026-09-28. Where the text came from is the lawyer's
           question; whether a box was ticked is not. */}
       <MetaLine>
-        {t(locale, "sourceLabel")}: {sourceNameAr(law.sourceUrl) ?? t(locale, "noSourceRecorded")}
+        {t(locale, "sourceLabel")}: {sourceNameAr(law.sourceUrl) ?? t(locale, "noSourceShort")}
       </MetaLine>
       <MetaLine>
         {matchedTermsOverride ?? `${t(locale, "cmMatchedOn")}: ${law.matchedTerms.map(termDisplayAr).join("، ")}`}
@@ -376,7 +376,7 @@ function CaseRow({ locale, c }: { locale: Locale; c: RetrievedCase }) {
       </p>
 
       <MetaLine>
-        {t(locale, "sourceLabel")}: {sourceNameAr(c.sourceUrl) ?? t(locale, "noSourceRecorded")}
+        {t(locale, "sourceLabel")}: {sourceNameAr(c.sourceUrl) ?? t(locale, "noSourceShort")}
       </MetaLine>
       <MetaLine>
         {t(locale, "cmMatchedOn")}: {c.matchedTerms.map(termDisplayAr).join("، ")}
