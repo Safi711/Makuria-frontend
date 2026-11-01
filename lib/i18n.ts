@@ -55,7 +55,8 @@ export const dictionaries: Record<Locale, Record<string, string>> = {
     unverified: "غير موثّق",
     textNotEnteredYet: "النص لم يُدخل بعد",
     sourceLabel: "المصدر",
-    noSourceRecorded: "لا مصدر مسجَّل لهذا النص",
+    noSourceRecorded: "مصدر النص قيد التوثيق",
+    noSourceShort: "قيد التوثيق",
     comingSoonTitle: "قيد التطوير",
     comingSoonBody:
       "هذه الوحدة جزء من مساحة عمل المحامي في مكوريا وسيتم بناؤها في مرحلة لاحقة. لا توجد بيانات أو وظائف مُصطنعة هنا.",
@@ -270,7 +271,8 @@ export const dictionaries: Record<Locale, Record<string, string>> = {
     unverified: "Unverified",
     textNotEnteredYet: "Text not yet entered",
     sourceLabel: "Source",
-    noSourceRecorded: "No source recorded for this text",
+    noSourceRecorded: "Source of this text pending documentation",
+    noSourceShort: "pending documentation",
     comingSoonTitle: "Coming Soon",
     comingSoonBody:
       "This module is part of the Makuria Lawyer Workspace and will be built in a later phase. No fabricated data or functionality lives here.",

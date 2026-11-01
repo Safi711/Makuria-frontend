@@ -86,7 +86,7 @@ export function RelatedLaws({ locale, laws }: { locale: Locale; laws: RetrievedA
                     of Justice. What a lawyer needs is the source. */}
                 <p className="text-xs text-neutral-400">
                   {t(locale, "sourceLabel")}:{" "}
-                  {sourceNameAr(law.sourceUrl) ?? t(locale, "noSourceRecorded")}
+                  {sourceNameAr(law.sourceUrl) ?? t(locale, "noSourceShort")}
                 </p>
                 <p className="text-xs text-neutral-400">
                   {t(locale, "cmMatchedOn")}: {law.matchedTerms.join("، ")}
