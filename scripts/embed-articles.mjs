@@ -69,7 +69,17 @@ for (let off = 0; ; off += 1000) {
   articles.push(...page);
   if (page.length < 1000) break;
 }
-const have = new Map((await sbRpc("article_embeddings_hashes", { p_secret: env.EMBED_WRITE_SECRET })).map((h) => [h.article_id, h.content_hash]));
+// The API returns at most 1,000 rows per call, so page through the hashes.
+const have = new Map();
+for (let off = 0; ; off += 1000) {
+  const r = await fetch(`${SB}/rest/v1/rpc/article_embeddings_hashes?limit=1000&offset=${off}`, {
+    method: "POST", headers: sbHeaders, body: JSON.stringify({ p_secret: env.EMBED_WRITE_SECRET }),
+  });
+  if (!r.ok) throw new Error(`RPC article_embeddings_hashes ${r.status}: ${await r.text()}`);
+  const page = await r.json();
+  for (const h of page) have.set(h.article_id, h.content_hash);
+  if (page.length < 1000) break;
+}
 
 const todo = [];
 for (const a of articles) {
@@ -95,7 +105,11 @@ for (let i = 0; i < todo.length; ) {
   const { vecs, tokens: t } = res;
   tokens += t;
   const rows = batch.map((b, k) => ({ article_id: b.id, embedding: `[${vecs[k].join(",")}]`, model: MODEL, content_hash: b.hash }));
-  await sbRpc("article_embeddings_upsert", { p_rows: rows, p_secret: env.EMBED_WRITE_SECRET });
+  // Small write batches: each insert also updates the vector index, and the
+  // API role has a short statement timeout (error 57014 on large batches).
+  for (let w = 0; w < rows.length; w += 8) {
+    await sbRpc("article_embeddings_upsert", { p_rows: rows.slice(w, w + 8), p_secret: env.EMBED_WRITE_SECRET });
+  }
   done += batch.length;
   console.log(`  ${done}/${todo.length} embedded (${tokens.toLocaleString()} tokens so far)`);
   if (SLOW && i < todo.length) await sleep(50000);
