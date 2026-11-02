@@ -131,9 +131,13 @@ export async function classifyWithLLM(
   apiKey: string,
 ): Promise<LLMClassification> {
   if (!apiKey) throw new Error("ANTHROPIC_API_KEY is required — set it before running");
-  const first = await classifyOnce(facts, apiKey);
+  const first = await classifyOnce(facts, apiKey, false);
   if (first !== PARSE_ERROR) return first;
-  const second = await classifyOnce(facts, apiKey);
+  // The retry adds the task reminder. It is NOT sent on the first attempt: measured
+  // on the approved cases, adding it everywhere shifted classifications (case 8 moved
+  // from wounding by error to killing by error), so it is used only to rescue a reply
+  // that could not be read.
+  const second = await classifyOnce(facts, apiKey, true);
   if (second !== PARSE_ERROR) return second;
   return { type: "abstain", parseError: true };
 }
@@ -144,6 +148,7 @@ const TASK_REMINDER = "(صنّف الوقائع أعلاه وأخرج JSON وا�
 async function classifyOnce(
   facts: string,
   apiKey: string,
+  withReminder: boolean,
 ): Promise<LLMClassification | typeof PARSE_ERROR> {
 
   const response = await fetch("https://api.anthropic.com/v1/messages", {
@@ -161,10 +166,13 @@ async function classifyOnce(
       // fraction of the input price on repeat calls (Haiku 4.5 caches only
       // prefixes of 4,096+ tokens; below that the marker is simply ignored).
       system: [{ type: "text", text: SYSTEM_PROMPT, cache_control: { type: "ephemeral" } }],
-      // The trailing reminder keeps the model on its task when the facts end with
-      // a direct question ("أبدأ من وين؟"): without it the model answered the
-      // question as advice and ran out of tokens before any JSON.
-      messages: [{ role: "user", content: `الوقائع:\n${redactPII(facts)}\n\n${TASK_REMINDER}` }],
+      // On the retry, a trailing reminder keeps the model on its task when the facts
+      // end with a direct question ("أبدأ من وين؟"): without it the model answered
+      // the question as advice and ran out of tokens before any JSON.
+      messages: [{
+        role: "user",
+        content: `الوقائع:\n${redactPII(facts)}${withReminder ? `\n\n${TASK_REMINDER}` : ""}`,
+      }],
     }),
   });
 
