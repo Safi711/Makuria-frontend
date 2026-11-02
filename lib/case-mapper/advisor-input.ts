@@ -1,4 +1,5 @@
 import { deflateRawSync, inflateRawSync } from "node:zlib";
+import { appendClarificationAnswers } from "./clarification";
 
 /**
  * Where Abu Rannat's input lives between the form post and the render.
@@ -39,8 +40,16 @@ export function inputFromFormData(formData: FormData): AdvisorInput {
     const v = formData.get(k);
     return typeof v === "string" ? v : "";
   };
+  // Answers from the clarifying-questions panel arrive as paired cq/ca fields;
+  // only questions from the approved bank are kept (appendClarificationAnswers).
+  const cq = formData.getAll("cq").filter((v): v is string => typeof v === "string");
+  const ca = formData.getAll("ca").filter((v): v is string => typeof v === "string");
+  const facts = appendClarificationAnswers(
+    get("facts").slice(0, MAX_FACTS_CHARS),
+    cq.map((question, i) => ({ question, answer: ca[i] ?? "" })),
+  );
   return {
-    facts: get("facts").slice(0, MAX_FACTS_CHARS),
+    facts,
     caseType: get("case_type").slice(0, 200),
     court: get("court").slice(0, 200),
     jurisdiction: get("jurisdiction").slice(0, 200),
