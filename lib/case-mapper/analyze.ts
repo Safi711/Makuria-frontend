@@ -2455,6 +2455,12 @@ export async function analyzeCase(
   const chq    = factsMatchChequeDishonour(input.facts);
   const alt    = factsMatchDocumentAlteration(input.facts);
   const off124 = factsMatchPublicOfficialFalseEntry(input.facts);
+  // A classifier reply that could not be read (after one retry) is a technical
+  // failure, not a judgment that nothing applies: run the non-criminal path, whose
+  // semantic search shows articles by meaning, instead of returning an empty page.
+  if (llmResult.type === "abstain" && llmResult.parseError) {
+    llmResult = { type: "civil" };
+  }
   if (llmResult.type === "abstain") {
     // Commit 36/38: deterministic fallback when the LLM abstains but keyword detectors
     // identify a recognisable pattern — never asserts intent or guilt.
