@@ -12,7 +12,7 @@ import { redactPII } from "./redact-pii.mjs";
 export type LLMClassification =
   | { type: "criminal"; concept: string; discuss?: string[]; intentUnknown?: true }
   | { type: "civil" }
-  | { type: "abstain" };
+  | { type: "abstain"; parseError?: true };
 
 // Canonical concept names that must match CONCEPT_TO_ARTICLES keys exactly.
 const CONCEPTS = [
@@ -121,11 +121,29 @@ const SYSTEM_PROMPT = `أنت محلل قانوني سوداني. مهمتك: ت
 
 export { SYSTEM_PROMPT as CLASSIFIER_SYSTEM_PROMPT };
 
+/**
+ * Classify the facts. A reply that cannot be read as JSON is retried once; if it
+ * still fails, the result is an abstain marked `parseError`, so the caller can
+ * fall back to semantic search instead of returning an empty page.
+ */
 export async function classifyWithLLM(
   facts: string,
   apiKey: string,
 ): Promise<LLMClassification> {
   if (!apiKey) throw new Error("ANTHROPIC_API_KEY is required — set it before running");
+  const first = await classifyOnce(facts, apiKey);
+  if (first !== PARSE_ERROR) return first;
+  const second = await classifyOnce(facts, apiKey);
+  if (second !== PARSE_ERROR) return second;
+  return { type: "abstain", parseError: true };
+}
+
+const PARSE_ERROR = Symbol("parse_error");
+
+async function classifyOnce(
+  facts: string,
+  apiKey: string,
+): Promise<LLMClassification | typeof PARSE_ERROR> {
 
   const response = await fetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
@@ -136,7 +154,7 @@ export async function classifyWithLLM(
     },
     body: JSON.stringify({
       model: "claude-haiku-4-5-20251001",
-      max_tokens: 64,
+      max_tokens: 160,
       temperature: 0,
       // Prompt caching: the long fixed instructions are read from cache at a
       // fraction of the input price on repeat calls (Haiku 4.5 caches only
@@ -153,6 +171,7 @@ export async function classifyWithLLM(
 
   const data = await response.json() as {
     content: Array<{ type: string; text: string }>;
+    stop_reason?: string;
     usage?: { input_tokens?: number; cache_creation_input_tokens?: number; cache_read_input_tokens?: number };
   };
   if (process.env.ABU_RANNAT_LOG_USAGE === "1" && data.usage) {
@@ -175,8 +194,8 @@ export async function classifyWithLLM(
   } catch {
     // Write to stderr so callers can count parse failures separately from
     // genuine LLM-returned abstains — no facts text is ever written here.
-    process.stderr.write("[llm_parse_error]\n");
-    return { type: "abstain" };
+    process.stderr.write(`[llm_parse_error] stop_reason=${data.stop_reason ?? "?"} len=${raw.length}\n`);
+    return PARSE_ERROR;
   }
 
   if (typeof parsed !== "object" || parsed === null) return { type: "abstain" };
