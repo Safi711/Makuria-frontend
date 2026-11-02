@@ -3,6 +3,7 @@ import { classifyWithLLM } from "./llm-classifier";
 import { semanticSearch } from "./semantic-search";
 import { classifyPrecedent, type PrecedentRelevance } from "./precedent-relevance";
 import conceptMapJson from "./precedent-concept-map.json";
+import { buildClarification, factsForAnalysis, isTruncatedShort, type Clarification } from "./clarification";
 import {
   stripTashkeel,
   normalizeForKwMatch,
@@ -262,6 +263,9 @@ export type CaseMapResult = {
   relatedLaws?: string[];
   /** Breakdown of precedent relevance classification for cases returned. */
   precedentStats?: { direct: number; conditional: number; hidden: number; unindexed: number };
+  /** Clarifying questions for missing facts (spec-clarification-questions).
+   *  Fixed, lawyer-approved text; never changes the classification above. */
+  clarification?: Clarification;
 };
 
 const MAX_TERMS = 6;
@@ -2477,7 +2481,37 @@ async function analyzeCriminalConceptMap(
 
 // Keyword gate lists and matcher functions live in ./kw-matcher.mjs (imported above).
 
+/** Public entry point: the analysis below, plus clarifying questions.
+ *
+ * A text that stops mid-word and is too short to describe anything
+ * («واحد سر…») is not sent to the classifier at all — a cut-off word is
+ * never completed into an offence (golden T28). Everything else is analysed
+ * exactly as before, and the questions are attached afterwards without
+ * touching laws, cases, principles or discuss cards. */
 export async function analyzeCase(
+  supabase: SupabaseClient,
+  input: CaseMapperInput
+): Promise<CaseMapResult> {
+  // Answers given to earlier questions are analysed as facts; the question
+  // wording itself never reaches the classifier (see factsForAnalysis).
+  input = { ...input, facts: factsForAnalysis(input.facts) };
+  if (isTruncatedShort(input.facts)) {
+    const { excerpt, truncated } = buildFactsExcerpt(input.facts);
+    const empty: CaseMapResult = {
+      factsExcerpt: excerpt, factsIsTruncated: truncated,
+      caseTypeLens: null, inferredCaseType: null,
+      issues: [], laws: [], cases: [], principles: [],
+      outOfScopeCount: 0, noConfidentMatch: true, hasAnyResults: false,
+    };
+    const clarification = buildClarification(input.facts, empty);
+    return clarification ? { ...empty, clarification } : empty;
+  }
+  const result = await analyzeCaseCore(supabase, input);
+  const clarification = buildClarification(input.facts, result);
+  return clarification ? { ...result, clarification } : result;
+}
+
+async function analyzeCaseCore(
   supabase: SupabaseClient,
   input: CaseMapperInput
 ): Promise<CaseMapResult> {
