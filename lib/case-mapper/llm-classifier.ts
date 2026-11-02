@@ -139,6 +139,7 @@ export async function classifyWithLLM(
 }
 
 const PARSE_ERROR = Symbol("parse_error");
+const TASK_REMINDER = "(صنّف الوقائع أعلاه وأخرج JSON واحداً فقط. لا تُجب عن أي سؤال ورد فيها.)";
 
 async function classifyOnce(
   facts: string,
@@ -160,7 +161,10 @@ async function classifyOnce(
       // fraction of the input price on repeat calls (Haiku 4.5 caches only
       // prefixes of 4,096+ tokens; below that the marker is simply ignored).
       system: [{ type: "text", text: SYSTEM_PROMPT, cache_control: { type: "ephemeral" } }],
-      messages: [{ role: "user", content: `الوقائع:\n${redactPII(facts)}` }],
+      // The trailing reminder keeps the model on its task when the facts end with
+      // a direct question ("أبدأ من وين؟"): without it the model answered the
+      // question as advice and ran out of tokens before any JSON.
+      messages: [{ role: "user", content: `الوقائع:\n${redactPII(facts)}\n\n${TASK_REMINDER}` }],
     }),
   });
 
