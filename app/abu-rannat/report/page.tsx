@@ -97,7 +97,9 @@ export default async function AbuRannatReport() {
   const dateAr = new Intl.DateTimeFormat("ar-SD-u-nu-latn", {
     day: "numeric", month: "long", year: "numeric", timeZone: "Africa/Khartoum",
   }).format(now);
-  const ymd = now.toISOString().slice(0, 10).replace(/-/g, "");
+  // Same clock as the date shown (Khartoum), so the number and the date agree.
+  const ymd = new Intl.DateTimeFormat("en-CA", { timeZone: "Africa/Khartoum" })
+    .format(now).replace(/-/g, "");
   const reportId = `AR-${ymd}-${createHash("sha256").update(input.facts).digest("hex").slice(0, 6).toUpperCase()}`;
 
   return (
