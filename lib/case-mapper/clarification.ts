@@ -134,11 +134,48 @@ export const QUESTION_SETS: Record<string, QuestionSet> = {
     titleAr: "سبب التلف",
     questions: ["كيف بدأ الحريق أو التلف؟", "هل يوجد تقرير فني؟"],
   },
+  // Approved by Safi on 3 Nov 2026 (step 3 of 3).
+  hiraba: {
+    titleAr: "مكان الفعل وإمكان طلب النجدة",
+    questions: [
+      "أين وقع الفعل بالضبط (شارع، طريق خلوي، سوق)، وفي أي وقت؟",
+      "هل كان في المكان ناس أو شرطة يمكن طلب النجدة منهم؟",
+    ],
+  },
+  robberyWound: {
+    titleAr: "الجرح المصاحب للنهب",
+    questions: [
+      "هل أُصيب المجني عليه بجرح؟ وهل يوجد تقرير طبي يصفه؟",
+      "هل وقع الجرح أثناء أخذ المال أم بعده؟",
+    ],
+  },
+  adminDecision: {
+    titleAr: "قرار التعيين",
+    questions: [
+      "من أصدر قرار التعيين، وبأي صفة؟",
+      "هل أُعلن عن الوظيفة، أو أُجريت مسابقة أو مفاضلة؟",
+      "ما صلة القرابة بين المعيَّن ومصدر القرار؟",
+    ],
+  },
+  drugsSupply: {
+    titleAr: "تقديم المادة لآخر",
+    questions: [
+      "هل سلّم المتهم المادة بيده لشخص آخر، أم وُجدت في مكان مشترك؟",
+      "هل يوجد شاهد على التسليم أو اعتراف به؟",
+    ],
+  },
+  indecency: {
+    titleAr: "وصف الفعل",
+    questions: [
+      "هل وقع الفعل على شخص معيّن، أم كان أمام الناس عموماً دون أن يُقصد به أحد؟",
+      "هل وقع في مكان عام أم خاص؟",
+      "هل كان المجني عليه راضياً، وما الذي يثبت الرضا أو الرفض؟",
+    ],
+  },
 };
 
-/** Examination card → question set. Cards not listed (فاحشة:مراجعة,
- * حرابة:فحص, نهب:جرح, قرار:مشروعية, مخدرات:تقديم) have no approved questions
- * yet (spec §4) and ask nothing. */
+/** Examination card → question set. The last five (فاحشة:مراجعة, حرابة:فحص,
+ * نهب:جرح, قرار:مشروعية, مخدرات:تقديم) were approved by Safi on 3 Nov 2026. */
 const CARD_TO_SET: Record<string, string> = {
   "إصابة:وصف": "injury",
   "جرح:وصف": "injury",
@@ -155,6 +192,11 @@ const CARD_TO_SET: Record<string, string> = {
   "تزوير:فحص": "forgery",
   "إهمال:فحص": "negligence",
   "إتلاف:بيّنة": "damage",
+  "حرابة:فحص": "hiraba",
+  "نهب:جرح": "robberyWound",
+  "قرار:مشروعية": "adminDecision",
+  "مخدرات:تقديم": "drugsSupply",
+  "فاحشة:مراجعة": "indecency",
 };
 
 export function questionSetForCard(concept: string): string | null {
