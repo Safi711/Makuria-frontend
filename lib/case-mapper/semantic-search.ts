@@ -42,6 +42,30 @@ async function postJson(url: string, headers: Record<string, string>, body: unkn
   return r.json();
 }
 
+/** A separate yes/no check: do the facts raise any legal issue at all?
+ * Kept apart from the restatement on purpose — adding this rule to the
+ * restatement prompt changed its wording for real disputes and cost three
+ * approved cases (25, 47, 48). This call only gates; it never shapes the query.
+ * Golden T24 «اشتريت قميصًا.» is the case it exists for. */
+const ISSUE_CHECK_SYSTEM = `تصلك جملة أو وقائع يكتبها شخص في أداة بحث قانوني. هل تذكر نزاعاً أو ضرراً أو حقاً يُطالب به أو التزاماً أو قراراً يُعترض عليه أو سؤالاً قانونياً، ولو بإيجاز أو بالعامية؟
+أجب بكلمة واحدة فقط: نعم أو لا. عند الشك أجب نعم.`;
+
+async function raisesLegalIssue(facts: string, anthropicKey: string): Promise<boolean> {
+  const j = await postJson(
+    "https://api.anthropic.com/v1/messages",
+    { "x-api-key": anthropicKey, "anthropic-version": "2023-06-01" },
+    {
+      model: "claude-haiku-4-5-20251001",
+      max_tokens: 5,
+      temperature: 0,
+      system: ISSUE_CHECK_SYSTEM,
+      messages: [{ role: "user", content: facts }],
+    },
+  );
+  const a = (j.content ?? []).map((c: { text?: string }) => c.text ?? "").join("").trim();
+  return !a.startsWith("لا");
+}
+
 async function rewriteFacts(facts: string, anthropicKey: string): Promise<string> {
   const j = await postJson(
     "https://api.anthropic.com/v1/messages",
@@ -71,7 +95,13 @@ export async function semanticSearch(
   try {
     // Names, phone and ID numbers never leave the server.
     const facts = redactPII(rawFacts);
-    const rewrite = await rewriteFacts(facts, anthropicKey);
+    // Run in parallel: the check adds no waiting time. A failed check counts as
+    // "yes" so a network hiccup never hides articles.
+    const [issue, rewrite] = await Promise.all([
+      raisesLegalIssue(facts, anthropicKey).catch(() => true),
+      rewriteFacts(facts, anthropicKey),
+    ]);
+    if (!issue) return { hits: [], rewrite: "" };
     const query = rewrite ? `${rewrite}\n${facts}` : facts;
 
     const voyageH = { Authorization: `Bearer ${voyageKey}` };
