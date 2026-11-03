@@ -1086,6 +1086,15 @@ export async function AdvisorPage({
                 pendingLabel={locale === "ar" ? "جارٍ إنشاء الرابط…" : "Creating link…"}
               />
             </form>
+            <Link
+              href="/abu-rannat/report"
+              target="_blank"
+              rel="noopener"
+              className="rounded-xl border px-5 py-2.5 text-sm font-bold"
+              style={{ borderColor: "var(--cm-gold)", color: "var(--cm-gold)" }}
+            >
+              {locale === "ar" ? "تقرير PDF" : "PDF report"}
+            </Link>
             <form action={clearAnalysis}>
               <AdvisorSubmitButton
                 variant="secondary"
