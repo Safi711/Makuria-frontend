@@ -86,11 +86,14 @@ test("every شروع:* card asks the homicide-intent questions", () => {
   eq(questionSetForCard("شروع:سم"), "homicideIntent");
   eq(questionSetForCard("شروع:حرق"), "homicideIntent");
 });
-test("cards without approved questions ask nothing", () => {
-  for (const c of ["فاحشة:مراجعة", "حرابة:فحص", "نهب:جرح", "قرار:مشروعية", "مخدرات:تقديم"]) {
-    eq(questionSetForCard(c), null, c);
-  }
+test("the five cards approved on 3 Nov map to their sets", () => {
+  eq(questionSetForCard("فاحشة:مراجعة"), "indecency");
+  eq(questionSetForCard("حرابة:فحص"), "hiraba");
+  eq(questionSetForCard("نهب:جرح"), "robberyWound");
+  eq(questionSetForCard("قرار:مشروعية"), "adminDecision");
+  eq(questionSetForCard("مخدرات:تقديم"), "drugsSupply");
 });
+test("an unknown card asks nothing", () => eq(questionSetForCard("بطاقة:غير_موجودة"), null));
 test("criminal result with cards → open_points, deduplicated, card label as heading", () => {
   const c = buildClarification("ضرب المتهم المجني عليه بعصا", {
     ...CRIMINAL,
@@ -98,11 +101,11 @@ test("criminal result with cards → open_points, deduplicated, card label as he
       { concept: "جرح:وصف", label: "وصف الإصابة: جراح أم أذى — نقطة مفتوحة للمحامي" },
       { concept: "إصابة:وصف", label: "تكرار" },
       { concept: "قتل:وصف", label: "وصف القتل: عمد أم شبه عمد — نقطة مفتوحة للمحامي" },
-      { concept: "نهب:جرح", label: "بلا أسئلة" },
+      { concept: "نهب:جرح", label: "الجرح المصاحب للنهب" },
     ],
   })!;
   eq(c.reason, "open_points");
-  eq(c.groups.map((g) => g.key), ["injury", "homicideIntent"]);
+  eq(c.groups.map((g) => g.key), ["injury", "homicideIntent", "robberyWound"]);
   eq(c.groups[0].titleAr, "وصف الإصابة: جراح أم أذى — نقطة مفتوحة للمحامي");
   eq(c.groups[0].questions, QUESTION_SETS.injury.questions);
 });
@@ -111,7 +114,7 @@ test("administrative result keeps its card groups after the domain group", () =>
     ...EMPTY, discuss: [{ concept: "قرار:مشروعية", label: "مراجعة مشروعية القرار" }],
   })!;
   eq(c.reason, "administrative");
-  eq(c.groups.map((g) => g.key), ["administrative"]);
+  eq(c.groups.map((g) => g.key), ["administrative", "adminDecision"]);
 });
 test("questions come only from the fixed bank", () => {
   const all = new Set(Object.values(QUESTION_SETS).flatMap((s) => s.questions));
