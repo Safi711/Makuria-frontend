@@ -688,7 +688,9 @@ export async function AdvisorPage({
   // Vague or cut-off facts: the questions take the place of the
   // «no confident match» notice. Otherwise they sit under the results.
   const isNoMatchClarify =
-    result?.clarification?.reason === "ambiguous" || result?.clarification?.reason === "truncated";
+    result?.clarification?.reason === "ambiguous" ||
+    result?.clarification?.reason === "truncated" ||
+    result?.clarification?.reason === "missing_facts";
 
   return (
     <div
