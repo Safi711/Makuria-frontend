@@ -46,6 +46,16 @@ export async function submitAnalysis(formData: FormData): Promise<void> {
   store.set(`${ADVISOR_COOKIE}.n`, String(chunks.length), cookieOpts);
 }
 
+/**
+ * From /search: a whole account pasted into the search box goes to Abu Rannat
+ * instead. Same cookie as the facts form (never the URL), then the advisor
+ * page opens with the analysis.
+ */
+export async function sendSearchToAdvisor(formData: FormData): Promise<void> {
+  await submitAnalysis(formData);
+  redirect("/abu-rannat");
+}
+
 /** "تحليل جديد": forget the stored input. */
 export async function clearAnalysis(): Promise<void> {
   const store = await cookies();
