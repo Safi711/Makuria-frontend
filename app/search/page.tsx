@@ -2,6 +2,7 @@ import Link from "next/link";
 import { createClient } from "@/lib/supabase/server";
 import { getLocale } from "@/lib/i18n-server";
 import { t } from "@/lib/i18n";
+import { synonymVariants, mergeVariantResults } from "@/lib/search-synonyms";
 
 const RESULT_LIMIT = 25;
 
@@ -20,6 +21,7 @@ type SearchRow = {
   law_status: string | null;
   status_rank: number | null;
   law_slug: string | null;
+  rank?: number | null;
 };
 
 // status_rank: 0 = in force, 1 = disputed / not verified, 2 = repealed.
@@ -81,15 +83,25 @@ export default async function SearchPage(props: PageProps<"/search">) {
   // questions («ما عقوبة السرقة») split into words, «المادة 96 من القانون
   // الجنائي» understood as article 96 of that law, and `reference` laws
   // returned as law results. It is bounded by limit_rows like v3.
-  const { data, error } = q
-    ? await supabase.rpc("quick_search_v4", {
-        q,
+  //
+  // The question is also searched with legal-language synonyms swapped in
+  // («سقوط الدعوى» → «انقضاء الدعوى»), see lib/search-synonyms.ts.
+  const variants = q ? synonymVariants(q) : [];
+  const responses = await Promise.all(
+    variants.map((vq) =>
+      supabase.rpc("quick_search_v4", {
+        q: vq,
         limit_rows: RESULT_LIMIT,
         include_repealed: true,
       })
-    : { data: null, error: null };
-
-  const results: SearchRow[] = (data as SearchRow[] | null) ?? [];
+    )
+  );
+  // An error on the question as typed is shown; a failed rewrite is just skipped.
+  const error = responses[0]?.error ?? null;
+  const results: SearchRow[] = mergeVariantResults(
+    responses.map((r) => (r.error ? [] : ((r.data as SearchRow[] | null) ?? []))),
+    RESULT_LIMIT
+  );
   const underReview = results.filter(isUnderReview);
   const inForce = results.filter(
     (r) => !isUnderReview(r) && (r.status_rank ?? IN_FORCE) === IN_FORCE
