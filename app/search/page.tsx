@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getLocale } from "@/lib/i18n-server";
 import { t } from "@/lib/i18n";
 import { synonymVariants, mergeVariantResults } from "@/lib/search-synonyms";
+import { sendSearchToAdvisor } from "@/app/abu-rannat/actions";
 
 const RESULT_LIMIT = 25;
 const SEARCH_MAX_WORDS = 12;
@@ -88,14 +89,15 @@ export default async function SearchPage(props: PageProps<"/search">) {
   // The question is also searched with legal-language synonyms swapped in
   // («سقوط الدعوى» → «انقضاء الدعوى»), see lib/search-synonyms.ts.
   //
-  // A whole account pasted into the box («اشتريت أرضاً … الأرض لمن؟») runs past
-  // the 3-second limit on public queries and used to end in «حدث خطأ». The
-  // search uses its first SEARCH_MAX_WORDS words, and the page points facts
-  // like these to Abu Rannat, which is built for them.
+  // A whole account pasted into the box («اشتريت أرضاً … الأرض لمن؟») is not
+  // searched: the word search cannot answer it (tested: shortened versions
+  // return one unrelated result), and over ~20 words it runs past the 3-second
+  // limit on public queries (Supabase logs, 2026-11-04: statement timeout →
+  // 500). The page offers the two real options instead — analyse the account
+  // in Abu Rannat, or search with words the visitor chooses.
   const qWords = q.split(/\s+/).filter(Boolean);
   const isLongQuery = qWords.length > SEARCH_MAX_WORDS;
-  const searchQ = isLongQuery ? qWords.slice(0, SEARCH_MAX_WORDS).join(" ") : q;
-  const variants = q ? synonymVariants(searchQ) : [];
+  const variants = q && !isLongQuery ? synonymVariants(q) : [];
   const responses = await Promise.all(
     variants.map((vq) =>
       supabase.rpc("quick_search_v4", {
@@ -107,6 +109,9 @@ export default async function SearchPage(props: PageProps<"/search">) {
   );
   // An error on the question as typed is shown; a failed rewrite is just skipped.
   const error = responses[0]?.error ?? null;
+  // 57014 = statement timeout: the question was too heavy, fewer words help.
+  // Anything else (network, service down) is not the visitor's wording.
+  const isTimeout = (error as { code?: string } | null)?.code === "57014";
   const results: SearchRow[] = mergeVariantResults(
     responses.map((r) => (r.error ? [] : ((r.data as SearchRow[] | null) ?? []))),
     RESULT_LIMIT
@@ -231,35 +236,40 @@ export default async function SearchPage(props: PageProps<"/search">) {
         </button>
       </form>
 
-      {(isLongQuery || error) && (
-        <p className="mb-4 rounded border border-neutral-300 p-3 text-sm">
-          {locale === "ar" ? (
-            <>
-              {isLongQuery
-                ? "سؤالك طويل، فبحثنا بأول كلماته. البحث يعمل بأفضل صورة بكلمات قليلة، مثل «انقضاء الدعوى الجنائية». "
-                : "تعذّر البحث بهذه الصيغة. جرّب كلمات أقل، مثل «انقضاء الدعوى الجنائية». "}
-              لوصف واقعة كاملة استعمل{" "}
-              <Link href="/abu-rannat" className="underline">
-                المستشار القانوني الذكي
-              </Link>
-              .
-            </>
-          ) : (
-            <>
-              {isLongQuery
-                ? "Your question is long, so only its first words were searched. Search works best with a few words. "
-                : "The search could not run on this text. Try fewer words. "}
-              To describe a whole situation, use the{" "}
-              <Link href="/abu-rannat" className="underline">
-                legal advisor
-              </Link>
-              .
-            </>
-          )}
+      {isLongQuery && (
+        <div className="mb-4 rounded border border-neutral-300 p-4 text-sm">
+          <p className="mb-3">
+            {locale === "ar"
+              ? `نصّك طويل (${qWords.length} كلمة) ويصف واقعة. البحث هنا يجد النصوص بالكلمات، ولا يحلّل الوقائع؛ لذلك لم نبحث به. اختر:`
+              : `Your text is long (${qWords.length} words) and describes a situation. This search finds texts by words; it does not analyse facts, so it was not run. Choose:`}
+          </p>
+          <form action={sendSearchToAdvisor} className="mb-3">
+            <input type="hidden" name="facts" value={q} />
+            <button type="submit" className="rounded bg-yellow-400 px-4 py-2 font-medium text-neutral-900">
+              {locale === "ar" ? "حلّل الواقعة كاملة في المستشار القانوني الذكي" : "Analyse the whole situation in the legal advisor"}
+            </button>
+          </form>
+          <p className="text-neutral-600">
+            {locale === "ar"
+              ? `أو اكتب في خانة البحث أعلاه ${SEARCH_MAX_WORDS} كلمة أو أقل تختارها بنفسك، مثل «تسجيل الأرض شهادة البحث» أو «انقضاء الدعوى الجنائية».`
+              : `Or type ${SEARCH_MAX_WORDS} words or fewer of your own choosing in the search box above.`}
+          </p>
+        </div>
+      )}
+
+      {error && (
+        <p className="mb-4 text-sm text-red-600">
+          {isTimeout
+            ? locale === "ar"
+              ? "استغرق البحث وقتاً أطول من المسموح. جرّب كلمات أقل."
+              : "The search took too long. Try fewer words."
+            : locale === "ar"
+              ? "تعذّر تشغيل البحث الآن. حاول بعد قليل."
+              : "The search could not run right now. Please try again shortly."}
         </p>
       )}
 
-      {q && !error && (
+      {q && !error && !isLongQuery && (
         <>
           {results.length > 0 ? (
             <>
