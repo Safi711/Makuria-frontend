@@ -16,13 +16,14 @@
  * Pure functions only — no database, no network — so the whole module is
  * covered by test-clarification.mjs without credentials.
  */
-import { normalizeForKwMatch } from "./kw-matcher.mjs";
+import { normalizeForKwMatch, factsStateAcquisitionUnclear } from "./kw-matcher.mjs";
 
 export type ClarificationReason =
   | "truncated"        // the text stops mid-word, too short to analyse
   | "ambiguous"        // a grievance with no act, parties or loss stated
   | "constitutional"   // a challenge to a legislative text
   | "administrative"   // a challenge to an administrative decision
+  | "missing_facts"    // the facts say a deciding fact is unknown («لم يوضح كيف …»)
   | "open_points";     // one or more examination cards need missing facts
 
 export type ClarificationGroup = {
@@ -135,6 +136,15 @@ export const QUESTION_SETS: Record<string, QuestionSet> = {
     questions: ["كيف بدأ الحريق أو التلف؟", "هل يوجد تقرير فني؟"],
   },
   // Approved by Safi on 3 Nov 2026 (step 3 of 3).
+  acquisition: {
+    titleAr: "كيف وصل الشيء إلى المتهم",
+    questions: [
+      "كيف وصل الشيء إلى المتهم: أخذه دون إذنك، أم سلّمته له أنت؟",
+      "إن كنت سلّمته له، فعلى أي أساس: إعارة، أم إيجار، أم أمانة لغرض محدد، أم بيع؟",
+      "هل طالبته بإرجاعه؟ وبماذا ردّ؟",
+      "هل ادّعى المتهم أن الشيء ملكه أو أن له حقاً فيه؟",
+    ],
+  },
   hiraba: {
     titleAr: "مكان الفعل وإمكان طلب النجدة",
     questions: [
@@ -334,6 +344,12 @@ export function buildClarification(
   if (r.noConfidentMatch && !r.hasAnyResults && isAmbiguousGrievance(facts)) {
     return { reason: "ambiguous", groups: [group("ambiguous")] };
   }
+  // The facts themselves say how the thing reached the accused is unknown
+  // (S1-B7-070). The entrustment gate stays silent in that case, so the
+  // questions take the place of the «no confident match» notice.
+  if (r.noConfidentMatch && !hasCriminalArticle(r) && factsStateAcquisitionUnclear(facts)) {
+    return { reason: "missing_facts", groups: [group("acquisition"), ...cards] };
+  }
   if (!hasCriminalArticle(r)) {
     const domain = detectPublicLawDomain(facts);
     if (domain) return { reason: domain, groups: [group(domain), ...cards] };
@@ -419,5 +435,17 @@ export function factsForAnalysis(facts: string): string {
     })
     .filter(Boolean)
     .map((a) => (/[.؟!]$/.test(a) ? a : `${a}.`));
-  return [own.trim(), ...answers].join(" ").trim();
+  // Once the acquisition questions are answered, the user's own sentence
+  // saying that fact is unknown («لم يوضح كيف حصل المتهم على السيارة») is
+  // superseded — left in, it would keep the entrustment gate closed.
+  let ownFacts = own.trim();
+  const acq = QUESTION_SETS.acquisition.questions;
+  if (rest.join("\n").split("\n").some((l) => acq.some((q) => l.trim().startsWith(`• ${q} `)))) {
+    ownFacts = ownFacts
+      .split(/(?<=[.؟!\n])\s*/)
+      .filter((sentence) => !factsStateAcquisitionUnclear(sentence))
+      .join(" ")
+      .trim();
+  }
+  return [ownFacts, ...answers].join(" ").trim();
 }
