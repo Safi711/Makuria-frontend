@@ -5,6 +5,7 @@ import { t } from "@/lib/i18n";
 import { synonymVariants, mergeVariantResults } from "@/lib/search-synonyms";
 
 const RESULT_LIMIT = 25;
+const SEARCH_MAX_WORDS = 12;
 
 type SearchRow = {
   result_type: string;
@@ -86,7 +87,15 @@ export default async function SearchPage(props: PageProps<"/search">) {
   //
   // The question is also searched with legal-language synonyms swapped in
   // («سقوط الدعوى» → «انقضاء الدعوى»), see lib/search-synonyms.ts.
-  const variants = q ? synonymVariants(q) : [];
+  //
+  // A whole account pasted into the box («اشتريت أرضاً … الأرض لمن؟») runs past
+  // the 3-second limit on public queries and used to end in «حدث خطأ». The
+  // search uses its first SEARCH_MAX_WORDS words, and the page points facts
+  // like these to Abu Rannat, which is built for them.
+  const qWords = q.split(/\s+/).filter(Boolean);
+  const isLongQuery = qWords.length > SEARCH_MAX_WORDS;
+  const searchQ = isLongQuery ? qWords.slice(0, SEARCH_MAX_WORDS).join(" ") : q;
+  const variants = q ? synonymVariants(searchQ) : [];
   const responses = await Promise.all(
     variants.map((vq) =>
       supabase.rpc("quick_search_v4", {
@@ -222,11 +231,31 @@ export default async function SearchPage(props: PageProps<"/search">) {
         </button>
       </form>
 
-      {error && (
-        <p className="text-sm text-red-600">
-          {locale === "ar"
-            ? "حدث خطأ أثناء البحث."
-            : "Something went wrong running the search."}
+      {(isLongQuery || error) && (
+        <p className="mb-4 rounded border border-neutral-300 p-3 text-sm">
+          {locale === "ar" ? (
+            <>
+              {isLongQuery
+                ? "سؤالك طويل، فبحثنا بأول كلماته. البحث يعمل بأفضل صورة بكلمات قليلة، مثل «انقضاء الدعوى الجنائية». "
+                : "تعذّر البحث بهذه الصيغة. جرّب كلمات أقل، مثل «انقضاء الدعوى الجنائية». "}
+              لوصف واقعة كاملة استعمل{" "}
+              <Link href="/abu-rannat" className="underline">
+                المستشار القانوني الذكي
+              </Link>
+              .
+            </>
+          ) : (
+            <>
+              {isLongQuery
+                ? "Your question is long, so only its first words were searched. Search works best with a few words. "
+                : "The search could not run on this text. Try fewer words. "}
+              To describe a whole situation, use the{" "}
+              <Link href="/abu-rannat" className="underline">
+                legal advisor
+              </Link>
+              .
+            </>
+          )}
         </p>
       )}
 
