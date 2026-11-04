@@ -152,6 +152,16 @@ export const QUESTION_SETS: Record<string, QuestionSet> = {
       "هل كان في المكان ناس أو شرطة يمكن طلب النجدة منهم؟",
     ],
   },
+  // Approved by Safi on 4 Nov 2026.
+  robberyAttempt: {
+    titleAr: "فحص الشروع في القتل أثناء النهب",
+    questions: [
+      "ما مصير المصاب وما شدة إصابته؟",
+      "كم كانت قوة الضربة، وهل تكررت؟",
+      "هل يوجد ما يدل على قصد القتل؟",
+      "لماذا لم يكتمل القتل؟",
+    ],
+  },
   robberyWound: {
     titleAr: "الجرح المصاحب للنهب",
     questions: [
@@ -204,6 +214,7 @@ const CARD_TO_SET: Record<string, string> = {
   "إتلاف:بيّنة": "damage",
   "حرابة:فحص": "hiraba",
   "نهب:جرح": "robberyWound",
+  "شروع:نهب": "robberyAttempt",
   "قرار:مشروعية": "adminDecision",
   "مخدرات:تقديم": "drugsSupply",
   "فاحشة:مراجعة": "indecency",
