@@ -72,10 +72,13 @@
       "allowed": [
         "129"
       ],
-      "cards": [],
+      "cards": [
+        "مرور:حادث",
+        "إهمال:فحص:قتل"
+      ],
       "cardsNew": [],
       "negationNote": null,
-      "relatedNew": true,
+      "relatedNew": false,
       "mustNotHave": []
     }
   },
@@ -160,10 +163,7 @@
         "حرابة:فحص",
         "شروع:*"
       ],
-      "cardsNew": [
-        "حرابة:فحص",
-        "شروع:*"
-      ],
+      "cardsNew": [],
       "negationNote": null,
       "relatedNew": false,
       "mustNotHave": []
