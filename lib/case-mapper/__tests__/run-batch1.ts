@@ -58,6 +58,19 @@ if (BATCH_NUMBER === 10) {
   batch1 = batchEntry.tests as any[];
 }
 
+// Approved gold amendments (Safi, 2026-11-03) — applied on top of the batch file.
+{
+  const am = JSON.parse(
+    readFileSync(join(process.cwd(), "lib/case-mapper/__tests__/gold-amendments.json"), "utf8")
+  ).amendments as Record<string, Record<string, unknown>>;
+  batch1 = batch1.map((t) => {
+    const a = am[t.id];
+    if (!a) return t;
+    const { reason: _r, ...fields } = a;
+    return { ...t, ...fields, amended: true };
+  });
+}
+
 // ── helpers ────────────────────────────────────────────────────────────────
 
 /** Extract bare article numbers from must_not strings like "خيانة الأمانة (177)". */
