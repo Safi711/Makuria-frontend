@@ -17,7 +17,27 @@ export const SEARCH_SYNONYMS: Record<string, string[]> = {
   انقضاء: ["سقوط", "مسقط"],
   تسقط: ["تنقضي"],
   تنقضي: ["تسقط"],
+  // Nov 4 — each pair checked on the database: the everyday word finds little
+  // or nothing; the statute's word finds the article (in brackets).
+  نصب: ["احتيال"],        // الاحتيال م178 جنائي
+  حرامي: ["سرقة"],        // 0 نتيجة → السرقة م174
+  شتيمة: ["إساءة"],       // 0 نتيجة → الإساءة والسباب م160
+  شتم: ["إساءة"],
+  سواقة: ["قيادة"],       // «رخصة سواقة» → رخصة القيادة، قانون المرور
+  سلفة: ["قرض"],          // القرض م277 معاملات
+  سلفه: ["قرض"],
+  ضرب: ["أذى"],           // الأذى م142 جنائي
 };
+
+/**
+ * Phrases swapped as a whole, for words that are only safe together:
+ * «شيك مرتد» is «صك مردود» (م179 جنائي), but «المرتد» alone is apostasy. Bare tokens, «ال» stripped, hamza folded.
+ */
+export const PHRASE_SYNONYMS: Array<[string[], string]> = [
+  [["شيك", "مرتد"], "صك مردود"],
+  [["شيك", "راجع"], "صك مردود"],
+  [["شيك", "بدون", "رصيد"], "صك مردود"],
+];
 
 /**
  * Question words dropped from a synonym rewrite (never from the question as
@@ -25,7 +45,13 @@ export const SEARCH_SYNONYMS: Record<string, string[]> = {
  * الجنائية» does not contain «أسباب», so «أسباب مسقط الدعوى الجنائية» matched
  * it only partly and it fell below two unrelated cases.
  */
-const REWRITE_FILLER = new Set(["أسباب", "اسباب", "الأسباب", "الاسباب"]);
+const REWRITE_FILLER = new Set([
+  "أسباب", "اسباب", "الأسباب", "الاسباب",
+  // «عقوبة النصب» → «احتيال», not «عقوبة احتيال»: Art. 178 is titled «الاحتيال»
+  // and the punishment sits in its text, so the shorter rewrite matches its
+  // title and ranks it first (checked on the database, Nov 4).
+  "عقوبة", "العقوبة",
+]);
 
 /** At most this many rewritten questions are searched besides the original. */
 export const MAX_SYNONYM_VARIANTS = 3;
@@ -40,8 +66,19 @@ function foldHamza(w: string): string {
 export function synonymVariants(q: string): string[] {
   const words = q.trim().split(/\s+/).filter(Boolean);
   const out: string[] = [q];
+  const bareAll = words.map((w) => foldHamza(w).replace(PREFIX, "").replace(/[؟?!.،,«»"]+$/u, ""));
+  // Phrases first: «الشيك المرتد» → «صك مردود».
+  for (const [phrase, repl] of PHRASE_SYNONYMS) {
+    for (let i = 0; i + phrase.length <= bareAll.length && out.length <= MAX_SYNONYM_VARIANTS; i++) {
+      if (!phrase.every((p, k) => bareAll[i + k] === p)) continue;
+      const v = [...words.slice(0, i), repl, ...words.slice(i + phrase.length)]
+        .filter((w, j) => j === i || !REWRITE_FILLER.has(w))
+        .join(" ");
+      if (!out.includes(v)) out.push(v);
+    }
+  }
   for (let i = 0; i < words.length && out.length <= MAX_SYNONYM_VARIANTS; i++) {
-    const bare = foldHamza(words[i]).replace(PREFIX, "");
+    const bare = bareAll[i];
     const alts = SEARCH_SYNONYMS[bare];
     if (!alts) continue;
     for (const alt of alts) {
@@ -66,17 +103,21 @@ type Ranked = {
 /**
  * Merge the result lists of the variants (index 0 = the question as typed).
  * A result found by several variants keeps its best (status_rank, full match
- * before partial, rank, variant, position); the merged list is ordered the
- * same way. «partial» = the row matched only some of the words, so a full
+ * before partial, synonym rewrite before the question as typed, rank,
+ * variant, position); the merged list is ordered the same way. «partial» = the row matched only some of the words, so a full
  * match found through a synonym outranks it.
  */
 export function mergeVariantResults<T extends Ranked>(lists: T[][], limit: number): T[] {
-  type Keyed = { row: T; key: [number, number, number, number, number] };
+  type Keyed = { row: T; key: [number, number, number, number, number, number] };
   const best = new Map<string, Keyed>();
   lists.forEach((rows, v) => {
     rows.forEach((row, pos) => {
       const partial = row.match_source === "partial" ? 1 : 0;
-      const key: Keyed["key"] = [row.status_rank ?? 0, partial, row.rank ?? 99, v, pos];
+      // When the question has a listed everyday word, the statute's wording
+      // decides first: «عقوبة الحرامي» alone falls back to every «عقوبة …»
+      // article (الشغب، الزنا …), while «سرقة» finds Art. 174.
+      const asTyped = v === 0 && lists.length > 1 ? 1 : 0;
+      const key: Keyed["key"] = [row.status_rank ?? 0, partial, asTyped, row.rank ?? 99, v, pos];
       const id = `${row.result_type}:${row.entity_id}`;
       const cur = best.get(id);
       if (!cur || cmp(key, cur.key) < 0) best.set(id, { row, key });
