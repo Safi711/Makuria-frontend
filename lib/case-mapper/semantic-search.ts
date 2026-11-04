@@ -11,6 +11,7 @@
  */
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { redactPII } from "./redact-pii.mjs";
+import { keepSemanticRow } from "./semantic-filters.mjs";
 
 export type SemanticHit = {
   articleId: string;
@@ -126,7 +127,8 @@ export async function semanticSearch(
       article_id: string; law_slug: string; law_title: string; article_number: string | null;
       title_ar: string | null; content_ar: string | null; legal_status: string | null; similarity: number;
     };
-    const rows = data as Row[];
+    const rows = (data as Row[]).filter((r) => keepSemanticRow(r.law_slug, facts));
+    if (rows.length === 0) return null;
 
     const docs = rows.map((r) =>
       `${r.law_title} — المادة ${r.article_number ?? ""}${r.title_ar ? ` (${r.title_ar})` : ""}\n${r.content_ar ?? ""}`);
