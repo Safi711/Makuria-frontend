@@ -33,5 +33,7 @@ eq("عند وجود مرادف: لفظ القانون قبل السؤال كما
   [{ result_type: "article", entity_id: "riot68", status_rank: 0, rank: 4, match_source: "text" }],
   [{ result_type: "article", entity_id: "theft174", status_rank: 0, rank: 4, match_source: "text" }],
 ], 25).map((r) => r.entity_id), ["theft174", "riot68"]);
+eq("علامات تنصيص ونقطتان حول السؤال", synonymVariants("«عقوبة الشيك المرتد»:")[1], "صك مردود");
+eq("«الحرامي» بين علامتين", synonymVariants("«الحرامي»")[1], "سرقة");
 console.log(`${pass}/${total}`);
 if (pass !== total) process.exit(1);

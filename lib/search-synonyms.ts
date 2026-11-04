@@ -66,14 +66,27 @@ function foldHamza(w: string): string {
 export function synonymVariants(q: string): string[] {
   const words = q.trim().split(/\s+/).filter(Boolean);
   const out: string[] = [q];
-  const bareAll = words.map((w) => foldHamza(w).replace(PREFIX, "").replace(/[؟?!.،,«»"]+$/u, ""));
+  // Punctuation on either side is ignored: «عقوبة الشيك المرتد»: (pasted
+  // with quotes and a colon) must match like عقوبة الشيك المرتد.
+  const bareAll = words.map((w) =>
+    foldHamza(w.replace(/^[\p{P}\p{S}]+|[\p{P}\p{S}]+$/gu, "")).replace(PREFIX, ""),
+  );
+  /** words[i..i+n) replaced by `repl`; filler words («أسباب»، «عقوبة») and
+   * surrounding punctuation dropped from the rewrite. */
+  const rewrite = (i: number, n: number, repl: string): string =>
+    [
+      ...words.slice(0, i).filter((_, j) => !REWRITE_FILLER.has(bareAll[j])),
+      repl,
+      ...words.slice(i + n).filter((_, k) => !REWRITE_FILLER.has(bareAll[i + n + k])),
+    ]
+      .map((w) => w.replace(/^[«"(]+|[»":)]+$/gu, ""))
+      .filter(Boolean)
+      .join(" ");
   // Phrases first: «الشيك المرتد» → «صك مردود».
   for (const [phrase, repl] of PHRASE_SYNONYMS) {
     for (let i = 0; i + phrase.length <= bareAll.length && out.length <= MAX_SYNONYM_VARIANTS; i++) {
       if (!phrase.every((p, k) => bareAll[i + k] === p)) continue;
-      const v = [...words.slice(0, i), repl, ...words.slice(i + phrase.length)]
-        .filter((w, j) => j === i || !REWRITE_FILLER.has(w))
-        .join(" ");
+      const v = rewrite(i, phrase.length, repl);
       if (!out.includes(v)) out.push(v);
     }
   }
@@ -83,9 +96,7 @@ export function synonymVariants(q: string): string[] {
     if (!alts) continue;
     for (const alt of alts) {
       if (out.length > MAX_SYNONYM_VARIANTS) break;
-      const v = [...words.slice(0, i), alt, ...words.slice(i + 1)]
-        .filter((w, j) => j === i || !REWRITE_FILLER.has(w))
-        .join(" ");
+      const v = rewrite(i, 1, alt);
       if (!out.includes(v)) out.push(v);
     }
   }
