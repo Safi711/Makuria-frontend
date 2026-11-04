@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { CRIMINAL_ACT_SLUG, precedentEraNotice } from "@/lib/case-mapper/precedent-era.mjs";
 import { t, type Locale } from "@/lib/i18n";
 import { createClient } from "@/lib/supabase/server";
 import { LawStatusBadge } from "@/components/LawStatusBadge";
@@ -352,7 +353,8 @@ function LawRow({
   );
 }
 
-function CaseRow({ locale, c }: { locale: Locale; c: RetrievedCase }) {
+function CaseRow({ locale, c, criminal }: { locale: Locale; c: RetrievedCase; criminal: boolean }) {
+  const eraNotice = locale === "ar" ? precedentEraNotice(c.year, criminal) : null;
   const meta = [c.courtName, c.year ?? undefined, c.citation ?? c.caseNumber ?? undefined]
     .filter(Boolean)
     .join(" · ");
@@ -365,6 +367,11 @@ function CaseRow({ locale, c }: { locale: Locale; c: RetrievedCase }) {
       </div>
 
       {meta && <MetaLine>{meta}</MetaLine>}
+      {eraNotice && (
+        <p className="mt-1 text-xs font-medium leading-relaxed" style={{ color: "var(--cm-text-2)" }}>
+          تنبيه: {eraNotice}
+        </p>
+      )}
 
       {c.principle && (
         <p className="mt-2 text-sm leading-relaxed" style={{ color: "var(--cm-text-2)" }}>
@@ -984,7 +991,12 @@ export async function AdvisorPage({
               ) : (
                 <ul className="mt-4 space-y-3">
                   {result.cases.map((c) => (
-                    <CaseRow key={c.id} locale={locale} c={c} />
+                    <CaseRow
+                      key={c.id}
+                      locale={locale}
+                      c={c}
+                      criminal={result.laws.some((a) => a.lawSlug === CRIMINAL_ACT_SLUG)}
+                    />
                   ))}
                 </ul>
               )}
