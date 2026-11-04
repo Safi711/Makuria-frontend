@@ -19,6 +19,14 @@ export const SEARCH_SYNONYMS: Record<string, string[]> = {
   تنقضي: ["تسقط"],
 };
 
+/**
+ * Question words dropped from a synonym rewrite (never from the question as
+ * typed). The statute rarely repeats them: Art. 38 «التقادم المسقط للدعوى
+ * الجنائية» does not contain «أسباب», so «أسباب مسقط الدعوى الجنائية» matched
+ * it only partly and it fell below two unrelated cases.
+ */
+const REWRITE_FILLER = new Set(["أسباب", "اسباب", "الأسباب", "الاسباب"]);
+
 /** At most this many rewritten questions are searched besides the original. */
 export const MAX_SYNONYM_VARIANTS = 3;
 
@@ -38,7 +46,9 @@ export function synonymVariants(q: string): string[] {
     if (!alts) continue;
     for (const alt of alts) {
       if (out.length > MAX_SYNONYM_VARIANTS) break;
-      const v = [...words.slice(0, i), alt, ...words.slice(i + 1)].join(" ");
+      const v = [...words.slice(0, i), alt, ...words.slice(i + 1)]
+        .filter((w, j) => j === i || !REWRITE_FILLER.has(w))
+        .join(" ");
       if (!out.includes(v)) out.push(v);
     }
   }
