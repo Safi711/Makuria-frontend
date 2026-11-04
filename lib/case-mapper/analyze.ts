@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { mapLimited, rpcWithRetry, newSearchFailures, logSearchFailures, SEARCH_CONCURRENCY } from "./search-pool";
 import { classifyWithLLM } from "./llm-classifier";
 import { semanticSearch } from "./semantic-search";
 import { classifyPrecedent, type PrecedentRelevance } from "./precedent-relevance";
@@ -2296,14 +2297,13 @@ async function analyzeCriminalConceptMap(
   }
 
   // Case search: concept terms only, filter to primary criminal category
-  const caseCandidates = await Promise.all(
-    allConceptTerms.map(async (term) => {
-      const { data, error } = await supabase.rpc("quick_search_v4", {
-        q: searchQuery(term), limit_rows: PER_TERM_LIMIT, include_repealed: true,
-      });
-      return { term, rows: (error ? [] : (data ?? [])) as V4Row[] };
-    })
-  );
+  const caseSearchStats = newSearchFailures();
+  const caseCandidates = await mapLimited(allConceptTerms, SEARCH_CONCURRENCY, async (term) => {
+    const { data, error } = await rpcWithRetry(supabase, "quick_search_v4", {
+      q: searchQuery(term), limit_rows: PER_TERM_LIMIT, include_repealed: true,
+    }, caseSearchStats);
+    return { term, rows: (error ? [] : (data ?? [])) as V4Row[] };
+  });
 
   const caseMap = new Map<string, RetrievedCase>();
   for (const { term, rows } of caseCandidates) {
@@ -2413,18 +2413,17 @@ async function analyzeCriminalConceptMap(
   });
 
   // Principles: concept terms only, no laws (replaced by map above)
-  const v3Results = await Promise.all(
-    allConceptTerms.map(async (term) => {
-      const { data, error } = await supabase.rpc("universal_search_v3", {
-        q: searchQuery(term),
-        result_types: ["principle"],
-        filter_category_id: caseTypeFull.categoryId ?? null,
-        limit_per_type: V3_PER_TYPE,
-        overall_limit: V3_OVERALL,
-      });
-      return { term, rows: (error ? [] : (data ?? [])) as V3Row[] };
-    })
-  );
+  const v3Results = await mapLimited(allConceptTerms, SEARCH_CONCURRENCY, async (term) => {
+    const { data, error } = await rpcWithRetry(supabase, "universal_search_v3", {
+      q: searchQuery(term),
+      result_types: ["principle"],
+      filter_category_id: caseTypeFull.categoryId ?? null,
+      limit_per_type: V3_PER_TYPE,
+      overall_limit: V3_OVERALL,
+    }, caseSearchStats);
+    return { term, rows: (error ? [] : (data ?? [])) as V3Row[] };
+  });
+  logSearchFailures(caseSearchStats, "criminal path");
 
   const principleMap = new Map<string, RetrievedPrinciple>();
   for (const { term, rows } of v3Results) {
@@ -3439,17 +3438,16 @@ async function analyzeCaseCore(
   // Articles and cases come from quick_search_v4. `include_repealed: true`
   // mirrors /search: nothing is hidden, everything is labelled with its legal
   // force — a repealed provision a lawyer needs to read must still be findable.
-  const probed = await Promise.all(
-    candidates.map(async ({ term, origin }) => {
-      const { data, error } = await supabase.rpc("quick_search_v4", {
-        q: term,
-        limit_rows: PER_TERM_LIMIT,
-        include_repealed: true,
-      });
-      const rows = (error ? [] : (data ?? [])) as V4Row[];
-      return { term, origin, rows };
-    })
-  );
+  const termSearchStats = newSearchFailures();
+  const probed = await mapLimited(candidates, SEARCH_CONCURRENCY, async ({ term, origin }) => {
+    const { data, error } = await rpcWithRetry(supabase, "quick_search_v4", {
+      q: term,
+      limit_rows: PER_TERM_LIMIT,
+      include_repealed: true,
+    }, termSearchStats);
+    const rows = (error ? [] : (data ?? [])) as V4Row[];
+    return { term, origin, rows };
+  });
 
   // Which terms are worth showing is decided by CONCENTRATION: of a term's
   // top article hits, what share falls in one law. A term that identifies a
@@ -3551,18 +3549,17 @@ async function analyzeCaseCore(
   // the kept terms, to hold the request's query count down. The primary
   // category id is passed; companion laws are included via the in-scope
   // post-retrieval check rather than by calling v3 multiple times.
-  const v3ByTerm = await Promise.all(
-    terms.map(async ({ term }) => {
-      const { data, error } = await supabase.rpc("universal_search_v3", {
-        q: term,
-        result_types: ["law", "principle"],
-        filter_category_id: caseTypeFull?.categoryId ?? null,
-        limit_per_type: V3_PER_TYPE,
-        overall_limit: V3_OVERALL,
-      });
-      return { term, rows: (error ? [] : (data ?? [])) as V3Row[] };
-    })
-  );
+  const v3ByTerm = await mapLimited(terms, SEARCH_CONCURRENCY, async ({ term }) => {
+    const { data, error } = await rpcWithRetry(supabase, "universal_search_v3", {
+      q: term,
+      result_types: ["law", "principle"],
+      filter_category_id: caseTypeFull?.categoryId ?? null,
+      limit_per_type: V3_PER_TYPE,
+      overall_limit: V3_OVERALL,
+    }, termSearchStats);
+    return { term, rows: (error ? [] : (data ?? [])) as V3Row[] };
+  });
+  logSearchFailures(termSearchStats, "term path");
   const v3Map = new Map(v3ByTerm.map((r) => [r.term, r.rows]));
 
   const perTerm = kept.map(({ term, rows }) => ({
