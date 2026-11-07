@@ -82,10 +82,14 @@ async function rewriteFacts(facts: string, anthropicKey: string): Promise<string
   return (j.content ?? []).map((c: { text?: string }) => c.text ?? "").join("").trim();
 }
 
+/** Test-only hook: receives the rewrite, the pool and the rerank order. */
+export type SemanticDebug = (d: { rewrite: string; pool: string[]; rerank: string[] }) => void;
+
 export async function semanticSearch(
   supabase: SupabaseClient,
   rawFacts: string,
   topN = 5,
+  debug?: SemanticDebug,
 ): Promise<{ hits: SemanticHit[]; rewrite: string } | null> {
   const anthropicKey = process.env.ANTHROPIC_API_KEY ?? "";
   const voyageKey = process.env.VOYAGE_API_KEY ?? "";
@@ -143,6 +147,11 @@ export async function semanticSearch(
         articleNumber: r.article_number, titleAr: r.title_ar, contentAr: r.content_ar ?? "",
         legalStatus: r.legal_status, similarity: r.similarity, rerankScore: d.relevance_score,
       };
+    });
+    debug?.({
+      rewrite,
+      pool: rows.map((r) => `${r.law_slug}:${r.article_number}`),
+      rerank: (rr.data as Array<{ index: number }>).map((d) => `${rows[d.index].law_slug}:${rows[d.index].article_number}`),
     });
     return { hits, rewrite };
   } catch (e) {
