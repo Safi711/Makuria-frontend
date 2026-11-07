@@ -132,8 +132,12 @@ export async function semanticSearch(
 
     const docs = rows.map((r) =>
       `${r.law_title} — المادة ${r.article_number ?? ""}${r.title_ar ? ` (${r.title_ar})` : ""}\n${r.content_ar ?? ""}`);
+    // إ6 (Safi, 7 Nov — under test): the pool still comes from rewrite + facts,
+    // but the rerank sees the facts alone. A controlled test on case 45 showed
+    // the rewrite's own issue framing pushes reference articles above the
+    // article the facts point to, and the rewrite varies between runs.
     const rr = await postJson("https://api.voyageai.com/v1/rerank", voyageH, {
-      query, documents: docs, model: "rerank-2.5", top_k: Math.min(topN, rows.length),
+      query: facts, documents: docs, model: "rerank-2.5", top_k: Math.min(topN, rows.length),
     });
 
     const hits: SemanticHit[] = (rr.data as Array<{ index: number; relevance_score: number }>).map((d) => {
