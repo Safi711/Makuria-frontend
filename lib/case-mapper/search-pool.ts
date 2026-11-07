@@ -2,7 +2,7 @@
  * Database search calls made by Abu Rannat, kept within what the database can
  * take at once.
  *
- * Abu Rannat used to send one quick_search_v4 / universal_search_v3 call per
+ * Abu Rannat used to send one quick_search_v4 call per
  * extracted term, all at the same moment. On this database a short query
  * takes about a second and public queries are cut at 3 seconds; with ten or
  * more arriving together some ran past the limit (Supabase logs, 2026-11-04:
@@ -67,4 +67,42 @@ export function logSearchFailures(stats: SearchFailures, where: string): void {
   if (stats.timeouts || stats.failed) {
     console.warn(`[abu-rannat] ${where}: search timeouts=${stats.timeouts} retried=${stats.retried} still_failed=${stats.failed}`);
   }
+}
+
+export type PrincipleHit = {
+  id: string;
+  title_ar: string | null;
+  category: string | null;
+  summary_ar: string | null;
+  slug: string | null;
+};
+
+/** Legal principles matching a term, read directly from their search column.
+ * Replaces universal_search_v3. Uses the same search text as that function:
+ * normalize_arabic folds أإآ to ا and ى to ي only. */
+export async function searchPrinciples(
+  supabase: SupabaseClient,
+  term: string,
+  limit: number,
+  stats?: SearchFailures,
+): Promise<PrincipleHit[]> {
+  const run = () =>
+    supabase
+      .from("legal_principles")
+      .select("id,title_ar,category,summary_ar,slug")
+      .textSearch("search_vector", term.replace(/[أإآ]/g, "ا").replace(/ى/g, "ي"), {
+        type: "websearch",
+        config: "simple",
+      })
+      .limit(limit);
+  let res = await run();
+  if (res.error?.code === TIMEOUT_CODE) {
+    if (stats) { stats.timeouts++; stats.retried++; }
+    res = await run();
+  }
+  if (res.error) {
+    if (stats) stats.failed++;
+    return [];
+  }
+  return (res.data ?? []) as PrincipleHit[];
 }

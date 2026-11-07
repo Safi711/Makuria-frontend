@@ -1,5 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { mapLimited, rpcWithRetry, newSearchFailures, logSearchFailures, SEARCH_CONCURRENCY } from "./search-pool";
+import { mapLimited, rpcWithRetry, searchPrinciples, newSearchFailures, logSearchFailures, SEARCH_CONCURRENCY } from "./search-pool";
 import { classifyWithLLM } from "./llm-classifier";
 import { semanticSearch } from "./semantic-search";
 import { classifyPrecedent, type PrecedentRelevance } from "./precedent-relevance";
@@ -94,9 +94,8 @@ import {
  *    «حضانة» 6 → 19. v4 also folds hamza/ta-marbuta/diacritics and
  *    Arabic-Indic digits, which is why it finds what v1 misses.
  *
- *    v4 returns `article` and `case` rows but not `law` or `principle`, so
- *    those two still come from `universal_search_v3`. Ranks are never compared
- *    across engines — each engine's results are ordered within themselves.
+ *    v4 returns `article` and `case` rows only. Principles are read directly
+ *    from their table (searchPrinciples).
  *
  * 2. CASE TYPE SEARCHED AS A WORD. «جنائي» typed as the case type was sent to
  *    the search engine like any other term, so articles 21 and 22 of the
@@ -273,8 +272,7 @@ export type CaseMapResult = {
 const MAX_TERMS = 6;
 const CANDIDATE_LIMIT = 12;
 const PER_TERM_LIMIT = 24;
-const V3_PER_TYPE = 6;
-const V3_OVERALL = 18;
+const PRINCIPLES_PER_TERM = 6;
 const DISPLAY_CAP = 8;
 
 // Common Arabic function words. Deliberately conservative: dropping a real
@@ -1959,22 +1957,6 @@ type V4Row = {
   status_rank: number | null;
 };
 
-type V3Row = {
-  result_type: string;
-  entity_id: string;
-  title: string | null;
-  subtitle: string | null;
-  snippet: string | null;
-  identifier: string | null;
-  slug: string | null;
-  parent_law_id: string | null;
-  rank: number | null;
-  headline: string | null;
-  law_status: string | null;
-  status_rank: number | null;
-  status_note_ar: string | null;
-};
-
 type ResolvedCaseType = {
   slug: string;
   categoryId: string | null;
@@ -2421,33 +2403,26 @@ async function analyzeCriminalConceptMap(
   });
 
   // Principles: concept terms only, no laws (replaced by map above)
-  const v3Results = await mapLimited(allConceptTerms, SEARCH_CONCURRENCY, async (term) => {
-    const { data, error } = await rpcWithRetry(supabase, "universal_search_v3", {
-      q: searchQuery(term),
-      result_types: ["principle"],
-      filter_category_id: caseTypeFull.categoryId ?? null,
-      limit_per_type: V3_PER_TYPE,
-      overall_limit: V3_OVERALL,
-    }, caseSearchStats);
-    return { term, rows: (error ? [] : (data ?? [])) as V3Row[] };
-  });
+  const principleResults = await mapLimited(allConceptTerms, SEARCH_CONCURRENCY, async (term) => ({
+    term,
+    rows: await searchPrinciples(supabase, searchQuery(term), PRINCIPLES_PER_TERM, caseSearchStats),
+  }));
   logSearchFailures(caseSearchStats, "criminal path");
 
   const principleMap = new Map<string, RetrievedPrinciple>();
-  for (const { term, rows } of v3Results) {
+  for (const { term, rows } of principleResults) {
     for (const row of rows) {
-      if (row.result_type !== "principle") continue;
-      const existing = principleMap.get(row.entity_id);
+      const existing = principleMap.get(row.id);
       if (existing) { addTerm(existing.matchedTerms, term); }
       else {
-        principleMap.set(row.entity_id, {
-          id: row.entity_id,
-          title: row.title ?? "",
-          category: row.subtitle ?? null,
-          summary: row.snippet ?? null,
+        principleMap.set(row.id, {
+          id: row.id,
+          title: row.title_ar ?? "",
+          category: row.category,
+          summary: row.summary_ar?.slice(0, 300) ?? null,
           slug: row.slug,
           matchedTerms: [term],
-          rank: row.rank ?? 0,
+          rank: 0,
         });
       }
     }
@@ -3555,28 +3530,21 @@ async function analyzeCaseCore(
     };
   }
 
-  // ── Phase 3: laws and principles for the terms that survived ───────────
-  // v4 returns neither, so those come from universal_search_v3 — and only for
-  // the kept terms, to hold the request's query count down. The primary
-  // category id is passed; companion laws are included via the in-scope
-  // post-retrieval check rather than by calling v3 multiple times.
-  const v3ByTerm = await mapLimited(terms, SEARCH_CONCURRENCY, async ({ term }) => {
-    const { data, error } = await rpcWithRetry(supabase, "universal_search_v3", {
-      q: term,
-      result_types: ["law", "principle"],
-      filter_category_id: caseTypeFull?.categoryId ?? null,
-      limit_per_type: V3_PER_TYPE,
-      overall_limit: V3_OVERALL,
-    }, termSearchStats);
-    return { term, rows: (error ? [] : (data ?? [])) as V3Row[] };
-  });
+  // ── Phase 3: principles for the terms that survived ─────────────────────
+  // v4 returns articles and cases only. universal_search_v3 is gone (Safi,
+  // 4 Nov): its law-level rows are no longer offered in this text fallback,
+  // which runs only when semantic search is unavailable or keywords are typed.
+  const principlesByTerm = await mapLimited(terms, SEARCH_CONCURRENCY, async ({ term }) => ({
+    term,
+    rows: await searchPrinciples(supabase, term, PRINCIPLES_PER_TERM, termSearchStats),
+  }));
   logSearchFailures(termSearchStats, "term path");
-  const v3Map = new Map(v3ByTerm.map((r) => [r.term, r.rows]));
+  const principleRowsByTerm = new Map(principlesByTerm.map((r) => [r.term, r.rows]));
 
   const perTerm = kept.map(({ term, rows }) => ({
     term,
     v4: rows,
-    v3: v3Map.get(term) ?? [],
+    principles: principleRowsByTerm.get(term) ?? [],
   }));
 
   const authorityMap = new Map<string, RetrievedAuthority>();
@@ -3588,7 +3556,7 @@ async function analyzeCaseCore(
     if (!arr.includes(term)) arr.push(term);
   };
 
-  for (const { term, v4, v3 } of perTerm) {
+  for (const { term, v4, principles } of perTerm) {
     for (const row of v4) {
       if (row.result_type === "article") {
         const existing = authorityMap.get(row.entity_id);
@@ -3646,51 +3614,22 @@ async function analyzeCaseCore(
       }
     }
 
-    for (const row of v3) {
-      if (row.result_type === "law") {
-        const existing = authorityMap.get(row.entity_id);
-        if (existing) {
-          addTerm(existing.matchedTerms, term);
-        } else {
-          authorityMap.set(row.entity_id, {
-            id: row.entity_id,
-            type: "law",
-            title: row.title ?? "",
-            lawTitle: null,
-            articleNumber: null,
-            excerptHtml: row.headline ?? row.snippet ?? "",
-            verified: false,
-            slug: row.slug,
-            lawSlug: row.slug,
-            sourceUrl: null,
-            force: forceOf(row),
-            legalStatus: null,
-            statusNote: row.status_note_ar ?? null,
-            matchedTerms: [term],
-            // v3 ranks are a different scale from v4's; law rows are ordered
-            // among themselves only, below the article rows.
-            rank: -1,
-            inScope: Boolean(caseTypeFull),
-          });
-        }
-        termsWithHits.add(term);
-      } else if (row.result_type === "principle") {
-        const existing = principleMap.get(row.entity_id);
-        if (existing) {
-          addTerm(existing.matchedTerms, term);
-        } else {
-          principleMap.set(row.entity_id, {
-            id: row.entity_id,
-            title: row.title ?? "",
-            category: row.subtitle ?? null,
-            summary: row.snippet ?? null,
-            slug: row.slug,
-            matchedTerms: [term],
-            rank: row.rank ?? 0,
-          });
-        }
-        termsWithHits.add(term);
+    for (const row of principles) {
+      const existing = principleMap.get(row.id);
+      if (existing) {
+        addTerm(existing.matchedTerms, term);
+      } else {
+        principleMap.set(row.id, {
+          id: row.id,
+          title: row.title_ar ?? "",
+          category: row.category,
+          summary: row.summary_ar?.slice(0, 300) ?? null,
+          slug: row.slug,
+          matchedTerms: [term],
+          rank: 0,
+        });
       }
+      termsWithHits.add(term);
     }
   }
 
