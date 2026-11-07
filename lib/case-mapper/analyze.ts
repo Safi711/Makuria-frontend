@@ -2,6 +2,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { mapLimited, rpcWithRetry, searchPrinciples, newSearchFailures, logSearchFailures, SEARCH_CONCURRENCY } from "./search-pool";
 import { classifyWithLLM } from "./llm-classifier";
 import { semanticSearch } from "./semantic-search";
+import { matchPrinciples } from "./principle-match.mjs";
 import { classifyPrecedent, type PrecedentRelevance } from "./precedent-relevance";
 import conceptMapJson from "./precedent-concept-map.json";
 import { buildClarification, factsForAnalysis, isTruncatedShort, type Clarification } from "./clarification";
@@ -3369,6 +3370,20 @@ async function analyzeCaseCore(
         laws: { source_url: string | null; status: string | null } | { source_url: string | null; status: string | null }[] | null };
       const metaById = new Map<string, Meta>(((metaRows ?? []) as Meta[]).map((m) => [m.id, m]));
       const SEM_TERM = "بحث بالمعنى في متن مكوريا";
+      // إ5 (Safi, 6 Nov): principles sharing ≥2 key words with the top article titles.
+      // Read under the caller's RLS, so draft principles never appear.
+      const { data: principleRows } = await supabase
+        .from("legal_principles")
+        .select("id,title_ar,summary_ar,category,slug")
+        .limit(500);
+      const semPrinciples: RetrievedPrinciple[] = matchPrinciples(
+        sem.hits.slice(0, 3).map((h) => h.titleAr ?? ""),
+        (principleRows ?? []) as { id: string; title_ar: string | null; summary_ar: string | null; category: string | null; slug: string | null }[],
+      ).map((r, i) => ({
+        id: r.id, title: r.title_ar ?? "", category: r.category,
+        summary: r.summary_ar?.slice(0, 300) ?? null, slug: r.slug,
+        matchedTerms: [SEM_TERM], rank: 3 - i,
+      }));
       const laws: RetrievedAuthority[] = sem.hits.map((h, i) => {
         const m = metaById.get(h.articleId);
         const law = Array.isArray(m?.laws) ? m?.laws[0] : m?.laws;
@@ -3390,8 +3405,8 @@ async function analyzeCaseCore(
         caseTypeLens: null,
         inferredCaseType: null,
         issues: [{ term: SEM_TERM, origin: "semantic", topLaw: laws[0] ?? null,
-          topCase: null, topPrinciple: null, searchedAndEmpty: false }],
-        laws, cases: [], principles: [],
+          topCase: null, topPrinciple: semPrinciples[0] ?? null, searchedAndEmpty: false }],
+        laws, cases: [], principles: semPrinciples,
         outOfScopeCount: 0, noConfidentMatch: false, hasAnyResults: true,
         ...(civilDiscussItems.length > 0 ? { discuss: civilDiscussItems } : {}),
       };
