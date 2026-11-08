@@ -904,7 +904,7 @@ export async function AdvisorPage({
           />
         )}
 
-        {result?.noConfidentMatch && !isNoMatchClarify && (
+        {result?.noConfidentMatch && !isNoMatchClarify && !(result?.discuss?.length) && (
           <p
             className="mt-6 rounded-xl border px-4 py-3 text-sm leading-relaxed"
             style={{
