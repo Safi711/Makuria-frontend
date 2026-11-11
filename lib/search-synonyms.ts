@@ -27,6 +27,12 @@ export const SEARCH_SYNONYMS: Record<string, string[]> = {
   سلفة: ["قرض"],          // القرض م277 معاملات
   سلفه: ["قرض"],
   ضرب: ["أذى"],           // الأذى م142 جنائي
+  // Inheritance (Nov 11). The personal-status law uses «الميراث» and «الوراثة»
+  // in its articles. «تركة» is left out: it is a general word (about 110
+  // results alone) and would push other results out of the first variants.
+  ميراث: ["وراثة", "مواريث"],
+  مواريث: ["ميراث"],
+  وراثة: ["ميراث"],
 };
 
 /**

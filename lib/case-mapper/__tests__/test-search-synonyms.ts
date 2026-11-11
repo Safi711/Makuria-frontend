@@ -19,6 +19,10 @@ eq("عقوبة النصب → احتيال", synonymVariants("عقوبة الن�
 eq("حرامي؟ مع علامة استفهام", synonymVariants("عقوبة الحرامي؟")[1], "سرقة");
 eq("«عقوبة» تبقى في السؤال الأصلي", synonymVariants("عقوبة النصب")[0], "عقوبة النصب");
 eq("منصب لا تُعدّ نصباً", synonymVariants("منصب الوزير"), ["منصب الوزير"]);
+eq("الميراث → وراثة ومواريث", synonymVariants("الميراث"), ["الميراث", "وراثة", "مواريث"]);
+eq("هل الميراث لديه كود؟ → هل وراثة لديه كود؟", synonymVariants("هل الميراث لديه كود؟")[1], "هل وراثة لديه كود؟");
+eq("وراثة → ميراث", synonymVariants("وراثة الزوجة"), ["وراثة الزوجة", "ميراث الزوجة"]);
+eq("تركة لا تُستبدل (عامة)", synonymVariants("تركة الميت"), ["تركة الميت"]);
 const merged = mergeVariantResults([
   [{ result_type: "case", entity_id: "c1", status_rank: 0, rank: 5, match_source: "partial" }],
   [{ result_type: "article", entity_id: "a37", status_rank: 0, rank: 5, match_source: "text" },
