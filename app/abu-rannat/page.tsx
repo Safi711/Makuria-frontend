@@ -37,6 +37,12 @@ export const metadata: Metadata = {
     description:
       "اكتب وقائع دعواك ليقابلها أبو رنات بالمواد القانونية والسوابق القضائية، مع بيان حالة نفاذ كل نص ومصدره.",
   },
+  twitter: {
+    card: "summary",
+    title: "أبو رنات — المستشار القانوني الذكي",
+    description:
+      "اكتب وقائع دعواك ليقابلها أبو رنات بالمواد القانونية والسوابق القضائية، مع بيان حالة نفاذ كل نص ومصدره.",
+  },
 };
 
 export default async function AbuRannatRoute(props: PageProps<"/abu-rannat">) {
