@@ -33,6 +33,7 @@ export async function Header({ locale }: { locale: Locale }) {
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
         <Link href="/" className="flex items-center gap-2 font-bold" style={{ color: "var(--cm-text)" }}>
           <span
+            aria-hidden="true"
             className="flex h-8 w-8 items-center justify-center rounded-full text-sm font-bold"
             style={{
               background: "rgba(228,193,67,0.12)",
