@@ -29,6 +29,14 @@ export const metadata: Metadata = {
   description:
     "اكتب وقائع دعواك ليقابلها أبو رنات — المستشار القانوني الذكي من مكوريا — بالمواد القانونية والسوابق القضائية، مع بيان حالة نفاذ كل نص ومصدره، وسبب ظهور كل نتيجة.",
   alternates: { canonical: "/abu-rannat" },
+  openGraph: {
+    type: "website",
+    url: "/abu-rannat",
+    locale: "ar_SD",
+    title: "أبو رنات — المستشار القانوني الذكي",
+    description:
+      "اكتب وقائع دعواك ليقابلها أبو رنات بالمواد القانونية والسوابق القضائية، مع بيان حالة نفاذ كل نص ومصدره.",
+  },
 };
 
 export default async function AbuRannatRoute(props: PageProps<"/abu-rannat">) {
