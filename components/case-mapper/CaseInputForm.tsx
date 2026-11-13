@@ -112,6 +112,7 @@ export function CaseInputForm({
           <input
             id="cm-incident-date"
             type="date"
+            lang={locale}
             value={values.incidentDate}
             onChange={(e) => setValues((v) => ({ ...v, incidentDate: e.target.value }))}
             className={inputClass}
