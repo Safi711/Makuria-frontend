@@ -818,7 +818,7 @@ export async function AdvisorPage({
                       { name: "case_type", value: caseType, key: "cmCaseType", type: "text" },
                       { name: "court", value: court, key: "cmCourt", type: "text" },
                       { name: "jurisdiction", value: jurisdiction, key: "cmJurisdiction", type: "text" },
-                      { name: "incident_date", value: incidentDate, key: "cmIncidentDate", type: "date" },
+                      { name: "incident_date", value: incidentDate, key: "cmIncidentDate", type: "text" },
                       { name: "keywords", value: keywords, key: "cmKeywords", type: "text" },
                     ] as const
                   ).map((f) => (
@@ -830,6 +830,16 @@ export async function AdvisorPage({
                         type={f.type}
                         name={f.name}
                         defaultValue={f.value}
+                        {...(f.name === "incident_date"
+                          ? {
+                              inputMode: "numeric" as const,
+                              dir: "ltr",
+                              placeholder: "yyyy-mm-dd",
+                              pattern: "\\d{4}-\\d{2}-\\d{2}",
+                              title: "yyyy-mm-dd",
+                              maxLength: 10,
+                            }
+                          : {})}
                         className="w-full rounded-lg border px-2.5 py-2 text-sm outline-none focus:border-[var(--mk-gold)]"
                         style={{
                           background: "var(--cm-surface-2)",
