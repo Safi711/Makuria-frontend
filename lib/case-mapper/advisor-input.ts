@@ -1,5 +1,6 @@
 import { deflateRawSync, inflateRawSync } from "node:zlib";
 import { appendClarificationAnswers } from "./clarification";
+import { isValidIsoDate } from "./iso-date.mjs";
 
 /**
  * Where Abu Rannat's input lives between the form post and the render.
@@ -53,7 +54,8 @@ export function inputFromFormData(formData: FormData): AdvisorInput {
     caseType: get("case_type").slice(0, 200),
     court: get("court").slice(0, 200),
     jurisdiction: get("jurisdiction").slice(0, 200),
-    incidentDate: get("incident_date").slice(0, 40),
+    // Only a real yyyy-mm-dd date is kept; anything else is dropped rather than sent on.
+    incidentDate: isValidIsoDate(get("incident_date").trim()) ? get("incident_date").trim() : "",
     keywords: get("keywords").slice(0, 500),
   };
 }
