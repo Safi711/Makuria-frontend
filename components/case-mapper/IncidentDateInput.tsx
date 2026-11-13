@@ -23,7 +23,7 @@ export function IncidentDateInput({
   const [error, setError] = useState<string | null>(null);
   const message =
     locale === "ar"
-      ? "أدخل تاريخاً حقيقياً بصيغة yyyy-mm-dd، مثل 2026-03-10."
+      ? "أدخل تاريخاً حقيقياً بصيغة \u2066yyyy-mm-dd\u2069، مثل \u20662026-03-10\u2069."
       : "Enter a real date in yyyy-mm-dd format, e.g. 2026-03-10.";
 
   function check(value: string) {
