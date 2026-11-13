@@ -12,6 +12,7 @@ import { analyzeCase } from "@/lib/case-mapper/analyze";
 import { MAX_FACTS_CHARS, type AdvisorInput } from "@/lib/case-mapper/advisor-input";
 import { submitAnalysis, clearAnalysis, createShareLink } from "@/app/abu-rannat/actions";
 import { AdvisorSubmitButton } from "@/components/case-mapper/AdvisorSubmitButton";
+import { IncidentDateInput } from "@/components/case-mapper/IncidentDateInput";
 import {
   answeredQuestions,
   MAX_ANSWER_CHARS,
@@ -826,27 +827,30 @@ export async function AdvisorPage({
                       <span className="mb-1 block" style={{ color: "var(--cm-muted)" }}>
                         {t(locale, f.key)}
                       </span>
-                      <input
-                        type={f.type}
-                        name={f.name}
-                        defaultValue={f.value}
-                        {...(f.name === "incident_date"
-                          ? {
-                              inputMode: "numeric" as const,
-                              dir: "ltr",
-                              placeholder: "yyyy-mm-dd",
-                              pattern: "\\d{4}-\\d{2}-\\d{2}",
-                              title: "yyyy-mm-dd",
-                              maxLength: 10,
-                            }
-                          : {})}
-                        className="w-full rounded-lg border px-2.5 py-2 text-sm outline-none focus:border-[var(--mk-gold)]"
-                        style={{
+                      {f.name === "incident_date" ? (
+                        <IncidentDateInput
+                          defaultValue={f.value}
+                          locale={locale}
+                          className="w-full rounded-lg border px-2.5 py-2 text-sm outline-none focus:border-[var(--mk-gold)]"
+                          style={{
                           background: "var(--cm-surface-2)",
                           borderColor: "var(--cm-line)",
                           color: "var(--cm-text)",
                         }}
-                      />
+                        />
+                      ) : (
+                        <input
+                          type={f.type}
+                          name={f.name}
+                          defaultValue={f.value}
+                          className="w-full rounded-lg border px-2.5 py-2 text-sm outline-none focus:border-[var(--mk-gold)]"
+                          style={{
+                          background: "var(--cm-surface-2)",
+                          borderColor: "var(--cm-line)",
+                          color: "var(--cm-text)",
+                        }}
+                        />
+                      )}
                     </label>
                   ))}
                 </div>
