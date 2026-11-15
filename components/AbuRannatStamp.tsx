@@ -14,7 +14,7 @@
 import { useId } from "react";
 import styles from "./AbuRannatStamp.module.css";
 
-const INK = "#1F3A8A";
+const INK = "#B8860B";
 const GOLD = "#E3C06A";
 
 export default function AbuRannatStamp({ locale = "ar" }: { locale?: "ar" | "en" }) {
