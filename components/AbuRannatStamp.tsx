@@ -23,7 +23,9 @@ export default function AbuRannatStamp({ locale = "ar" }: { locale?: "ar" | "en"
           className={styles.stamp}
         />
       </div>
-      <p className={styles.done}>اكتمل التحليل وفُحصت الإحالات</p>
+      <p className={styles.done}>
+        <span aria-hidden="true">✅ </span>اكتمل التحليل وفُحصت الإحالات
+      </p>
       <p className={styles.note}>
         توقيع علامة رقمية بعد اكتمال الإجابة وفحص إحالاتها، وليس اعتماداً قانونياً للدعوى.
       </p>
