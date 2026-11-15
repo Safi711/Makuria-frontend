@@ -1090,7 +1090,7 @@ export async function AdvisorPage({
           />
         )}
 
-        {result && !errored && result.hasAnyResults && <AbuRannatStamp />}
+        {result && !errored && result.hasAnyResults && <AbuRannatStamp locale={locale} />}
 
         {/* ----------------------------------------------------------- share
             Opt-in. Nothing is saved unless the visitor presses this. */}

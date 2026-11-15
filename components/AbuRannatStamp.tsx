@@ -9,14 +9,15 @@
  */
 import styles from "./AbuRannatStamp.module.css";
 
-export default function AbuRannatStamp() {
+export default function AbuRannatStamp({ locale = "ar" }: { locale?: "ar" | "en" }) {
+  const alt = locale === "en" ? "Abu Rannat seal — Makuria" : "ختم أبو رنات — مكوريا";
   return (
     <div className={styles.wrap} role="status" aria-live="polite">
       <div className={styles.stage}>
         <span className={styles.ring} aria-hidden="true" />
         <img
           src="/abu-rannat/badge.png"
-          alt="ختم أبو رنات — مكوريا"
+          alt={alt}
           width={120}
           height={120}
           className={styles.stamp}
