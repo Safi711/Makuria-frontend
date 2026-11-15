@@ -1075,6 +1075,9 @@ export async function AdvisorPage({
           ))}
         </div>
 
+        {/* Abu Rannat stamp: printed on the analysis card, before the clarification questions. */}
+        {result && !errored && result.hasAnyResults && <AbuRannatStamp locale={locale} />}
+
         {result?.clarification && !isNoMatchClarify && (
           <ClarificationPanel
             locale={locale}
@@ -1089,8 +1092,6 @@ export async function AdvisorPage({
             }}
           />
         )}
-
-        {result && !errored && result.hasAnyResults && <AbuRannatStamp locale={locale} />}
 
         {/* ----------------------------------------------------------- share
             Opt-in. Nothing is saved unless the visitor presses this. */}
