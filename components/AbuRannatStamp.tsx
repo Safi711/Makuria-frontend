@@ -69,6 +69,12 @@ export default function AbuRannatStamp({ locale = "ar" }: { locale?: "ar" | "en"
             <filter id={`${id}-soft`} x="-40%" y="-40%" width="180%" height="180%">
               <feGaussianBlur stdDeviation="6" />
             </filter>
+<radialGradient id={`${id}-headShade`} cx="38%" cy="32%" r="70%">
+              <stop offset=".55" stopColor="#030A24" stopOpacity="0" />
+              <stop offset="1" stopColor="#030A24" stopOpacity=".75" />
+            </radialGradient>
+            <filter id={`${id}-spec`} x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="4" /></filter>
+            <filter id={`${id}-contact`} x="-50%" y="-100%" width="200%" height="300%"><feGaussianBlur stdDeviation="1.5" /></filter>
           </defs>
 
           <rect x="0" y="30" width="400" height="310" fill={`url(#${id}-paper)`} />
@@ -94,12 +100,14 @@ export default function AbuRannatStamp({ locale = "ar" }: { locale?: "ar" | "en"
           <g className={styles.tool}>
             <g transform="scale(.62)">
               <ellipse cx="6" cy="4" rx="92" ry="14" fill="#000" opacity=".18" filter={`url(#${id}-soft)`} />
-              <circle cx="0" cy="-230" r="72" fill={`url(#${id}-blue)`} />
-              <ellipse cx="-28" cy="-270" rx="26" ry="14" fill="#FFFFFF" opacity=".28" />
-              <text x="0" y="-218" textAnchor="middle" fontFamily="serif" fontSize="27" fontWeight="700" fill={`url(#${id}-goldTop)`}>
+              <ellipse cx="0" cy="-212" rx="61" ry="54" fill={`url(#${id}-blue)`} />
+              <ellipse cx="0" cy="-212" rx="61" ry="54" fill={`url(#${id}-headShade)`} />
+              <ellipse cx="-22" cy="-238" rx="24" ry="13" fill="#FFFFFF" opacity=".38" filter={`url(#${id}-spec)`} />
+              <text x="0" y="-204" textAnchor="middle" fontFamily="serif" fontSize="24" fontWeight="700" fill={`url(#${id}-goldTop)`}>
                 {top}
               </text>
               <rect x="-24" y="-164" width="48" height="52" rx="16" fill={`url(#${id}-neck)`} />
+              <ellipse cx="0" cy="-158" rx="26" ry="5" fill="#000" opacity=".4" filter={`url(#${id}-contact)`} />
               <rect x="-50" y="-112" width="100" height="16" rx="6" fill={`url(#${id}-gold)`} />
               <rect x="-80" y="-96" width="160" height="82" rx="8" fill={`url(#${id}-gold)`} />
               {/* engraved label on the front of the base, following its curve */}
