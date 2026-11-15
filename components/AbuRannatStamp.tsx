@@ -31,7 +31,7 @@ export default function AbuRannatStamp({ locale = "ar" }: { locale?: "ar" | "en"
   return (
     <div className={styles.wrap} role="status" aria-live="polite">
       <div className={styles.paper}>
-        <svg className={styles.svg} viewBox="0 -140 400 560" role="img" aria-label={alt}>
+        <svg className={styles.svg} viewBox="0 -100 400 440" role="img" aria-label={alt}>
           <defs>
             <radialGradient id={`${id}-paper`} cx="40%" cy="30%" r="80%">
               <stop offset="0" stopColor="#FFFFFF" />
@@ -64,46 +64,47 @@ export default function AbuRannatStamp({ locale = "ar" }: { locale?: "ar" | "en"
             </radialGradient>
             <filter id={`${id}-ink`} x="-5%" y="-5%" width="110%" height="110%">
               <feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2" seed="7" result="n" />
-              <feDisplacementMap in="SourceGraphic" in2="n" scale="1.6" />
+              <feDisplacementMap in="SourceGraphic" in2="n" scale="1.4" />
             </filter>
-            <filter id={`${id}-soft`} x="-30%" y="-30%" width="160%" height="160%">
-              <feGaussianBlur stdDeviation="5" />
+            <filter id={`${id}-soft`} x="-40%" y="-40%" width="180%" height="180%">
+              <feGaussianBlur stdDeviation="4" />
             </filter>
           </defs>
 
-          <rect x="0" y="-140" width="400" height="560" fill={`url(#${id}-paper)`} />
+          <rect x="0" y="-100" width="400" height="440" fill={`url(#${id}-paper)`} />
 
-          {/* printed impression: drawn before the tool, so the tool covers it until it lifts */}
+          {/* impression on the right, flattened to the paper plane; drawn under the tool */}
           <g className={styles.impression} filter={`url(#${id}-ink)`}>
-            <g transform="translate(200 390) scale(1 .75) translate(-200 -390)">
-              <circle cx="200" cy="390" r="92" fill="none" stroke={GOLD_RING} strokeWidth="4" />
-              <circle cx="200" cy="390" r="82" fill="none" stroke={GOLD_RING} strokeWidth="1.5" />
-              <text x="200" y="338" textAnchor="middle" fontFamily="serif" fontSize="30" fontWeight="700" fill={BLUE}>
+            <g transform="translate(270 290) scale(1 .76) translate(-270 -290)">
+              <circle cx="270" cy="290" r="50" fill="none" stroke={GOLD_RING} strokeWidth="3.5" />
+              <circle cx="270" cy="290" r="43" fill="none" stroke={GOLD_RING} strokeWidth="1.3" />
+              <text x="270" y="268" textAnchor="middle" fontFamily="serif" fontSize="13" fontWeight="700" fill={BLUE}>
                 {top}
               </text>
-              <text x="200" y="408" textAnchor="middle" fontFamily="serif" fontSize="58" fontWeight="800" fill={BLUE}>
+              <text x="270" y="302" textAnchor="middle" fontFamily="serif" fontSize="28" fontWeight="800" fill={BLUE}>
                 {center}
               </text>
-              <text x="200" y="444" textAnchor="middle" fontFamily="Georgia, serif" fontSize="15" letterSpacing=".5" fill={BLUE}>
+              <text x="270" y="317" textAnchor="middle" fontFamily="Georgia, serif" fontSize="8" letterSpacing=".4" fill={BLUE}>
                 makuria.legal
               </text>
             </g>
           </g>
 
-          <ellipse className={styles.shadow} cx="212" cy="396" rx="100" ry="18" fill="#3A2E10" filter={`url(#${id}-soft)`} />
-
-          {/* the tool: bulb handle, neck, gold collar, gold base, rubber face */}
+          {/* the tool, drawn with its rubber face centred on the contact point (0,0) */}
           <g className={styles.tool}>
-            <circle cx="200" cy="170" r="72" fill={`url(#${id}-blue)`} />
-            <ellipse cx="172" cy="130" rx="26" ry="14" fill="#FFFFFF" opacity=".28" />
-            <text x="200" y="182" textAnchor="middle" fontFamily="serif" fontSize="27" fontWeight="700" fill={`url(#${id}-goldTop)`}>
-              {top}
-            </text>
-            <rect x="176" y="222" width="48" height="66" rx="16" fill={`url(#${id}-neck)`} />
-            <rect x="150" y="280" width="100" height="16" rx="6" fill={`url(#${id}-gold)`} />
-            <rect x="120" y="294" width="160" height="82" rx="8" fill={`url(#${id}-gold)`} />
-            <ellipse cx="200" cy="294" rx="80" ry="14" fill={`url(#${id}-goldTop)`} />
-            <ellipse cx="200" cy="376" rx="80" ry="14" fill={`url(#${id}-rubber)`} />
+            <g transform="scale(.62)">
+              <ellipse cx="10" cy="2" rx="82" ry="15" fill="#000" opacity=".3" filter={`url(#${id}-soft)`} />
+              <circle cx="0" cy="-250" r="72" fill={`url(#${id}-blue)`} />
+              <ellipse cx="-28" cy="-290" rx="26" ry="14" fill="#FFFFFF" opacity=".28" />
+              <text x="0" y="-238" textAnchor="middle" fontFamily="serif" fontSize="27" fontWeight="700" fill={`url(#${id}-goldTop)`}>
+                {top}
+              </text>
+              <rect x="-24" y="-184" width="48" height="76" rx="16" fill={`url(#${id}-neck)`} />
+              <rect x="-50" y="-112" width="100" height="16" rx="6" fill={`url(#${id}-gold)`} />
+              <rect x="-80" y="-96" width="160" height="82" rx="8" fill={`url(#${id}-gold)`} />
+              <ellipse cx="0" cy="-96" rx="80" ry="14" fill={`url(#${id}-goldTop)`} />
+              <ellipse cx="0" cy="0" rx="80" ry="14" fill={`url(#${id}-rubber)`} />
+            </g>
           </g>
         </svg>
       </div>
