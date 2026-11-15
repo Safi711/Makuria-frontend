@@ -102,6 +102,17 @@ export default function AbuRannatStamp({ locale = "ar" }: { locale?: "ar" | "en"
               <rect x="-24" y="-184" width="48" height="76" rx="16" fill={`url(#${id}-neck)`} />
               <rect x="-50" y="-112" width="100" height="16" rx="6" fill={`url(#${id}-gold)`} />
               <rect x="-80" y="-96" width="160" height="82" rx="8" fill={`url(#${id}-gold)`} />
+              {/* engraved label on the front of the base, following its curve */}
+              <path id={`${id}-baseArc`} d="M-66,-56 Q0,-42 66,-56" fill="none" />
+              <text fontFamily="Georgia, serif" fontSize="13" fontWeight="700" letterSpacing="1" textAnchor="middle" transform="translate(0 1)" fill="#FFF3C4" opacity=".55">
+                <textPath href={`#${id}-baseArc`} startOffset="50%">makuria.legal</textPath>
+              </text>
+              <text fontFamily="Georgia, serif" fontSize="13" fontWeight="700" letterSpacing="1" textAnchor="middle" transform="translate(0 -.6)" fill="#2A1C05" opacity=".5">
+                <textPath href={`#${id}-baseArc`} startOffset="50%">makuria.legal</textPath>
+              </text>
+              <text fontFamily="Georgia, serif" fontSize="13" fontWeight="700" letterSpacing="1" textAnchor="middle" fill={BLUE}>
+                <textPath href={`#${id}-baseArc`} startOffset="50%">makuria.legal</textPath>
+              </text>
               <ellipse cx="0" cy="-96" rx="80" ry="14" fill={`url(#${id}-goldTop)`} />
               <ellipse cx="0" cy="0" rx="80" ry="14" fill={`url(#${id}-rubber)`} />
             </g>
