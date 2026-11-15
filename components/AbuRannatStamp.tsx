@@ -19,9 +19,8 @@ import { useEffect, useId, useRef, useState } from "react";
 import styles from "./AbuRannatStamp.module.css";
 
 const BLUE = "#1B3A8C";
-// The impression sits on the dark card, so its ink is lighter than the
-// blue used on the gold base, to stay legible.
-const INK = "#5B8CFF";
+// The impression sits on the dark card, so its ink is ivory-gold to stay legible.
+const INK = "#F3E2A9";
 const GOLD_RING = "#C9A24A";
 
 type Phase = "idle" | "run" | "static";
@@ -35,10 +34,7 @@ export default function AbuRannatStamp({ locale = "ar" }: { locale?: "ar" | "en"
   const top = isEn ? "ABU RANNAT" : "أبو رنات";
   const center = isEn ? "DONE" : "اكتمل";
   const alt = isEn ? "Abu Rannat stamp: analysis complete" : "ختم أبو رنات: اكتمل التحليل";
-  const doneText = isEn ? "Analysis complete; citations checked" : "اكتمل التحليل وفُحصت الإحالات";
-  const noteText = isEn
-    ? "A digital mark after the answer and its citations were checked. It is not legal approval of the case."
-    : "توقيع علامة رقمية بعد اكتمال الإجابة وفحص إحالاتها، وليس اعتماداً قانونياً للدعوى.";
+  const captionText = isEn ? "Automated analysis, for review" : "تحليل آلي للمراجعة";
 
   useEffect(() => {
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -67,7 +63,7 @@ export default function AbuRannatStamp({ locale = "ar" }: { locale?: "ar" | "en"
   return (
     <div className={styles.wrap} role="status" aria-live="polite">
       <div ref={ref} className={`${styles.stage} ${styles[phase]}`}>
-        <svg className={styles.svg} viewBox="0 30 400 310" role="img" aria-label={alt}>
+        <svg className={styles.svg} viewBox="80 95 240 235" role="img" aria-label={alt}>
           <defs>
             <radialGradient id={`${id}-blue`} cx="35%" cy="28%" r="75%">
               <stop offset="0" stopColor="#3F6FE0" />
@@ -163,11 +159,7 @@ export default function AbuRannatStamp({ locale = "ar" }: { locale?: "ar" | "en"
           </g>
         </svg>
       </div>
-      <p className={styles.done}>
-        <span aria-hidden="true">✅ </span>
-        {doneText}
-      </p>
-      <p className={styles.note}>{noteText}</p>
+      <p className={styles.caption}>{captionText}</p>
     </div>
   );
 }
