@@ -46,15 +46,13 @@ export default function AbuRannatStamp({ locale = "ar" }: { locale?: "ar" | "en"
             <path id={`${id}-ring`} d="M30,152 a40,40 0 0,0 80,0" />
           </defs>
 
-          {/* handle */}
+          {/* handle: knob and neck; base disc is drawn after the face */}
           <circle cx="70" cy="34" r="26" fill={`url(#${id}-wood)`} />
-          <rect x="59" y="54" width="22" height="44" rx="9" fill={`url(#${id}-wood)`} />
-          <ellipse cx="70" cy="100" rx="38" ry="9" fill={`url(#${id}-wood)`} />
-          <rect x="31" y="98" width="78" height="10" rx="5" fill={`url(#${id}-wood)`} />
+          <rect x="59" y="54" width="22" height="70" rx="9" fill={`url(#${id}-wood)`} />
 
           {/* face */}
           <g className={styles.faceInk}>
-            <circle cx="70" cy="152" r="47" fill="none" stroke={INK} strokeWidth="2.5" />
+            <circle cx="70" cy="152" r="47" fill="#14233F" stroke={INK} strokeWidth="2.5" />
             <circle cx="70" cy="152" r="34" fill="none" stroke={INK} strokeWidth="1" />
             <text fill={INK} fontSize="8" fontWeight="700" letterSpacing=".3">
               <textPath href={`#${id}-ring`} startOffset="50%" textAnchor="middle">
