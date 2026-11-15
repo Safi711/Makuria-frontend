@@ -1,27 +1,27 @@
 .wrap { direction: rtl; display: flex; flex-direction: column; align-items: flex-start; gap: 8px; margin-top: 16px; }
-.paper { width: min(320px, 86vw); aspect-ratio: 400 / 440; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 6px 18px rgba(0,0,0,.25); }
+.paper { width: min(300px, 86vw); aspect-ratio: 400 / 310; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 6px 18px rgba(0,0,0,.25); }
 .svg { display: block; width: 100%; height: 100%; }
 
 /* One 4 s run: the tool lowers onto the right, presses once, lifts, moves left and rests.
    The impression appears only at contact and stays. */
 .tool { transform-box: view-box; animation: toolPath 4s linear forwards; }
-.impression { transform-box: view-box; transform-origin: 270px 290px; opacity: 0; animation: inkStamp 4s linear forwards; }
+.impression { transform-box: view-box; transform-origin: 262px 290px; opacity: 0; animation: inkStamp 4s linear forwards; }
 
 .done { margin: 4px 0 0; color: #E3C06A; font-size: 15px; opacity: 0; animation: fade .4s ease-out 2.6s forwards; }
 .note { margin: 0; color: #9FB0CC; font-size: 12px; }
 
 @keyframes toolPath {
-  0%   { transform: translate(270px, 120px); opacity: 0; }
-  10%  { transform: translate(270px, 120px); opacity: 1; }
-  25%  { transform: translate(270px, 120px); }
-  42%  { transform: translate(270px, 290px); animation-timing-function: ease-out; }
-  45%  { transform: translate(270px, 296px); }
-  48%  { transform: translate(270px, 290px); }
-  58%  { transform: translate(270px, 290px); }
-  68%  { transform: translate(270px, 120px); }
-  82%  { transform: translate(120px, 120px); }
-  94%  { transform: translate(120px, 290px); }
-  100% { transform: translate(120px, 290px); opacity: 1; }
+  0%   { transform: translate(262px, 240px); opacity: 0; }
+  10%  { transform: translate(262px, 240px); opacity: 1; }
+  25%  { transform: translate(262px, 240px); }
+  42%  { transform: translate(262px, 290px); animation-timing-function: ease-out; }
+  45%  { transform: translate(262px, 296px); }
+  48%  { transform: translate(262px, 290px); }
+  58%  { transform: translate(262px, 290px); }
+  68%  { transform: translate(262px, 240px); }
+  82%  { transform: translate(137px, 240px); }
+  94%  { transform: translate(137px, 290px); }
+  100% { transform: translate(137px, 290px); opacity: 1; }
 }
 @keyframes inkStamp {
   0%, 45% { opacity: 0; }
@@ -31,7 +31,7 @@
 @keyframes fade { to { opacity: 1; } }
 
 @media (prefers-reduced-motion: reduce) {
-  .tool { animation: none; transform: translate(120px, 290px); }
+  .tool { animation: none; transform: translate(137px, 290px); }
   .impression { animation: none; opacity: .95; }
   .done { animation: none; opacity: 1; }
 }

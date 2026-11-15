@@ -31,7 +31,7 @@ export default function AbuRannatStamp({ locale = "ar" }: { locale?: "ar" | "en"
   return (
     <div className={styles.wrap} role="status" aria-live="polite">
       <div className={styles.paper}>
-        <svg className={styles.svg} viewBox="0 -100 400 440" role="img" aria-label={alt}>
+        <svg className={styles.svg} viewBox="0 30 400 310" role="img" aria-label={alt}>
           <defs>
             <radialGradient id={`${id}-paper`} cx="40%" cy="30%" r="80%">
               <stop offset="0" stopColor="#FFFFFF" />
@@ -71,20 +71,20 @@ export default function AbuRannatStamp({ locale = "ar" }: { locale?: "ar" | "en"
             </filter>
           </defs>
 
-          <rect x="0" y="-100" width="400" height="440" fill={`url(#${id}-paper)`} />
+          <rect x="0" y="30" width="400" height="310" fill={`url(#${id}-paper)`} />
 
           {/* impression on the right, flattened to the paper plane; drawn under the tool */}
           <g className={styles.impression} filter={`url(#${id}-ink)`}>
-            <g transform="translate(270 290) scale(1 .76) translate(-270 -290)">
-              <circle cx="270" cy="290" r="50" fill="none" stroke={GOLD_RING} strokeWidth="3.5" />
-              <circle cx="270" cy="290" r="43" fill="none" stroke={GOLD_RING} strokeWidth="1.3" />
-              <text x="270" y="268" textAnchor="middle" fontFamily="serif" fontSize="13" fontWeight="700" fill={BLUE}>
+            <g transform="translate(262 290) scale(1 .76) translate(-262 -290)">
+              <circle cx="262" cy="290" r="50" fill="none" stroke={GOLD_RING} strokeWidth="3.5" />
+              <circle cx="262" cy="290" r="43" fill="none" stroke={GOLD_RING} strokeWidth="1.3" />
+              <text x="262" y="268" textAnchor="middle" fontFamily="serif" fontSize="13" fontWeight="700" fill={BLUE}>
                 {top}
               </text>
-              <text x="270" y="302" textAnchor="middle" fontFamily="serif" fontSize="28" fontWeight="800" fill={BLUE}>
+              <text x="262" y="302" textAnchor="middle" fontFamily="serif" fontSize="28" fontWeight="800" fill={BLUE}>
                 {center}
               </text>
-              <text x="270" y="317" textAnchor="middle" fontFamily="Georgia, serif" fontSize="8" letterSpacing=".4" fill={BLUE}>
+              <text x="262" y="317" textAnchor="middle" fontFamily="Georgia, serif" fontSize="8" letterSpacing=".4" fill={BLUE}>
                 makuria.legal
               </text>
             </g>
@@ -104,14 +104,14 @@ export default function AbuRannatStamp({ locale = "ar" }: { locale?: "ar" | "en"
               <rect x="-80" y="-96" width="160" height="82" rx="8" fill={`url(#${id}-gold)`} />
               {/* engraved label on the front of the base, following its curve */}
               <path id={`${id}-baseArc`} d="M-66,-56 Q0,-42 66,-56" fill="none" />
-              <text fontFamily="Georgia, serif" fontSize="13" fontWeight="700" letterSpacing="1" textAnchor="middle" transform="translate(0 1)" fill="#FFF3C4" opacity=".55">
-                <textPath href={`#${id}-baseArc`} startOffset="50%">makuria.legal</textPath>
+              <text fontFamily="Georgia, serif" fontSize="16" fontWeight="700" letterSpacing="1" textAnchor="middle" transform="translate(0 1)" fill="#FFF3C4" opacity=".55">
+                <textPath href={`#${id}-baseArc`} startOffset="50%">Makuria.legal</textPath>
               </text>
-              <text fontFamily="Georgia, serif" fontSize="13" fontWeight="700" letterSpacing="1" textAnchor="middle" transform="translate(0 -.6)" fill="#2A1C05" opacity=".5">
-                <textPath href={`#${id}-baseArc`} startOffset="50%">makuria.legal</textPath>
+              <text fontFamily="Georgia, serif" fontSize="16" fontWeight="700" letterSpacing="1" textAnchor="middle" transform="translate(0 -.6)" fill="#2A1C05" opacity=".5">
+                <textPath href={`#${id}-baseArc`} startOffset="50%">Makuria.legal</textPath>
               </text>
-              <text fontFamily="Georgia, serif" fontSize="13" fontWeight="700" letterSpacing="1" textAnchor="middle" fill={BLUE}>
-                <textPath href={`#${id}-baseArc`} startOffset="50%">makuria.legal</textPath>
+              <text fontFamily="Georgia, serif" fontSize="16" fontWeight="700" letterSpacing="1" textAnchor="middle" fill={BLUE}>
+                <textPath href={`#${id}-baseArc`} startOffset="50%">Makuria.legal</textPath>
               </text>
               <ellipse cx="0" cy="-96" rx="80" ry="14" fill={`url(#${id}-goldTop)`} />
               <ellipse cx="0" cy="0" rx="80" ry="14" fill={`url(#${id}-rubber)`} />
