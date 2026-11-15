@@ -94,12 +94,12 @@ export default function AbuRannatStamp({ locale = "ar" }: { locale?: "ar" | "en"
           <g className={styles.tool}>
             <g transform="scale(.62)">
               <ellipse cx="6" cy="4" rx="92" ry="14" fill="#000" opacity=".18" filter={`url(#${id}-soft)`} />
-              <circle cx="0" cy="-250" r="72" fill={`url(#${id}-blue)`} />
-              <ellipse cx="-28" cy="-290" rx="26" ry="14" fill="#FFFFFF" opacity=".28" />
-              <text x="0" y="-238" textAnchor="middle" fontFamily="serif" fontSize="27" fontWeight="700" fill={`url(#${id}-goldTop)`}>
+              <circle cx="0" cy="-230" r="72" fill={`url(#${id}-blue)`} />
+              <ellipse cx="-28" cy="-270" rx="26" ry="14" fill="#FFFFFF" opacity=".28" />
+              <text x="0" y="-218" textAnchor="middle" fontFamily="serif" fontSize="27" fontWeight="700" fill={`url(#${id}-goldTop)`}>
                 {top}
               </text>
-              <rect x="-24" y="-184" width="48" height="76" rx="16" fill={`url(#${id}-neck)`} />
+              <rect x="-24" y="-164" width="48" height="52" rx="16" fill={`url(#${id}-neck)`} />
               <rect x="-50" y="-112" width="100" height="16" rx="6" fill={`url(#${id}-gold)`} />
               <rect x="-80" y="-96" width="160" height="82" rx="8" fill={`url(#${id}-gold)`} />
               {/* engraved label on the front of the base, following its curve */}
