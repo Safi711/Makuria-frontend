@@ -15,6 +15,7 @@ export default function AbuRannatStamp({ locale = "ar" }: { locale?: "ar" | "en"
     <div className={styles.wrap} role="status" aria-live="polite">
       <div className={styles.stage}>
         <span className={styles.ring} aria-hidden="true" />
+        <span className={styles.ink} aria-hidden="true" />
         <img
           src="/abu-rannat/badge.png"
           alt={alt}

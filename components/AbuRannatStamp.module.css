@@ -1,22 +1,26 @@
 .wrap { direction: rtl; display: flex; flex-direction: column; align-items: flex-start; gap: 6px; margin-top: 16px; }
 .stage { position: relative; width: 120px; height: 120px; }
 .stamp { position: absolute; inset: 0; width: 120px; height: 120px; opacity: 0;
-  transform: scale(2.6) rotate(-22deg);
-  animation: hit .55s cubic-bezier(.2,.9,.3,1.2) forwards; }
-.ring { position: absolute; inset: 0; border-radius: 50%; border: 2px solid #E3C06A; opacity: 0;
-  animation: ripple .7s ease-out .33s forwards; }
-.done { margin: 4px 0 0; color: #E3C06A; font-size: 15px; opacity: 0; animation: fade .4s ease-out .6s forwards; }
+  transform-origin: 50% 50%;
+  filter: drop-shadow(0 2px 2px rgba(0,0,0,.35));
+  animation: press .9s cubic-bezier(.3,.7,.3,1) .05s forwards; }
+.ink { position: absolute; inset: 6px; border-radius: 50%; opacity: 0;
+  background: radial-gradient(circle, rgba(227,192,106,.45) 55%, rgba(227,192,106,0) 72%);
+  animation: ink .6s ease-out .55s forwards; }
+.done { margin: 4px 0 0; color: #E3C06A; font-size: 15px; opacity: 0; animation: fade .4s ease-out .9s forwards; }
 .note { margin: 0; color: #9FB0CC; font-size: 12px; }
-@keyframes hit {
-  0% { opacity: 0; transform: scale(2.6) rotate(-22deg); }
-  60% { opacity: 1; transform: scale(.92) rotate(-8deg); }
-  80% { transform: scale(1.04) rotate(-9deg); }
-  100% { opacity: 1; transform: scale(1) rotate(-9deg); }
+/* Lift above the page, drop, press (squash), tiny rebound, settle. */
+@keyframes press {
+  0%   { opacity: 0; transform: translateY(-34px) rotate(-14deg) scale(1.08); }
+  35%  { opacity: 1; transform: translateY(0) rotate(-6deg) scale(1); }
+  50%  { transform: translateY(2px) rotate(-6deg) scale(.94); }
+  68%  { transform: translateY(-1px) rotate(-7deg) scale(1.015); }
+  100% { opacity: 1; transform: translateY(0) rotate(-6deg) scale(1); }
 }
-@keyframes ripple { 0% { opacity: .8; transform: scale(1); } 100% { opacity: 0; transform: scale(1.7); } }
+@keyframes ink { 0% { opacity: 0; transform: scale(.7); } 40% { opacity: .9; } 100% { opacity: 0; transform: scale(1.15); } }
 @keyframes fade { to { opacity: 1; } }
 @media (prefers-reduced-motion: reduce) {
-  .stamp { animation: none; opacity: 1; transform: rotate(-9deg); }
-  .ring { animation: none; display: none; }
+  .stamp { animation: none; opacity: 1; transform: rotate(-6deg); }
+  .ink { display: none; }
   .done { animation: none; opacity: 1; }
 }
