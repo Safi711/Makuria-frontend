@@ -43,15 +43,15 @@ export default function AbuRannatStamp({ locale = "ar" }: { locale?: "ar" | "en"
               <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="4" result="n" />
               <feDisplacementMap in="SourceGraphic" in2="n" scale="1.4" />
             </filter>
-            <path id={`${id}-top`} d="M58,190 a62,62 0 0,1 124,0" />
-            <path id={`${id}-bottom`} d="M50,190 a70,70 0 0,0 140,0" />
+            <path id={`${id}-top`} d="M56,190 a64,64 0 0,1 128,0" />
+            <path id={`${id}-bottom`} d="M56.1,166.7 A68,68 0 1,0 183.9,166.7" />
           </defs>
 
           {/* printed impression: stays after the stamp lifts */}
           <g className={styles.impression} filter={`url(#${id}-ink)`}>
             <circle cx="120" cy="190" r="74" fill="none" stroke={INK} strokeWidth="4" />
             <circle cx="120" cy="190" r="60" fill="none" stroke={INK} strokeWidth="2" />
-            <text fill={INK} fontSize="15" fontWeight="700">
+            <text fill={INK} fontSize="11" fontWeight="700">
               <textPath href={`#${id}-top`} startOffset="50%" textAnchor="middle">{top}</textPath>
             </text>
             <text fill={INK} fontSize="11" fontWeight="700">
