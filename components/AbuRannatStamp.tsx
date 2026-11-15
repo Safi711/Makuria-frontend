@@ -67,7 +67,7 @@ export default function AbuRannatStamp({ locale = "ar" }: { locale?: "ar" | "en"
               <feDisplacementMap in="SourceGraphic" in2="n" scale="1.4" />
             </filter>
             <filter id={`${id}-soft`} x="-40%" y="-40%" width="180%" height="180%">
-              <feGaussianBlur stdDeviation="4" />
+              <feGaussianBlur stdDeviation="6" />
             </filter>
           </defs>
 
@@ -93,7 +93,7 @@ export default function AbuRannatStamp({ locale = "ar" }: { locale?: "ar" | "en"
           {/* the tool, drawn with its rubber face centred on the contact point (0,0) */}
           <g className={styles.tool}>
             <g transform="scale(.62)">
-              <ellipse cx="10" cy="2" rx="82" ry="15" fill="#000" opacity=".3" filter={`url(#${id}-soft)`} />
+              <ellipse cx="6" cy="4" rx="92" ry="14" fill="#000" opacity=".18" filter={`url(#${id}-soft)`} />
               <circle cx="0" cy="-250" r="72" fill={`url(#${id}-blue)`} />
               <ellipse cx="-28" cy="-290" rx="26" ry="14" fill="#FFFFFF" opacity=".28" />
               <text x="0" y="-238" textAnchor="middle" fontFamily="serif" fontSize="27" fontWeight="700" fill={`url(#${id}-goldTop)`}>
@@ -114,7 +114,7 @@ export default function AbuRannatStamp({ locale = "ar" }: { locale?: "ar" | "en"
                 <textPath href={`#${id}-baseArc`} startOffset="50%">Makuria.legal</textPath>
               </text>
               <ellipse cx="0" cy="-96" rx="80" ry="14" fill={`url(#${id}-goldTop)`} />
-              <ellipse cx="0" cy="0" rx="80" ry="14" fill={`url(#${id}-rubber)`} />
+              <path d="M-80,-14 A80,14 0 0 0 80,-14 Z" fill={`url(#${id}-rubber)`} />
             </g>
           </g>
         </svg>
