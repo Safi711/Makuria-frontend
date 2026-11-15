@@ -1,22 +1,44 @@
-.wrap { direction: rtl; display: flex; flex-direction: column; align-items: flex-start; gap: 6px; margin-top: 16px; }
-.stage { position: relative; width: 120px; height: 120px; }
-.stamp { position: absolute; inset: 0; width: 120px; height: 120px; opacity: 0;
-  transform: scale(2.6) rotate(-22deg);
-  animation: hit .55s cubic-bezier(.2,.9,.3,1.2) forwards; }
-.ring { position: absolute; inset: 0; border-radius: 50%; border: 2px solid #E3C06A; opacity: 0;
-  animation: ripple .7s ease-out .33s forwards; }
-.done { margin: 4px 0 0; color: #E3C06A; font-size: 15px; opacity: 0; animation: fade .4s ease-out .6s forwards; }
+.wrap { direction: rtl; display: flex; flex-direction: column; align-items: flex-start; gap: 8px; margin-top: 16px; }
+.paper { width: min(240px, 80vw); aspect-ratio: 400 / 560; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 6px 18px rgba(0,0,0,.25); }
+.svg { display: block; width: 100%; height: 100%; }
+
+/* One 3 s run: appear, hold, descend, press, hold, lift, exit. The impression stays. */
+.tool { transform-box: view-box; animation: toolMove 3s linear forwards; }
+.shadow { transform-box: view-box; opacity: 0; animation: shadowFade 3s linear forwards; }
+/* Impression appears only at contact, under the tool, and stays after the tool leaves. */
+.impression { transform-box: view-box; transform-origin: 200px 390px; opacity: 0; animation: inkStamp 3s linear forwards; }
+
+.done { margin: 4px 0 0; color: #E3C06A; font-size: 15px; opacity: 0; animation: fade .4s ease-out 2.4s forwards; }
 .note { margin: 0; color: #9FB0CC; font-size: 12px; }
-@keyframes hit {
-  0% { opacity: 0; transform: scale(2.6) rotate(-22deg); }
-  60% { opacity: 1; transform: scale(.92) rotate(-8deg); }
-  80% { transform: scale(1.04) rotate(-9deg); }
-  100% { opacity: 1; transform: scale(1) rotate(-9deg); }
+
+@keyframes toolMove {
+  0%   { transform: translateY(-110px); opacity: 0; }
+  8%   { transform: translateY(-110px); opacity: 1; }
+  30%  { transform: translateY(-110px); opacity: 1; }
+  45%  { transform: translateY(0); opacity: 1; }
+  48%  { transform: translateY(4px); opacity: 1; }
+  51%  { transform: translateY(0); opacity: 1; }
+  62%  { transform: translateY(0); opacity: 1; }
+  80%  { transform: translateY(-110px); opacity: 1; }
+  92%  { transform: translateY(-260px); opacity: 1; }
+  100% { transform: translateY(-300px); opacity: 0; }
 }
-@keyframes ripple { 0% { opacity: .8; transform: scale(1); } 100% { opacity: 0; transform: scale(1.7); } }
+@keyframes shadowFade {
+  0%, 44% { opacity: 0; }
+  46%     { opacity: .35; }
+  62%     { opacity: .35; }
+  80%     { opacity: .12; }
+  100%    { opacity: 0; }
+}
+@keyframes inkStamp {
+  0%, 47% { opacity: 0; }
+  52%     { opacity: .95; }
+  100%    { opacity: .95; }
+}
 @keyframes fade { to { opacity: 1; } }
+
 @media (prefers-reduced-motion: reduce) {
-  .stamp { animation: none; opacity: 1; transform: rotate(-9deg); }
-  .ring { animation: none; display: none; }
+  .tool, .shadow { display: none; }
+  .impression { animation: none; opacity: .95; }
   .done { animation: none; opacity: 1; }
 }
