@@ -41,10 +41,10 @@ export default function AbuRannatStamp({ locale = "ar" }: { locale?: "ar" | "en"
             </linearGradient>
             <filter id={`${id}-ink`} x="-10%" y="-10%" width="120%" height="120%">
               <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" seed="4" result="n" />
-              <feDisplacementMap in="SourceGraphic" in2="n" scale="2.6" />
+              <feDisplacementMap in="SourceGraphic" in2="n" scale="1.4" />
             </filter>
-            <path id={`${id}-top`} d="M54,190 a66,66 0 0,1 132,0" />
-            <path id={`${id}-bottom`} d="M54,190 a66,66 0 0,0 132,0" />
+            <path id={`${id}-top`} d="M58,190 a62,62 0 0,1 124,0" />
+            <path id={`${id}-bottom`} d="M50,190 a70,70 0 0,0 140,0" />
           </defs>
 
           {/* printed impression: stays after the stamp lifts */}
@@ -64,8 +64,8 @@ export default function AbuRannatStamp({ locale = "ar" }: { locale?: "ar" | "en"
 
           {/* the tool: handle + rubber face with the badge */}
           <g className={styles.tool}>
-            <circle cx="120" cy="84" r="28" fill={`url(#${id}-wood)`} />
-            <rect x="105" y="108" width="30" height="30" rx="10" fill={`url(#${id}-wood)`} />
+            <circle cx="120" cy="62" r="28" fill={`url(#${id}-wood)`} />
+            <rect x="105" y="84" width="30" height="62" rx="10" fill={`url(#${id}-wood)`} />
             <circle cx="120" cy="190" r="70" fill="#14233F" stroke={GOLD} strokeWidth="3" />
             <circle cx="120" cy="190" r="58" fill="none" stroke={GOLD} strokeWidth="1" opacity=".6" />
             <image href="/abu-rannat/badge.png" x="90" y="160" width="60" height="60" preserveAspectRatio="xMidYMid meet" />
