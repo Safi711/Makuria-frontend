@@ -3,6 +3,14 @@ import { createClient } from "@/lib/supabase/server";
 import { getLocale } from "@/lib/i18n-server";
 import { t } from "@/lib/i18n";
 import { synonymVariants, mergeVariantResults } from "@/lib/search-synonyms";
+import { cachedSearch } from "@/lib/search-cache";
+import {
+  variantConfig,
+  selectVariants,
+  mapWithConcurrency,
+  logSearchTiming,
+  type CallTiming,
+} from "@/lib/search-variants";
 import { sendSearchToAdvisor } from "@/app/abu-rannat/actions";
 
 const RESULT_LIMIT = 25;
@@ -97,16 +105,23 @@ export default async function SearchPage(props: PageProps<"/search">) {
   // in Abu Rannat, or search with words the visitor chooses.
   const qWords = q.split(/\s+/).filter(Boolean);
   const isLongQuery = qWords.length > SEARCH_MAX_WORDS;
-  const variants = q && !isLongQuery ? synonymVariants(q) : [];
-  const responses = await Promise.all(
-    variants.map((vq) =>
+  const { limit: variantLimit, concurrency } = variantConfig();
+  const variants = q && !isLongQuery ? selectVariants(synonymVariants(q), variantLimit) : [];
+  const callTimings: CallTiming[] = [];
+  const startedAt = performance.now();
+  const responses = await mapWithConcurrency(variants, concurrency, async (vq, i) => {
+    const t0 = performance.now();
+    const r = await cachedSearch(`${vq}|${RESULT_LIMIT}`, () =>
       supabase.rpc("quick_search_v4", {
         q: vq,
         limit_rows: RESULT_LIMIT,
         include_repealed: true,
       })
-    )
-  );
+    );
+    callTimings.push({ index: i, ms: performance.now() - t0, error: !!r.error });
+    return r;
+  });
+  logSearchTiming(q, performance.now() - startedAt, callTimings);
   // An error on the question as typed is shown; a failed rewrite is just skipped.
   const error = responses[0]?.error ?? null;
   // 57014 = statement timeout: the question was too heavy, fewer words help.
