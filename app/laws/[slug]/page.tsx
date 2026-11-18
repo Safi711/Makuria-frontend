@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { getLocale } from "@/lib/i18n-server";
 import { t } from "@/lib/i18n";
@@ -9,6 +9,37 @@ import { ArticleBody } from "@/components/ArticleBody";
 import { SITE_URL, clampDescription, lawStatusWordAr, sourceNameAr } from "@/lib/site";
 
 const ARTICLES_PAGE_SIZE = 30;
+
+/**
+ * Every slug in `laws` is `[a-z0-9-]+`. Links shared outside the site sometimes
+ * arrive mangled — an escaped quote leaves a trailing backslash
+ * (`/laws/companies-2015\`, or `\\\` when escaped twice) — and the page then
+ * says «قانون غير موجود» for a law that exists. Send any such URL, permanently,
+ * to the clean one, keeping its query string (?page=…).
+ */
+function redirectIfMangled(
+  slug: string,
+  searchParams: Record<string, string | string[] | undefined>
+): void {
+  // The param can reach us still percent-encoded (`companies-2015%5C`):
+  // decode first, or the hex of the escape (`5c`) survives the filter.
+  let decoded = slug;
+  try {
+    decoded = decodeURIComponent(slug);
+  } catch {
+    // malformed escape — the filter below still strips the stray `%`
+  }
+  const clean = decoded.toLowerCase().replace(/[^a-z0-9-]/g, "");
+  if (!clean || clean === slug) return;
+  const query = new URLSearchParams();
+  for (const [key, value] of Object.entries(searchParams)) {
+    for (const v of Array.isArray(value) ? value : value === undefined ? [] : [value]) {
+      query.append(key, v);
+    }
+  }
+  const qs = query.toString();
+  permanentRedirect(`/laws/${clean}${qs ? `?${qs}` : ""}`);
+}
 
 /**
  * A title and description of this law alone. Without it every law page
@@ -24,6 +55,7 @@ export async function generateMetadata(
 ): Promise<Metadata> {
   const { slug } = await props.params;
   const searchParams = await props.searchParams;
+  redirectIfMangled(slug, searchParams);
   const page = Math.max(1, Number(searchParams.page ?? "1") || 1);
 
   const supabase = await createClient();
@@ -79,6 +111,7 @@ export async function generateMetadata(
 export default async function LawDetailPage(props: PageProps<"/laws/[slug]">) {
   const { slug } = await props.params;
   const searchParams = await props.searchParams;
+  redirectIfMangled(slug, searchParams);
   const locale = await getLocale();
   const supabase = await createClient();
 
