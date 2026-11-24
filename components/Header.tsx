@@ -15,6 +15,8 @@ export async function Header({ locale }: { locale: Locale }) {
     // العنوان /abu-rannat منذ 12 أكتوبر 2026 بموافقة صافي (30 سبتمبر)، والعنوان القديم
     // /case-mapper يحوِّل إليه تحويلاً دائماً في next.config.ts، فلا ينكسر رابط سبق أن شاركه أحد.
     { href: "/abu-rannat", label: t(locale, "navAdvisor"), highlight: true },
+    // مرجع المعادلة القانونية (امتحان تنظيم مهنة القانون) — 2026-11-23.
+    { href: "/equivalency", label: t(locale, "navEquivalency") },
     { href: "/laws", label: t(locale, "navLaws") },
     { href: "/cases", label: t(locale, "navCases") },
     { href: "/principles", label: t(locale, "navPrinciples") },
