@@ -1,5 +1,5 @@
 -- مرجع المعادلة القانونية (امتحان تنظيم مهنة القانون) — المرحلة الأولى
--- Drafted 2026-11-23. NOT APPLIED. Apply only after Safi's written approval.
+-- Drafted 2026-11-23. Applied 2026-11-23 with Safi's written approval («اوافق»).
 --
 -- Model
 --   eq_subjects  ← eq_topics
@@ -230,6 +230,13 @@ create policy eq_citations_write on public.eq_citations for all
 alter table public.eq_paper_internal enable row level security;
 create policy eq_paper_internal_editor on public.eq_paper_internal for all
   using (public.is_eq_editor()) with check (public.is_eq_editor());
+
+-- This project does not grant anon on new tables by default. Visitors who are
+-- not signed in read the published reference; RLS still limits them to
+-- published rows. Editor-only tables get no anon grant.
+grant select on public.eq_subjects, public.eq_topics, public.eq_papers,
+  public.eq_questions, public.eq_solutions, public.eq_citations to anon;
+revoke all on public.eq_paper_internal, public.eq_editors from anon;
 
 -- ---------------------------------------------------------------------------
 -- Storage: originals (scans) are private, editors only.

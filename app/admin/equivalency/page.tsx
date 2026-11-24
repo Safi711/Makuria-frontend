@@ -34,6 +34,10 @@ export default async function AdminEquivalency(props: PageProps<"/admin/equivale
     <div>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-bold">مرجع المعادلة</h1>
+        <div className="flex flex-wrap gap-2">
+        <Link href="/admin/equivalency/import" className="rounded-md border px-4 py-2 text-sm" style={{ borderColor: "var(--mk-border)" }}>
+          استيراد دفعة
+        </Link>
         <Link
           href="/admin/equivalency/new"
           className="rounded-md px-4 py-2 text-sm font-bold"
@@ -41,6 +45,7 @@ export default async function AdminEquivalency(props: PageProps<"/admin/equivale
         >
           إضافة امتحان سابق
         </Link>
+        </div>
       </div>
 
       <div className="mt-6 flex flex-wrap gap-2 text-xs">

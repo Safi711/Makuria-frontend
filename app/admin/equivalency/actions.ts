@@ -411,3 +411,69 @@ export async function addCitation(fd: FormData) {
 export async function deleteCitation(fd: FormData) {
   await run(fd, _deleteCitation);
 }
+
+// ---------------------------------------------------------------------------
+// Batch import (one paper per call, so a large file never hits the request
+// size limit). Idempotent on import_key: a paper already imported is skipped.
+
+export type ImportItem = {
+  import_key: string;
+  subject: string;
+  session_month: string | null;
+  title_ar: string | null;
+  source_note: string | null;
+  review_note: string | null;
+  ocr_text: string | null;
+};
+
+export async function importDraft(item: ImportItem): Promise<"created" | "skipped" | string> {
+  try {
+    const { supabase } = await requireEditor();
+    if (!item || typeof item.import_key !== "string" || !/^scan:[\w.:-]{3,120}$/.test(item.import_key)) {
+      return "مفتاح استيراد غير صالح";
+    }
+    const { data: existing } = await supabase
+      .from("eq_paper_internal")
+      .select("paper_id")
+      .eq("import_key", item.import_key)
+      .maybeSingle();
+    if (existing) return "skipped";
+
+    const { data: subject } = await supabase
+      .from("eq_subjects")
+      .select("id")
+      .eq("slug", String(item.subject ?? ""))
+      .maybeSingle();
+    if (!subject) return `مادة غير معروفة: ${item.subject}`;
+
+    const cap = (v: unknown, n: number) => (typeof v === "string" && v.trim() ? v.slice(0, n) : null);
+    const month = cap(item.session_month, 20);
+    const { data: paper, error } = await supabase
+      .from("eq_papers")
+      .insert({
+        subject_id: subject.id,
+        session_month: month && (SESSION_MONTHS as readonly string[]).includes(month) ? month : null,
+        title_ar: cap(item.title_ar, 200),
+        source_note: cap(item.source_note, 500),
+        status: "draft",
+        needs_review: true,
+      })
+      .select("id")
+      .single();
+    if (error || !paper) return error?.message ?? "تعذّر الحفظ";
+
+    const { error: e2 } = await supabase.from("eq_paper_internal").insert({
+      paper_id: paper.id,
+      ocr_text: cap(item.ocr_text, 200000),
+      review_note: cap(item.review_note, 2000),
+      import_key: item.import_key,
+    });
+    if (e2) {
+      await supabase.from("eq_papers").delete().eq("id", paper.id);
+      return e2.message;
+    }
+    return "created";
+  } catch (e) {
+    return e instanceof Error ? e.message : "تعذّر الاستيراد";
+  }
+}
