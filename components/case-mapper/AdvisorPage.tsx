@@ -749,6 +749,13 @@ export async function AdvisorPage({
             <p className="max-w-2xl text-sm leading-relaxed sm:text-base" style={{ color: "var(--cm-muted)" }}>
               {t(locale, "cmHeroSub")}
             </p>
+            {/* Entry point to مرجع المعادلة (2026-11-23), where the mock exam
+                Abu Rannat marks will live. */}
+            {locale === "ar" && (
+              <Link href="/equivalency" className="mt-3 inline-block text-sm underline" style={{ color: "var(--cm-gold)" }}>
+                تستعد لامتحان المعادلة؟ الامتحانات السابقة وحلولها في مرجع المعادلة ←
+              </Link>
+            )}
           </div>
 
           <AbuRannatSeal size={104} className="shrink-0" />

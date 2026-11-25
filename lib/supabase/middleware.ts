@@ -3,6 +3,9 @@ import { NextResponse, type NextRequest } from "next/server";
 
 const PROTECTED_PREFIXES = [
   "/workspace",
+  // مرجع المعادلة admin. Signing in is required here; being an editor is
+  // checked again in app/admin/layout.tsx and, for every write, by RLS.
+  "/admin",
   "/matters",
   // «/case-mapper» was here until 2026-09-28. It is now PUBLIC, by Safi's
   // decision: «المستشار القانوني الذكي» is the reason the site exists, it is
