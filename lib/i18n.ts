@@ -217,6 +217,7 @@ export const dictionaries: Record<Locale, Record<string, string>> = {
     authCheckEmailTitle: "تحقّق من بريدك",
     authCheckEmailBody:
       "أرسلنا رسالة تأكيد إلى بريدك. افتحها وأكّد حسابك، ثم عد وسجّل الدخول.",
+    authConfirmedNotice: "تأكّد بريدك. سجّل الدخول الآن لتدخل مساحة المحامي.",
     authErrInvalid: "البريد الإلكتروني أو كلمة المرور غير صحيحة.",
     authErrNotConfirmed: "لم يُفعَّل بريدك بعد. افتح رسالة التأكيد في بريدك أولاً.",
     authErrExists: "هذا البريد مسجَّل بالفعل. سجّل الدخول بدل إنشاء حساب جديد.",
@@ -433,6 +434,7 @@ export const dictionaries: Record<Locale, Record<string, string>> = {
     authCheckEmailTitle: "Check your email",
     authCheckEmailBody:
       "We sent a confirmation message to your inbox. Confirm your account, then come back and log in.",
+    authConfirmedNotice: "Your email is confirmed. Log in now to enter the lawyer workspace.",
     authErrInvalid: "That email or password is not correct.",
     authErrNotConfirmed: "Your email is not confirmed yet. Open the confirmation message first.",
     authErrExists: "That email is already registered. Log in instead of creating a new account.",

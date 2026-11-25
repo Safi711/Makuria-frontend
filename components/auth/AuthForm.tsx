@@ -70,6 +70,9 @@ export function AuthForm({ locale, mode }: { locale: Locale; mode: "login" | "si
   const [error, setError] = useState<{ text: string; raw?: string } | null>(null);
   const [loading, setLoading] = useState(false);
   const [done, setDone] = useState(false);
+  // Set by /auth/callback when the email was confirmed but no session could be
+  // started here (e.g. the link was opened in a different browser).
+  const confirmed = isLogin && searchParams.get("confirmed") === "1";
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -79,7 +82,14 @@ export function AuthForm({ locale, mode }: { locale: Locale; mode: "login" | "si
     const supabase = createClient();
     const { error: authError } = isLogin
       ? await supabase.auth.signInWithPassword({ email, password })
-      : await supabase.auth.signUp({ email, password });
+      : await supabase.auth.signUp({
+          email,
+          password,
+          // Without this, Supabase sends the confirmation link to the project's
+          // Site URL, which still points at the old makuria.pplx.app: a lawyer
+          // who signed up here confirmed their email and landed on the old site.
+          options: { emailRedirectTo: `${window.location.origin}/auth/callback?next=/workspace` },
+        });
 
     setLoading(false);
 
@@ -134,6 +144,16 @@ export function AuthForm({ locale, mode }: { locale: Locale; mode: "login" | "si
       <p className="mb-6 text-sm leading-relaxed" style={{ color: "var(--cm-muted)" }}>
         {t(locale, isLogin ? "authLoginSub" : "authSignupSub")}
       </p>
+
+      {confirmed && !error && (
+        <div
+          role="status"
+          className="mb-4 rounded-xl border px-3 py-2.5 text-sm leading-relaxed"
+          style={{ borderColor: "var(--mk-gold)", color: "var(--cm-text)" }}
+        >
+          {t(locale, "authConfirmedNotice")}
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
