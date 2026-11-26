@@ -54,7 +54,7 @@ When prompted for environment variables, or afterwards in the Vercel
 dashboard's Project Settings → Environment Variables, set:
 - `NEXT_PUBLIC_SUPABASE_URL` = `https://damzdxcutawghksuzoan.supabase.co`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY` = (copy from `.env.local.example`)
-- `NEXT_PUBLIC_GA_MEASUREMENT_ID` = optional, leave unset for now
+- `NEXT_PUBLIC_GA_MEASUREMENT_ID` = optional; when unset, production uses G-E15JPE39KR (tag runs on makuria.legal only)
 
 Running plain `vercel` (no `--prod`) always deploys to a preview URL —
 it will not touch makuria.legal or makuria.pplx.app.
