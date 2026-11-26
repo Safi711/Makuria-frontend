@@ -79,7 +79,7 @@ export const dictionaries: Record<Locale, Record<string, string>> = {
     judgmentDate: "تاريخ الحكم",
     footerRights: "جميع الحقوق محفوظة",
     footerNotice:
-      "المحتوى القانوني في هذه النسخة التجريبية مصدره نفس قاعدة بيانات مكوريا الإنتاجية — لا يوجد محتوى مُصطنع.",
+      "المحتوى في مكوريا معلومات قانونية عامة وليس استشارة قانونية؛ لحالتك الخاصة راجع محامياً مختصاً.",
 
     // Case Mapper (Phase 1)
     cmPageTitle: "اسأل أبو رنات",
@@ -296,7 +296,7 @@ export const dictionaries: Record<Locale, Record<string, string>> = {
     judgmentDate: "Judgment date",
     footerRights: "All rights reserved",
     footerNotice:
-      "Legal content on this staging build is sourced from the same production Makuria database — nothing here is fabricated.",
+      "Makuria provides general legal information, not legal advice. For your specific situation, consult a qualified lawyer.",
 
     // Case Mapper (Phase 1)
     cmPageTitle: "Ask Abu Rannat",
