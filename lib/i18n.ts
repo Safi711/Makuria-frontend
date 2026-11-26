@@ -296,7 +296,7 @@ export const dictionaries: Record<Locale, Record<string, string>> = {
     judgmentDate: "Judgment date",
     footerRights: "All rights reserved",
     footerNotice:
-      "Makuria publishes the texts of Sudanese laws and judicial precedents for researchers, students and lawyers. The content is not an official version and is not legal advice, and it may not include the latest amendments, so check official sources, and for your specific situation consult a qualified lawyer.",
+      "Makuria publishes the texts of Sudanese laws and judicial precedents for researchers, students and lawyers. The versions published here are unofficial and may not reflect the latest amendments. Consult official sources to verify the current text of a law. For legal advice about your specific situation, consult a qualified lawyer.",
 
     // Case Mapper (Phase 1)
     cmPageTitle: "Ask Abu Rannat",
