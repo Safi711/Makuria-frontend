@@ -79,7 +79,7 @@ export const dictionaries: Record<Locale, Record<string, string>> = {
     judgmentDate: "تاريخ الحكم",
     footerRights: "جميع الحقوق محفوظة",
     footerNotice:
-      "المحتوى في مكوريا معلومات قانونية عامة وليس استشارة قانونية؛ لحالتك الخاصة راجع محامياً مختصاً.",
+      "«مكوريا» منصة تنشر نصوص القوانين السودانية والسوابق القضائية للباحث والطالب والمحامي. المحتوى ليس نسخة رسمية ولا استشارة قانونية، وقد لا يشمل آخر التعديلات، فتحقق من المصادر الرسمية، ولحالتك الخاصة راجع محامياً مختصاً.",
 
     // Case Mapper (Phase 1)
     cmPageTitle: "اسأل أبو رنات",
@@ -296,7 +296,7 @@ export const dictionaries: Record<Locale, Record<string, string>> = {
     judgmentDate: "Judgment date",
     footerRights: "All rights reserved",
     footerNotice:
-      "Makuria provides general legal information, not legal advice. For your specific situation, consult a qualified lawyer.",
+      "Makuria publishes the texts of Sudanese laws and judicial precedents for researchers, students and lawyers. The content is not an official version and is not legal advice, and it may not include the latest amendments, so check official sources, and for your specific situation consult a qualified lawyer.",
 
     // Case Mapper (Phase 1)
     cmPageTitle: "Ask Abu Rannat",
