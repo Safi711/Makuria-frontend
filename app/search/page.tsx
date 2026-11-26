@@ -5,7 +5,7 @@ import { t } from "@/lib/i18n";
 import { synonymVariants, mergeVariantResults } from "@/lib/search-synonyms";
 import { sendSearchToAdvisor } from "@/app/abu-rannat/actions";
 
-const RESULT_LIMIT = 25;
+const RESULT_LIMIT = 100;
 const SEARCH_MAX_WORDS = 12;
 
 type SearchRow = {
