@@ -118,12 +118,23 @@ export default async function LawDetailPage(props: PageProps<"/laws/[slug]">) {
   const { data: law } = await supabase
     .from("laws")
     .select(
-      "id, title_ar, title_en, slug, law_number, year_issued, date_issued, issuing_authority, summary_ar, status, verified, total_articles, source_url"
+      "id, title_ar, title_en, slug, law_number, year_issued, date_issued, issuing_authority, summary_ar, status, verified, total_articles, source_url, replaced_by_law_id"
     )
     .eq("slug", slug)
     .maybeSingle();
 
   if (!law) notFound();
+
+  // A repealed law names the law that repealed it, so a reader who lands on the
+  // old text is one click from the text in force. The link is read from
+  // `replaced_by_law_id`; with no successor recorded, nothing is shown.
+  const { data: successor } = law.replaced_by_law_id
+    ? await supabase
+        .from("laws")
+        .select("slug, title_ar, title_en")
+        .eq("id", law.replaced_by_law_id)
+        .maybeSingle()
+    : { data: null };
 
   const inForce = law.status === "active" || law.status === "published";
 
@@ -205,6 +216,15 @@ export default async function LawDetailPage(props: PageProps<"/laws/[slug]">) {
       </div>
       {facts.length > 0 && (
         <p className="mb-2 text-sm text-neutral-500">{facts.join(" · ")}</p>
+      )}
+
+      {successor && (
+        <p className="mb-2 text-sm" style={{ color: "#5E2316" }}>
+          {t(locale, "replacedByLabel")}:{" "}
+          <a href={`/laws/${successor.slug}`} className="underline underline-offset-2">
+            {successor.title_ar || successor.title_en}
+          </a>
+        </p>
       )}
 
       {/* Where this text came from — or, just as important, that we do not
