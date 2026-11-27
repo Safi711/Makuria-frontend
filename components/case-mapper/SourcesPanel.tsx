@@ -23,16 +23,28 @@ export function SourcesPanel({
         <ul className="space-y-1.5 text-sm">
           {lawSources.map((l) => (
             <li key={`law-${l.id}`}>
-              <a href={l.sourceUrl!} target="_blank" rel="noopener noreferrer" className="hover:text-[var(--mk-gold)]">
-                {l.type === "article" ? l.lawTitle : l.title} — {t(locale, "cmSourceLink")}
-              </a>
+              {l.sourceUrl!.startsWith("http") ? (
+                <a href={l.sourceUrl!} target="_blank" rel="noopener noreferrer" className="hover:text-[var(--mk-gold)]">
+                  {l.type === "article" ? l.lawTitle : l.title} — {t(locale, "cmSourceLink")}
+                </a>
+              ) : (
+                <span>
+                  {l.type === "article" ? l.lawTitle : l.title} — {l.sourceUrl}
+                </span>
+              )}
             </li>
           ))}
           {caseSources.map((c) => (
             <li key={`case-${c.id}`}>
-              <a href={c.sourceUrl!} target="_blank" rel="noopener noreferrer" className="hover:text-[var(--mk-gold)]">
-                {c.title} — {t(locale, "cmSourceLink")}
-              </a>
+              {c.sourceUrl!.startsWith("http") ? (
+                <a href={c.sourceUrl!} target="_blank" rel="noopener noreferrer" className="hover:text-[var(--mk-gold)]">
+                  {c.title} — {t(locale, "cmSourceLink")}
+                </a>
+              ) : (
+                <span>
+                  {c.title} — {c.sourceUrl}
+                </span>
+              )}
             </li>
           ))}
         </ul>

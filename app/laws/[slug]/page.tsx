@@ -118,7 +118,7 @@ export default async function LawDetailPage(props: PageProps<"/laws/[slug]">) {
   const { data: law } = await supabase
     .from("laws")
     .select(
-      "id, title_ar, title_en, slug, law_number, year_issued, date_issued, issuing_authority, summary_ar, status, verified, total_articles, source_url, replaced_by_law_id"
+      "id, title_ar, title_en, slug, law_number, year_issued, date_issued, issuing_authority, summary_ar, status, verified, total_articles, source_url, replaced_by_law_id, source_documents:metadata->source_documents"
     )
     .eq("slug", slug)
     .maybeSingle();
@@ -149,6 +149,14 @@ export default async function LawDetailPage(props: PageProps<"/laws/[slug]">) {
   ].filter(Boolean);
 
   const sourceName = sourceNameAr(law.source_url);
+
+  // A law whose text was built from more than one document (an act and its
+  // amendment, say) lists each document by name in `metadata.source_documents`,
+  // so the reader sees what each file is rather than one bare host name.
+  type SourceDocument = { label_ar?: string; label_en?: string; url?: string };
+  const sourceDocuments: SourceDocument[] = Array.isArray(law.source_documents)
+    ? (law.source_documents as unknown as SourceDocument[]).filter((d) => d && (d.label_ar || d.label_en))
+    : [];
 
   const page = Math.max(1, Number(searchParams.page ?? "1") || 1);
   const from = (page - 1) * ARTICLES_PAGE_SIZE;
@@ -198,7 +206,7 @@ export default async function LawDetailPage(props: PageProps<"/laws/[slug]">) {
       ? { legislationPassedBy: { "@type": "Organization", name: law.issuing_authority } }
       : {}),
     ...(law.summary_ar ? { description: clampDescription(law.summary_ar, 500) } : {}),
-    ...(law.source_url ? { sameAs: law.source_url } : {}),
+    ...(law.source_url?.startsWith("http") ? { sameAs: law.source_url } : {}),
   };
 
   return (
@@ -229,8 +237,35 @@ export default async function LawDetailPage(props: PageProps<"/laws/[slug]">) {
 
       {/* Where this text came from — or, just as important, that we do not
           know. A reader can follow the link and judge for themselves. */}
-      <p className="mb-6 text-sm" style={{ color: sourceName ? "#52525b" : "#8A6414" }}>
-        {sourceName ? (
+      <p
+        className="mb-6 text-sm"
+        style={{ color: sourceName || sourceDocuments.length > 0 ? "#52525b" : "#8A6414" }}
+      >
+        {sourceDocuments.length > 0 ? (
+          <>
+            {t(locale, "sourceLabel")}:{" "}
+            {sourceDocuments.map((d, i) => {
+              const label = (locale === "ar" ? d.label_ar || d.label_en : d.label_en || d.label_ar) ?? "";
+              return (
+                <span key={i}>
+                  {i > 0 ? " · " : null}
+                  {d.url?.startsWith("http") ? (
+                    <a
+                      href={d.url}
+                      target="_blank"
+                      rel="noopener noreferrer nofollow"
+                      className="underline underline-offset-2"
+                    >
+                      {label}
+                    </a>
+                  ) : (
+                    label
+                  )}
+                </span>
+              );
+            })}
+          </>
+        ) : sourceName ? (
           <>
             {t(locale, "sourceLabel")}:{" "}
             {law.source_url?.startsWith("http") ? (
