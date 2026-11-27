@@ -43,6 +43,9 @@ const SOURCE_NAMES_AR: Record<string, string> = {
   "moj.gov.sd": "وزارة العدل — جمهورية السودان",
   "cbos.gov.sd": "بنك السودان المركزي",
   "judiciary.gov.sd": "السلطة القضائية — جمهورية السودان",
+  // Copies of official documents that Makuria keeps itself, where no
+  // government page publishes the text.
+  "makuria.legal": "نسخة من الوثيقة الرسمية محفوظة في مكوريا",
 };
 
 export function sourceNameAr(url?: string | null): string | null {
