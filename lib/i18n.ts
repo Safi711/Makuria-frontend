@@ -56,6 +56,7 @@ export const dictionaries: Record<Locale, Record<string, string>> = {
     textNotEnteredYet: "النص لم يُدخل بعد",
     sourceLabel: "المصدر",
     noSourceRecorded: "مصدر النص قيد التوثيق",
+    replacedByLabel: "أُلغي بموجب",
     noSourceShort: "قيد التوثيق",
     comingSoonTitle: "قيد التطوير",
     comingSoonBody:
@@ -273,6 +274,7 @@ export const dictionaries: Record<Locale, Record<string, string>> = {
     textNotEnteredYet: "Text not yet entered",
     sourceLabel: "Source",
     noSourceRecorded: "Source of this text pending documentation",
+    replacedByLabel: "Repealed by",
     noSourceShort: "pending documentation",
     comingSoonTitle: "Coming Soon",
     comingSoonBody:
