@@ -6,6 +6,7 @@ import { matchPrinciples } from "./principle-match.mjs";
 import { classifyPrecedent, type PrecedentRelevance } from "./precedent-relevance";
 import conceptMapJson from "./precedent-concept-map.json";
 import { buildClarification, factsForAnalysis, isTruncatedShort, type Clarification } from "./clarification";
+import { canonicalLawSlug, expandLawSlugs } from "@/lib/law-slugs";
 import {
   stripTashkeel,
   normalizeForKwMatch,
@@ -344,14 +345,14 @@ const CASE_TYPE_TO_CATEGORY: { match: string[]; slug: string }[] = [
 /**
  * Companion law slugs per case-type slug. A real case always spans multiple
  * domains: a theft charge needs the Criminal Act (substantive) but also
- * Criminal Procedure 1991 (how to prosecute) and Evidence 1993 (what proves
+ * Criminal Procedure 1991 (how to prosecute) and Evidence 1994 (what proves
  * it). Companion laws are fetched by slug and their articles are marked
  * in-scope alongside the primary category's articles.
  */
 const CASE_TYPE_COMPANIONS: Record<string, string[]> = {
-  "criminal": ["criminal-procedure-1991", "evidence-law-1993", "public-prosecution-act-2017"],
-  "civil": ["civil-procedure-1983", "evidence-law-1993", "arbitration-2016"],
-  "personal-status": ["civil-procedure-1983", "evidence-law-1993"],
+  "criminal": ["criminal-procedure-1991", "evidence-law-1994", "public-prosecution-act-2017"],
+  "civil": ["civil-procedure-1983", "evidence-law-1994", "arbitration-2016"],
+  "personal-status": ["civil-procedure-1983", "evidence-law-1994"],
 };
 
 // ── Concept-to-article map ────────────────────────────────────────────────
@@ -1014,10 +1015,10 @@ export const DISCUSS_CONCEPT_TO_ARTICLES: Record<string, ConceptArticleEntry[]> 
     { lawSlug: "civil-transactions-1984", articleNumber: "208", statusNoteOverride: "معروضة للبحث، لا للتصنيف" },
   ],
   "دين:إثبات": [
-    { lawSlug: "evidence-law-1993", articleNumber: "23", statusNoteOverride: "معروضة للبحث، لا للتصنيف" },
-    { lawSlug: "evidence-law-1993", articleNumber: "17", statusNoteOverride: "معروضة للبحث، لا للتصنيف" },
-    { lawSlug: "evidence-law-1993", articleNumber: "54", statusNoteOverride: "معروضة للبحث، لا للتصنيف" },
-    { lawSlug: "evidence-law-1993", articleNumber: "58", statusNoteOverride: "معروضة للبحث، لا للتصنيف" },
+    { lawSlug: "evidence-law-1994", articleNumber: "23", statusNoteOverride: "معروضة للبحث، لا للتصنيف" },
+    { lawSlug: "evidence-law-1994", articleNumber: "17", statusNoteOverride: "معروضة للبحث، لا للتصنيف" },
+    { lawSlug: "evidence-law-1994", articleNumber: "54", statusNoteOverride: "معروضة للبحث، لا للتصنيف" },
+    { lawSlug: "evidence-law-1994", articleNumber: "58", statusNoteOverride: "معروضة للبحث، لا للتصنيف" },
   ],
   "مرور:فرق تأمين": [
     { lawSlug: "civil-transactions-1984", articleNumber: "138", statusNoteOverride: "معروضة للبحث، لا للتصنيف" },
@@ -1231,10 +1232,10 @@ async function buildCivilDiscussItem(
   const { data: lawRows } = await sbClient
     .from("laws")
     .select("id,slug,title_ar,source_url,verified,status")
-    .in("slug", lawSlugs);
+    .in("slug", expandLawSlugs(lawSlugs));
   type LawRow = { id: string; slug: string; title_ar: string | null; source_url: string | null; verified: boolean | null; status?: string | null };
   const lawBySlugLocal = new Map<string, LawRow>(
-    ((lawRows ?? []) as LawRow[]).map((l) => [l.slug, l]),
+    ((lawRows ?? []) as LawRow[]).map((l) => [canonicalLawSlug(l.slug), l]),
   );
 
   const lawIds = [...lawBySlugLocal.values()].map((l) => l.id);
@@ -1990,7 +1991,7 @@ async function resolveCaseTypeFull(
     (() => {
       const companions = CASE_TYPE_COMPANIONS[effectiveSlug] ?? [];
       if (companions.length === 0) return Promise.resolve({ data: [] as { id: string }[] });
-      return supabase.from("laws").select("id").in("slug", companions);
+      return supabase.from("laws").select("id").in("slug", expandLawSlugs(companions));
     })(),
   ]);
 
@@ -2093,11 +2094,11 @@ async function analyzeCriminalConceptMap(
   const { data: lawsData } = await supabase
     .from("laws")
     .select("id, slug, title_ar, source_url, verified, status")
-    .in("slug", uniqueSlugs);
+    .in("slug", expandLawSlugs(uniqueSlugs));
 
   type LawRow = { id: string; slug: string; title_ar: string | null; source_url: string | null; verified: boolean | null; status?: string | null };
   const lawBySlug = new Map<string, LawRow>(
-    ((lawsData ?? []) as LawRow[]).map((l) => [l.slug, l])
+    ((lawsData ?? []) as LawRow[]).map((l) => [canonicalLawSlug(l.slug), l])
   );
   const lawIds = [
     ...new Set(uniqueSlugs.map((s) => lawBySlug.get(s)?.id).filter(Boolean) as string[]),
@@ -2186,13 +2187,13 @@ async function analyzeCriminalConceptMap(
         const { data: extraLaws } = await supabase
           .from("laws")
           .select("id, slug, title_ar, source_url, verified, status")
-          .in("slug", extraSlugs);
+          .in("slug", expandLawSlugs(extraSlugs));
         const extraLawRows = (extraLaws ?? []) as Array<{
           id: string; slug: string; title_ar: string | null;
           source_url: string | null; verified: boolean | null; status?: string | null;
         }>;
         const extraLawIds = extraLawRows.map((l) => l.id);
-        extraLawRows.forEach((l) => lawBySlug.set(l.slug, l));
+        extraLawRows.forEach((l) => lawBySlug.set(canonicalLawSlug(l.slug), l));
         if (extraLawIds.length) {
           const extraArts = await fetchAllArticlesForLaws<{
             id: string; law_id: string; article_number: string | null;
@@ -3588,7 +3589,7 @@ async function analyzeCaseCore(
             excerptHtml: row.snippet ?? "",
             verified: false,
             slug: row.slug,
-            lawSlug: row.law_slug ?? null,
+            lawSlug: canonicalLawSlug(row.law_slug ?? null),
             sourceUrl: null,
             force: forceOf(row),
             legalStatus: row.legal_status ?? null,
