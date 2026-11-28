@@ -7,6 +7,7 @@ import { LawStatusBadge } from "@/components/LawStatusBadge";
 import { Pagination } from "@/components/Pagination";
 import { ArticleBody } from "@/components/ArticleBody";
 import { SITE_URL, clampDescription, lawStatusWordAr, sourceNameAr } from "@/lib/site";
+import { canonicalLawSlug, lawSlugVariants } from "@/lib/law-slugs";
 
 const ARTICLES_PAGE_SIZE = 30;
 
@@ -42,6 +43,28 @@ function redirectIfMangled(
 }
 
 /**
+ * A law whose slug was corrected (see lib/law-slugs.ts) keeps its old address.
+ * The old address is sent, permanently and with its query string, to the
+ * current one. During the rename the database may still hold the old spelling,
+ * so the page itself looks a law up under every spelling (lawSlugVariants).
+ */
+function redirectIfRenamed(
+  slug: string,
+  searchParams: Record<string, string | string[] | undefined>
+): void {
+  const current = canonicalLawSlug(slug);
+  if (current === slug) return;
+  const query = new URLSearchParams();
+  for (const [key, value] of Object.entries(searchParams)) {
+    for (const v of Array.isArray(value) ? value : value === undefined ? [] : [value]) {
+      query.append(key, v);
+    }
+  }
+  const qs = query.toString();
+  permanentRedirect(`/laws/${current}${qs ? `?${qs}` : ""}`);
+}
+
+/**
  * A title and description of this law alone. Without it every law page
  * inherited the site-wide title, so a search for «قانون المعادن لسنة 2015»
  * had nothing to match against.
@@ -56,6 +79,7 @@ export async function generateMetadata(
   const { slug } = await props.params;
   const searchParams = await props.searchParams;
   redirectIfMangled(slug, searchParams);
+  redirectIfRenamed(slug, searchParams);
   const page = Math.max(1, Number(searchParams.page ?? "1") || 1);
 
   const supabase = await createClient();
@@ -64,7 +88,8 @@ export async function generateMetadata(
     .select(
       "title_ar, title_en, law_number, year_issued, issuing_authority, summary_ar, status, total_articles"
     )
-    .eq("slug", slug)
+    .in("slug", lawSlugVariants(slug))
+    .limit(1)
     .maybeSingle();
 
   if (!law) return { title: "قانون غير موجود", robots: { index: false, follow: true } };
@@ -112,6 +137,7 @@ export default async function LawDetailPage(props: PageProps<"/laws/[slug]">) {
   const { slug } = await props.params;
   const searchParams = await props.searchParams;
   redirectIfMangled(slug, searchParams);
+  redirectIfRenamed(slug, searchParams);
   const locale = await getLocale();
   const supabase = await createClient();
 
@@ -120,7 +146,8 @@ export default async function LawDetailPage(props: PageProps<"/laws/[slug]">) {
     .select(
       "id, title_ar, title_en, slug, law_number, year_issued, date_issued, issuing_authority, summary_ar, status, verified, total_articles, source_url, replaced_by_law_id, source_documents:metadata->source_documents"
     )
-    .eq("slug", slug)
+    .in("slug", lawSlugVariants(slug))
+    .limit(1)
     .maybeSingle();
 
   if (!law) notFound();
